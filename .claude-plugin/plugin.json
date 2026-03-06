@@ -1,0 +1,45 @@
+{
+  "name": "HelpMeTest Skills",
+  "description": "AI-powered test automation skills for comprehensive QA workflows",
+  "version": "1.0.0",
+  "author": "HelpMeTest",
+  "repository": "https://github.com/help-me-test/skills",
+  "license": "MIT",
+  "skills": [
+    {
+      "name": "helpmetest",
+      "path": "./skills/helpmetest",
+      "description": "QA Agency orchestrator for comprehensive test automation"
+    },
+    {
+      "name": "helpmetest-discover",
+      "path": "./skills/helpmetest-discover",
+      "description": "Explore websites to discover features and personas"
+    },
+    {
+      "name": "helpmetest-test-generator",
+      "path": "./skills/helpmetest-test-generator",
+      "description": "Generate Robot Framework tests for features"
+    },
+    {
+      "name": "helpmetest-validator",
+      "path": "./skills/helpmetest-validator",
+      "description": "Validate test quality and score"
+    },
+    {
+      "name": "helpmetest-debugger",
+      "path": "./skills/helpmetest-debugger",
+      "description": "Debug failing tests"
+    },
+    {
+      "name": "helpmetest-self-heal",
+      "path": "./skills/helpmetest-self-heal",
+      "description": "Self-healing test maintenance"
+    },
+    {
+      "name": "helpmetest-visual-check",
+      "path": "./skills/helpmetest-visual-check",
+      "description": "Quick visual verification of design and UI"
+    }
+  ]
+}
