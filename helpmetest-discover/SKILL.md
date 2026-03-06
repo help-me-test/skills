@@ -10,7 +10,9 @@ Explores a website to understand what it does and who uses it.
 
 ## Prerequisites
 
-**MANDATORY:** Call these before creating any artifacts:
+Before creating artifacts, load the authentication guidance and tag schema. These define how to set up test users and how to tag scenarios consistently.
+
+Call these first:
 ```
 how_to({ type: "authentication_state_management" })
 how_to({ type: "tag_schema" })
@@ -20,7 +22,9 @@ how_to({ type: "tag_schema" })
 
 ### Phase 0: Context Discovery
 
-**MANDATORY:** Call `how_to({ type: "context_discovery" })` to check for existing work before asking user for input.
+Check for existing work before asking the user for input. This prevents recreating Persona artifacts that already exist and lets you extend existing ProjectOverview artifacts.
+
+Call `how_to({ type: "context_discovery" })` to see what's already been done.
 
 - Reuse existing Persona artifacts (don't recreate auth)
 - Extend existing ProjectOverview if found
@@ -182,9 +186,9 @@ Use `helpmetest_upsert_artifact`:
 
 ### Phase 4: Create Feature Artifacts with Scenario Enumeration
 
-**MANDATORY FIRST STEP: Create transaction features BEFORE page-level features**
+**Start with transaction features before page-level features**
 
-Before breaking down pages into individual features, identify and create features for complete end-to-end user flows:
+Before breaking down pages into individual features, identify and create features for complete end-to-end user flows. These critical flows prove the core business value works.
 
 Ask: "What multi-step processes exist that users need to complete from start to finish?"
 
@@ -195,9 +199,11 @@ Examples:
 
 Then enumerate page-level features (individual buttons, filters, searches, etc.)
 
-**CRITICAL: This is a two-step process:**
+**This is a two-step process:**
 1. **Create Feature artifact with basic info**
 2. **Explore feature interactively to enumerate ALL test scenarios**
+
+Why two steps? You need the artifact to store what you discover, and you need interactive exploration to find all the scenarios (happy paths, error cases, edge conditions). Skipping the exploration means tests will be blind guesses.
 
 For each capability:
 
@@ -357,9 +363,9 @@ Create scenario for EACH discovered error case:
 - Feature artifacts for each capability
 - Summary of what was discovered
 
-## Tag Schema (REQUIRED)
+## Tag Schema
 
-**Format:** ALL tags MUST use `category:value` format.
+Tags use `category:value` format for consistency and filtering. This lets you query scenarios by priority, feature, or workflow without parsing free-form strings.
 
 ### Required Scenario Tags
 - `priority:X` - REQUIRED. Values: `critical`, `high`, `medium`, `low`

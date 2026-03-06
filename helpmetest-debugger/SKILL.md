@@ -12,7 +12,9 @@ Debugs failing tests to determine root cause and fix.
 
 ## Prerequisites
 
-**MANDATORY:** Before debugging, call:
+Before debugging, load the interactive debugging guide. This shows you how to investigate failures step-by-step instead of guessing.
+
+Call these first:
 ```
 how_to({ type: "interactive_debugging" })
 how_to({ type: "debugging_self_healing" })
@@ -39,9 +41,9 @@ how_to({ type: "debugging_self_healing" })
    - What was the error?
    - What was expected vs actual?
 
-### Phase 2: Reproduce Interactively (CRITICAL - NEVER SKIP THIS)
+### Phase 2: Reproduce Interactively
 
-**MANDATORY:** Use `helpmetest_run_interactive_command` to execute the test manually, step by step.
+**Don't skip this step.** Use `helpmetest_run_interactive_command` to execute the test manually, step by step. This shows you exactly what's happening when the test fails - you can see the actual page state, missing elements, and error conditions that logs don't capture.
 
 1. **Get Persona** for auth_state if needed
 
@@ -118,9 +120,9 @@ If problem is with the test (NOT a bug in the application):
    - Fix expected value (saw actual correct value during investigation)
    - Add missing setup step (discovered required state during investigation)
 
-2. **VALIDATE fix interactively BEFORE updating test** (CRITICAL):
+2. **Validate fix interactively before updating test:**
 
-   Run the COMPLETE corrected flow interactively to prove it works:
+   Run the COMPLETE corrected flow interactively to prove it works. Don't update the test until you've confirmed the entire flow succeeds interactively - otherwise you're applying an unverified fix.
    ```robot
    # Run the FULL test with fixes applied
    As  <auth_state>

@@ -10,9 +10,11 @@ Generates tests for ONE feature at a time.
 
 **Scope:** This skill works on a SINGLE FEATURE. Use `/helpmetest` for comprehensive site testing.
 
-**CRITICAL: This skill is for PHASE 3 (Test Generation) ONLY.**
+**This skill is for PHASE 3 (Test Generation) - use it only after feature discovery is complete.**
 
-**DO NOT use this skill until:**
+Why this matters: Tests written without complete scenario enumeration end up being blind guesses. You need to know what SHOULD happen (from interactive exploration) before you can write a test that verifies it happens.
+
+**Prerequisites before using this skill:**
 - ✅ ALL features have been discovered
 - ✅ ALL scenarios have been enumerated (functional + edge_cases + non_functional)
 - ✅ Features have been explored interactively to discover test scenarios
@@ -22,7 +24,9 @@ Generates tests for ONE feature at a time.
 
 ## Prerequisites
 
-**MANDATORY:** Before generating ANY test, call:
+Before generating tests, load the quality standards and debugging guidance. These define what makes a good test vs a bullshit test, and how to fix failures when they happen.
+
+Call these before starting:
 ```
 how_to({ type: "test_quality_guardrails" })
 how_to({ type: "tag_schema" })
@@ -37,12 +41,14 @@ how_to({ type: "interactive_debugging" })
 
 ### Phase 0: Context Discovery
 
-**MANDATORY:** Call `how_to({ type: "context_discovery" })` to check for existing work before asking user for input.
+Check for existing work before asking the user for input. This prevents redundant questions and lets you resume where you left off.
+
+Call `how_to({ type: "context_discovery" })` to see what's already been done.
 
 - Prioritize features with `status: "untested"`
 - Find scenarios with empty `test_ids` arrays
-- **CRITICAL: Sort scenarios by priority** - `priority:critical` MUST be tested before `priority:high/medium/low`
-- **Validate coverage** - Before claiming "all features tested", verify ALL `priority:critical` scenarios have test_ids
+- **Sort scenarios by priority** - Test `priority:critical` scenarios first. These are the end-to-end flows that prove the core business value works. If you test 10 partial scenarios but skip the 1 critical end-to-end flow, you've missed the most important verification.
+- **Validate coverage before claiming done** - Before saying "all features tested", check that ALL `priority:critical` scenarios have test_ids. Otherwise you're claiming coverage you don't have.
 - If user says "continue"/"next" → auto-select first untested feature with critical scenarios
 
 ### Phase 1: Understand the Feature
@@ -65,19 +71,21 @@ how_to({ type: "interactive_debugging" })
 - Update Feature artifact scenarios with discovered information
 - Then proceed with test generation
 
-**MANDATORY TEST GENERATION ORDER:**
+**Test generation order matters:**
 1. **Generate `priority:critical` scenarios FIRST** - These are end-to-end workflows that verify core business value
 2. **Then generate `priority:high` scenarios** - Important but not mission-critical
 3. **Finally generate `priority:medium/low` scenarios** - Nice-to-have coverage
 
-**CRITICAL vs. PARTIAL test distinction:**
+Why this order? Critical scenarios prove the feature actually works for users. If you test 10 edge cases but never verify the happy path works end-to-end, you've missed the point. Test the core transaction first, then fill in the edges.
+
+**Critical vs. Partial test distinction:**
 - ❌ **PARTIAL test** - "User can view form page" (just navigation, verifies form fields exist)
 - ✅ **CRITICAL test** - "User completes the workflow" (full end-to-end transaction from start to confirmation)
 
-**Before claiming feature is "tested":**
-- ALL `priority:critical` scenarios MUST have `test_ids` populated
-- If ANY critical scenario is untested, feature status is "untested"
-- Don't generate 10 partial tests and skip the 1 critical end-to-end flow
+**Before claiming a feature is "tested":**
+- ALL `priority:critical` scenarios need `test_ids` populated
+- If ANY critical scenario is untested, the feature status is "untested"
+- Don't generate 10 partial tests and skip the 1 critical end-to-end flow - that's false coverage
 
 For each functional scenario (starting with critical), create test using `helpmetest_upsert_test`:
 
@@ -136,7 +144,9 @@ Edge Case: <scenario.name>
 
 ### Phase 4: Validate Test Quality
 
-**MANDATORY:** After creating each test, validate it using `/helpmetest-validator`:
+Every test needs validation before running. This catches bullshit tests early - tests that verify page structure instead of business functionality, or tests that would pass even if the feature is broken.
+
+Validate each test using `/helpmetest-validator`:
 
 1. Pass test ID and feature ID to validator
 2. Validator checks:
@@ -151,7 +161,7 @@ Edge Case: <scenario.name>
 4. **If PASSED:**
    - Continue to Phase 6
 
-**DO NOT SKIP THIS STEP** - all tests must pass validation before running.
+Don't skip validation - running unvalidated tests wastes time when they fail for the wrong reasons or pass when the feature is broken.
 
 ### Phase 5: Link Tests to Scenarios
 
@@ -179,9 +189,9 @@ Update Feature artifact - add test_id to each scenario's test_ids:
    - ✅ Move to next scenario
    - Update scenario status
 
-3. **If test FAILS - Debug interactively (MANDATORY):**
+3. **If test FAILS - Debug interactively:**
 
-   **DO NOT guess or make blind fixes. Use interactive debugging.**
+   Don't guess or make blind fixes. Interactive debugging shows you exactly what's happening on the page when the test fails. Guessing leads to incorrect fixes that hide the real problem.
 
    **Step 6.1: Reproduce failure interactively**
    ```robot
@@ -326,8 +336,9 @@ Update Feature artifact - add test_id to each scenario's test_ids:
 
 ## Test Quality Requirements
 
-**MANDATORY:** Before creating any test, review anti-patterns and quality standards:
+Before creating tests, review what makes a test valuable vs worthless. This prevents writing tests that pass when the feature is broken, or tests that only verify page structure instead of functionality.
 
+Load the quality standards:
 ```
 how_to({ type: "test_quality_guardrails" })
 ```
@@ -346,7 +357,7 @@ This includes:
    - If YES → Test is bullshit, rewrite it
    - If NO → Test is valid
 
-**Test MUST have:**
+**A good test includes:**
 - [ ] 5+ meaningful steps (not just navigation + counting)
 - [ ] Verifies business outcome (data saved, filter applied, order created)
 - [ ] Includes state change verification (before/after comparison OR API response check)
@@ -354,7 +365,7 @@ This includes:
 - [ ] Has proper assertions that would FAIL if feature broken
 - [ ] Was validated interactively first
 
-**Test MUST NOT have:**
+**A bullshit test has:**
 - [ ] Only navigation + element counting
 - [ ] Click without verifying result of click
 - [ ] Form display without testing form submission
@@ -381,11 +392,11 @@ Fill Text  input[name=code]  ${code}
 Delete Email  ${email}
 ```
 
-**NEVER hardcode emails** - always use `Create Fake Email`.
+Always use `Create Fake Email` instead of hardcoding emails. Hardcoded emails cause conflicts when tests run in parallel or multiple times - the second run fails because the email already exists.
 
-## Tag Schema (REQUIRED)
+## Tag Schema
 
-**Format:** ALL tags MUST use `category:value` format.
+Tags use `category:value` format for consistency and filtering. This lets you query tests by priority, feature, or role without parsing free-form strings.
 
 ### Required Test Tags
 - `priority:X` - REQUIRED. Values: `critical`, `high`, `medium`, `low`
