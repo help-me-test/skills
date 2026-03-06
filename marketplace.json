@@ -1,0 +1,40 @@
+{
+  "name": "helpmetest-skills",
+  "owner": {
+    "name": "HelpMeTest",
+    "url": "https://github.com/help-me-test"
+  },
+  "metadata": {
+    "description": "AI-powered test automation skills for Claude Code and other AI agents",
+    "version": "1.0.0",
+    "repository": "https://github.com/help-me-test/skills"
+  },
+  "plugins": [
+    {
+      "name": "HelpMeTest Skills",
+      "source": "./",
+      "description": "7 skills for comprehensive test automation: QA orchestration, website discovery, test generation, test validation, debugging, self-healing, and visual verification.",
+      "version": "1.0.0",
+      "category": "testing",
+      "tags": [
+        "testing",
+        "qa",
+        "automation",
+        "robot-framework",
+        "test-generation",
+        "debugging",
+        "self-healing",
+        "visual-testing"
+      ],
+      "skills": [
+        "./skills/helpmetest",
+        "./skills/helpmetest-discover",
+        "./skills/helpmetest-test-generator",
+        "./skills/helpmetest-validator",
+        "./skills/helpmetest-debugger",
+        "./skills/helpmetest-self-heal",
+        "./skills/helpmetest-visual-check"
+      ]
+    }
+  ]
+}
