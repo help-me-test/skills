@@ -5,7 +5,7 @@
     "url": "https://github.com/help-me-test"
   },
   "metadata": {
-    "description": "AI-powered test automation skills for Claude Code and other AI agents",
+    "description": "AI-powered test automation skills for Claude Code and other AI agents. Includes comprehensive documentation, phase guides, standards, debugging guides, and scenario enumeration patterns.",
     "version": "1.0.0",
     "repository": "https://github.com/help-me-test/skills"
   },
@@ -13,7 +13,7 @@
     {
       "name": "HelpMeTest Skills",
       "source": "./",
-      "description": "7 skills for comprehensive test automation: QA orchestration, website discovery, test generation, test validation, debugging, self-healing, and visual verification.",
+      "description": "8 skills for comprehensive test automation: QA orchestration, website discovery, test generation, test validation, debugging, self-healing, visual verification, and test-driven development (TDD).",
       "version": "1.0.0",
       "category": "testing",
       "tags": [
@@ -33,7 +33,8 @@
         "./helpmetest-validator",
         "./helpmetest-debugger",
         "./helpmetest-self-heal",
-        "./helpmetest-visual-check"
+        "./helpmetest-visual-check",
+        "./tdd"
       ]
     }
   ]
