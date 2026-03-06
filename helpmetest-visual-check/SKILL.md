@@ -1,6 +1,6 @@
 ---
 name: helpmetest-visual-check
-description: Quick visual verification of design, layout, UI elements, styling, or page appearance. Use when user says "check if", "does it look", "verify the design", "see if the button", "is the layout", or wants to visually inspect something on a page.
+description: "Instant visual verification via screenshots. For quick checks like 'does button look blue', 'is layout centered', 'header look right on mobile'. Fast alternative to formal testing - just look and confirm. Use when user wants visual inspection without creating test files."
 argument-hint: [url-or-description]
 allowed-tools: mcp__helpmetest-*
 ---

@@ -1,6 +1,6 @@
 ---
 name: helpmetest-test-generator
-description: "Generate Robot Framework tests for Feature scenarios. Links tests to scenario.test_ids."
+description: "Generate validated tests from discovered scenarios. Use ONLY after feature discovery complete. Use when user says 'generate tests', 'create tests for X', 'write tests', or Feature artifacts have enumerated scenarios ready for test creation. Validates all tests, debugs failures, links to scenarios."
 allowed-tools: mcp__helpmetest-*
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: helpmetest-self-heal
-description: "Self-healing agent: monitors test failures and fixes them autonomously"
+description: "Autonomous test maintenance agent. Monitors test failures and fixes them automatically. Use when user mentions 'fix failing tests', 'heal tests', 'auto-fix', 'monitor test health', or test suite has multiple failures needing systematic repair. Distinguishes fixable test issues from real bugs."
 allowed-tools: mcp__helpmetest-*
 ---
 

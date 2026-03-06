@@ -27,13 +27,13 @@
         "visual-testing"
       ],
       "skills": [
-        "./skills/helpmetest",
-        "./skills/helpmetest-discover",
-        "./skills/helpmetest-test-generator",
-        "./skills/helpmetest-validator",
-        "./skills/helpmetest-debugger",
-        "./skills/helpmetest-self-heal",
-        "./skills/helpmetest-visual-check"
+        "./helpmetest",
+        "./helpmetest-discover",
+        "./helpmetest-test-generator",
+        "./helpmetest-validator",
+        "./helpmetest-debugger",
+        "./helpmetest-self-heal",
+        "./helpmetest-visual-check"
       ]
     }
   ]

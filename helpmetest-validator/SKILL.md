@@ -1,6 +1,6 @@
 ---
 name: helpmetest-validator
-description: "Validate test quality and score. Checks tests meet guardrails, have proper assertions, test real features. Rejects bullshit tests."
+description: "Test quality validator and bullshit detector. Use when validating test quality, checking if test meets standards, scoring tests, or before running newly created tests. Rejects tests that verify page structure instead of business functionality. Use when user asks 'is this test good', 'validate test', 'check quality'."
 allowed-tools: mcp__helpmetest-*
 ---
 

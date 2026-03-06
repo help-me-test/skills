@@ -1,6 +1,6 @@
 ---
 name: helpmetest-discover
-description: "Explore website to discover features and personas. Creates Persona, Feature, and ProjectOverview artifacts."
+description: "Website exploration and feature discovery. Use when user says 'explore this site', 'discover features', 'map out app', 'what does this site do', or needs to understand site capabilities before testing. Creates comprehensive Persona, Feature, and ProjectOverview artifacts with scenario enumeration."
 allowed-tools: mcp__helpmetest-*
 ---
 

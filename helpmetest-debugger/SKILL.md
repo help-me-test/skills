@@ -1,6 +1,6 @@
 ---
 name: helpmetest-debugger
-description: "Debug failing tests. Determines if failure is a bug or test issue. Fixes tests or documents bugs in Feature.bugs."
+description: "Debug failing tests through interactive reproduction. Never guesses - always reproduces step-by-step. Use when test failing, test broken, fix test, element not found, timeout error, test flaky, or need to determine if failure is bug vs test issue."
 allowed-tools: mcp__helpmetest-*
 ---
 
