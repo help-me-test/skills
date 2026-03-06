@@ -34,5 +34,14 @@
       "qa",
       "automation"
     ]
-  }
+  },
+  "skills": [
+    "./helpmetest",
+    "./helpmetest-discover",
+    "./helpmetest-test-generator",
+    "./helpmetest-validator",
+    "./helpmetest-debugger",
+    "./helpmetest-self-heal",
+    "./helpmetest-visual-check"
+  ]
 }
