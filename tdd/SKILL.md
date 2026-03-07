@@ -448,7 +448,38 @@ Syntax errors waste time - catch them before running tests.
 1. Check proxy is running: `ps aux | grep "helpmetest proxy"`
 2. Check local server is running: `curl http://localhost:3000`
 3. Verify proxy output shows: `✓ Proxying localhost -> localhost:3000`
-4. Try restarting proxy: kill the process, run `helpmetest proxy start localhost:3000` again
+4. **Check for IPv4 vs IPv6 binding issue** (most common problem):
+   - Proxy tries to connect to `127.0.0.1:3000` (IPv4)
+   - Many dev servers (Vite, Next.js) bind only to `::1` (IPv6 localhost)
+   - Result: "connect to local service [127.0.0.1:3000] error: connection refused"
+
+   **Fix**: Configure your dev server to listen on `0.0.0.0` (all interfaces):
+
+   ```javascript
+   // Vite (vite.config.js)
+   export default defineConfig({
+     server: {
+       port: 3000,
+       host: '0.0.0.0'  // Add this line
+     }
+   });
+   ```
+
+   ```javascript
+   // Express/Node.js
+   app.listen(3000, '0.0.0.0', () => {
+     console.log('Server on 0.0.0.0:3000');
+   });
+   ```
+
+   ```python
+   # Flask
+   app.run(host='0.0.0.0', port=3000)
+   ```
+
+   After fixing, restart your dev server.
+
+5. Try restarting proxy: kill the process, run `helpmetest proxy start localhost:3000` again
 
 **If app needs specific hostname:**
 
@@ -463,6 +494,33 @@ helpmetest proxy start myapp.local:3000
 ```
 
 Then tests use: `Go To  http://myapp.local`
+
+**If app has separate frontend and backend ports:**
+
+**Current limitation**: Proxy only supports one port per hostname. It cannot route `http://localhost:3000` → port 3000 AND `http://localhost:3001` → port 3001 simultaneously.
+
+**Workaround for now**: Use dev server proxy to route API calls:
+```javascript
+// Vite (vite.config.js)
+export default defineConfig({
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3001'  // Routes /api/* to backend
+    }
+  }
+});
+```
+
+Then:
+1. Proxy only the frontend: `helpmetest proxy start localhost:3000`
+2. Backend runs on localhost:3001 (not proxied)
+3. Frontend proxies `/api` requests to backend locally
+4. Tests use: `Go To  http://localhost` (accesses frontend, which calls backend)
+
+**Future enhancement needed**: Modify proxy to support port-based routing:
+- Register: `tunnel_registry[company]["localhost:3001"] = {"port": 3001}` (store domain:port as key)
+- Route: Match on `f"{host}:{port}"` instead of just `host` in tunnel_plugin.py
+- This would allow: `http://localhost:3000` → port 3000, `http://localhost:3001` → port 3001
 
 ## Tag Schema
 
