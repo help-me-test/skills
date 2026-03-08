@@ -81,28 +81,26 @@ python3 -m http.server 3000
 
 #### Start HelpMeTest Proxy
 
-**Why proxy is needed:** HelpMeTest tests run against URLs. For local development, the proxy tunnels `http://localhost` (or custom hostname) to your local port.
+**Use the helpmetest-proxy skill to set up tunnels:**
 
-**Proxy command format:**
+The proxy skill will guide you through:
+- Choosing the right strategy (single tunnel, separate tunnels, or production substitution)
+- Setting up the tunnel command
+- Verifying it works with curl
+
+**Quick reference:**
 ```bash
-# If app works with localhost hostname:
+# Most common: single tunnel
 helpmetest proxy start localhost:3000
 
-# If app needs specific hostname (for cookies/config/APIs):
-helpmetest proxy start myapp.local:3000
+# Verify before proceeding (use HelpMeTest, not curl)
+helpmetest_run_interactive_command({ command: "Go To  http://localhost" })
+# Should load your local app
 ```
 
-**How it works:**
-- Tests use: `Go To  http://localhost` (or `http://myapp.local`)
-- Proxy routes that to your local port (e.g., 3000)
-- App runs locally, tests access it through proxy
+**Only write tests after proxy is confirmed working.**
 
-**Verify proxy is running:**
-```
-✓ Proxying localhost -> localhost:3000
-```
-
-**Important:** Proxy must stay running. Start it in background before writing tests.
+For detailed proxy setup, troubleshooting, and all strategies, use the helpmetest-proxy skill.
 
 ### Step 4: Write ALL Comprehensive Tests First
 
@@ -167,33 +165,67 @@ Write tests covering:
 
 Use `helpmetest_upsert_test` for **EVERY** test:
 
+**Robot Framework syntax patterns:**
+
 ```robot
-*** Test Cases ***
-User can [accomplish goal]
-    [Documentation]    Given: [precondition] | When: [action] | Then: [expected outcome]
-    [Tags]    priority:critical    feature:[feature-name]    tdd:new-feature
+# Navigate to page
+Go To  http://localhost  timeout=5000
 
-    # Setup
-    As  [auth-state]
-    Go To  http://localhost  timeout=5000  # or http://[custom-hostname]
+# Get text from element
+${text}=  Get Text  [data-testid="some-element"]
 
-    # Given - establish precondition
-    [setup steps]
+# Get attribute value
+${value}=  Get Property  input[name="field"]  value
 
-    # When - perform action
-    [action steps]
+# Click element
+Click  [data-testid="submit-button"]
 
-    # Then - verify outcome
-    [assertions that would FAIL if feature broken]
-    Wait For Response  url=[expected-api-call]  status=200
-    Get Text  [success-indicator]  ==  [expected-message]
+# Fill input field
+Fill Text  input[name="username"]  testuser
 
-    # Verify persistence
-    Reload
-    [verify data persisted]
+# Wait for API response
+Wait For Response  url=**/api/endpoint**  status=200  timeout=5000
+
+# Wait for element state
+Wait For Elements State  [data-testid="result"]  visible  timeout=5000
+
+# Assertions
+Should Be Equal  ${actual}  ${expected}
+Should Be Equal As Numbers  ${num1}  ${num2}
+Should Not Be Empty  ${text}
+
+# Type conversion
+${number}=  Convert To Integer  ${text}
+
+# Reload page
+Reload
+
+# Wait/pause
+Sleep  0.5s
 ```
 
-**Test naming**: Descriptive names like "User can add item to cart and quantity persists after reload"
+**Common test structure:**
+
+```robot
+# Given - Set up initial state
+Go To  http://localhost  timeout=5000
+${initial_state}=  Get Text  [data-testid="element"]
+
+# When - Perform the action being tested
+Click  [data-testid="action-button"]
+Wait For Response  url=**/api/action**  status=200
+
+# Then - Verify the outcome
+${result}=  Get Text  [data-testid="result"]
+Should Be Equal  ${result}  expected_value
+
+# Optional - Verify persistence
+Reload
+${persisted}=  Get Text  [data-testid="element"]
+Should Be Equal  ${persisted}  ${result}
+```
+
+**Test naming**: Descriptive names like "User can submit form and data persists after reload"
 
 **Link tests to Feature artifact**: Add each test ID to the corresponding scenario's `test_ids` array.
 
@@ -213,15 +245,22 @@ User can [accomplish goal]
 Write a test that REPRODUCES the bug:
 
 ```robot
-*** Test Cases ***
-Bug: [Description of bug]
-    [Documentation]    Reproduces bug #123 - [what's broken]
-    [Tags]    priority:critical    feature:[feature]    tdd:bug-fix    bug:123
+# Bug reproduction: Steps that trigger the specific bug
+Go To  http://localhost  timeout=5000
 
-    # Steps that trigger the bug
-    # Expected: [what should happen]
-    # Actual (before fix): [what actually happens - test will fail]
+# Set up the conditions that cause the bug
+${initial_state}=  Get Text  [data-testid="element"]
+
+# Perform the action that triggers the bug
+Click  [data-testid="trigger-button"]
+
+# Expected behavior: what SHOULD happen
+# Actual behavior (before fix): what currently happens (test will FAIL)
+${actual}=  Get Text  [data-testid="result"]
+Should Be Equal  ${actual}  expected_correct_value
 ```
+
+The test will FAIL before the bug is fixed, then PASS after.
 
 ### Step 5: Run All Tests (Expect Failures)
 
@@ -412,16 +451,21 @@ Test coverage ensures:
 
 ❌ Bad test:
 ```robot
-Get Element Count  input[name=quantity]  ==  1  # Just checks element exists
+# Just checks element exists - doesn't verify functionality
+Wait For Elements State  [data-testid="submit-button"]  visible
 ```
 
 ✅ Good test:
 ```robot
-Fill Text  input[name=quantity]  5
-Click  button >> "Update"
-Wait For Response  url=/api/cart/update  status=200
+# Verifies the business outcome - data persists after submission
+Fill Text  input[name="field"]  test_value
+Click  [data-testid="submit-button"]
+Wait For Response  url=**/api/save**  status=200
+
 Reload
-Get Property  input[name=quantity]  value  ==  5  # Verifies persistence
+Wait For Elements State  input[name="field"]  visible
+${value}=  Get Property  input[name="field"]  value
+Should Be Equal  ${value}  test_value
 ```
 
 ### Syntax Checking
@@ -443,63 +487,13 @@ Syntax errors waste time - catch them before running tests.
 
 ### Proxy Troubleshooting
 
-**If tests can't reach localhost:**
+**If tests can't reach your local server:**
 
-1. Check proxy is running: `ps aux | grep "helpmetest proxy"`
-2. Check local server is running: `curl http://localhost:3000`
-3. Verify proxy output shows: `✓ Proxying localhost -> localhost:3000`
-4. **Check for IPv4 vs IPv6 binding issue** (most common problem):
-   - Proxy tries to connect to `127.0.0.1:3000` (IPv4)
-   - Many dev servers (Vite, Next.js) bind only to `::1` (IPv6 localhost)
-   - Result: "connect to local service [127.0.0.1:3000] error: connection refused"
-
-   **Fix**: Configure your dev server to listen on `0.0.0.0` (all interfaces):
-
-   ```javascript
-   // Vite (vite.config.js)
-   export default defineConfig({
-     server: {
-       port: 3000,
-       host: '0.0.0.0'  // Add this line
-     }
-   });
-   ```
-
-   ```javascript
-   // Express/Node.js
-   app.listen(3000, '0.0.0.0', () => {
-     console.log('Server on 0.0.0.0:3000');
-   });
-   ```
-
-   ```python
-   # Flask
-   app.run(host='0.0.0.0', port=3000)
-   ```
-
-   After fixing, restart your dev server.
-
-5. Try restarting proxy: kill the process, run `helpmetest proxy start localhost:3000` again
-
-**If app needs specific hostname:**
-
-Some apps require a specific hostname (not localhost) for:
-- Cookies (set to specific domain)
-- API configuration (hardcoded domain)
-- Authentication callbacks
-
-Solution: Use hostname in proxy command:
-```bash
-helpmetest proxy start myapp.local:3000
-```
-
-Then tests use: `Go To  http://myapp.local`
-
-**If app has separate frontend and backend ports:**
-
-**Current limitation**: Proxy only supports one port per hostname. It cannot route `http://localhost:3000` → port 3000 AND `http://localhost:3001` → port 3001 simultaneously.
-
-**Workaround for now**: Use dev server proxy to route API calls:
+See the helpmetest-proxy skill for complete troubleshooting, including:
+- Verifying proxy is running
+- Checking local server connectivity
+- Fixing common connection issues
+- Choosing the right proxy strategy for your architecture
 ```javascript
 // Vite (vite.config.js)
 export default defineConfig({
