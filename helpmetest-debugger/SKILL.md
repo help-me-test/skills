@@ -1,6 +1,6 @@
 ---
 name: helpmetest-debugger
-description: "Debug failing tests through interactive reproduction. Never guesses - always reproduces step-by-step. Use when test failing, test broken, fix test, element not found, timeout error, test flaky, or need to determine if failure is bug vs test issue."
+description: "When a test is broken and you need to know why, use this skill. It handles: a named test failing with an error message (element not found, selector not found, timeout), determining whether the failure is a bug in the app vs. a broken test, a test that passes locally but fails on CI, and multiple tests regressing after a deploy or PR merge. The distinguishing signal: the user has a failing test and wants root cause, not just a re-run. Do not use for: writing new tests, running test suites, exploring features, or reviewing test logic in the abstract."
 allowed-tools: mcp__helpmetest-*
 ---
 
@@ -12,13 +12,15 @@ Debugs failing tests to determine root cause and fix.
 
 ## Prerequisites
 
-Before debugging, load the interactive debugging guide. This shows you how to investigate failures step-by-step instead of guessing.
+Before debugging, load the project context and debugging guides:
 
-Call these first:
 ```
+how_to({ type: "context_discovery" })
 how_to({ type: "interactive_debugging" })
 how_to({ type: "debugging_self_healing" })
 ```
+
+`context_discovery` tells you which Feature artifact the failing test belongs to, what scenarios are covered, and whether the bug is already known. This prevents documenting a bug that's already in `feature.bugs[]`.
 
 ## Input
 
@@ -32,7 +34,7 @@ how_to({ type: "debugging_self_healing" })
 
 1. **Get test details** using `helpmetest_open_test`
 2. **Get test history** using `helpmetest_status({ id: "test-id", testRunLimit: 10 })`
-3. **Classify failure pattern** (see debugging_self_healing.md patterns):
+3. **Classify failure pattern** (see the self-healing guide loaded above):
    - Selector issue? Timing issue? State issue? API issue? Data issue? **Test isolation?**
    - Refer to pattern categories to identify symptoms and determine root cause
 4. **Get Feature** using `helpmetest_get_artifact`
@@ -100,7 +102,7 @@ how_to({ type: "debugging_self_healing" })
 
 ### Phase 3: Determine Root Cause
 
-Refer to `debugging_self_healing.md` for all failure pattern categories and fixes.
+Refer to the self-healing guide (loaded above via `how_to`) for all failure pattern categories and fixes.
 
 Quick reference:
 - **Test isolation**: Alternating PASS/FAIL + changing error values + shared state → Make idempotent
@@ -201,7 +203,7 @@ After debugging:
 
 ## Self-Healing Patterns
 
-Refer to `debugging_self_healing.md` for all auto-fixable patterns and strategies.
+Refer to the self-healing guide (loaded above via `how_to`) for all auto-fixable patterns and strategies.
 
 ## Critical Rules
 

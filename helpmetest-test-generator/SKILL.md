@@ -1,6 +1,6 @@
 ---
 name: helpmetest-test-generator
-description: "Generate validated tests from discovered scenarios. Use ONLY after feature discovery complete. Use when user says 'generate tests', 'create tests for X', 'write tests', or Feature artifacts have enumerated scenarios ready for test creation. Validates all tests, debugs failures, links to scenarios."
+description: "Use this skill when the user wants tests written for a specific feature or flow. Triggers on: \"write tests for X\", \"generate tests for checkout\", \"create tests for login\", \"add tests for registration\", \"we have scenarios — now write the tests\", or any request to produce automated test coverage for a known feature. Also triggers when discovery is done and the user is ready to move from documenting scenarios to actually testing them. Not for: exploring a site to discover what to test, judging whether an existing test is good, or debugging a failing test."
 allowed-tools: mcp__helpmetest-*
 ---
 
@@ -61,15 +61,29 @@ Call `how_to({ type: "context_discovery" })` to see what's already been done.
    - edge_cases - Boundary conditions
    - bugs - Known broken scenarios (skip these)
 
+### Phase 1.5: Explore Before Writing
+
+Before generating any test, run the scenario interactively using `helpmetest_run_interactive_command`. This isn't optional cleanup for vague scenarios — it's the default workflow for every scenario.
+
+Why: a test written from a scenario description is a hypothesis. A test written after you ran it is a specification. The second kind uses real selectors, reflects actual UI behavior, and fails for the right reasons.
+
+For each scenario (starting with priority:critical):
+
+1. **Authenticate** — `As <auth_state>` to establish the session
+2. **Navigate** — `Go To <scenario.url>` and observe what loads
+3. **Execute the Given** — establish the precondition, confirm it's in place
+4. **Execute the When** — perform the action, observe what happens next
+5. **Verify the Then** — check the outcome. Try the actual assertion selectors.
+6. **For edge cases** — try the invalid input, observe the exact error message and selector
+
+After each interactive run, you have:
+- Confirmed selectors (not guessed `data-testid` attributes that may not exist)
+- Actual timing behavior (know where waits are needed)
+- The real outcome text (not assumed "Success" when it says "Saved")
+
+**If the backend is unavailable:** Fall back to extracting selectors from existing passing tests for the same feature (via `helpmetest_status` with verbose flag). This is the fallback, not the default.
+
 ### Phase 2: Generate Tests for Scenarios
-
-**NOTE: Scenarios were already explored interactively during discovery (Feature Enumeration phase). Now we generate tests based on those scenarios.**
-
-**If scenarios in Feature artifact lack detail (missing selectors, unclear steps):**
-- This means discovery phase wasn't thorough enough
-- Go back and explore the feature interactively to document missing details
-- Update Feature artifact scenarios with discovered information
-- Then proceed with test generation
 
 **Test generation order matters:**
 1. **Generate `priority:critical` scenarios FIRST** - These are end-to-end workflows that verify core business value
@@ -189,136 +203,11 @@ Update Feature artifact - add test_id to each scenario's test_ids:
    - ✅ Move to next scenario
    - Update scenario status
 
-3. **If test FAILS - Debug interactively:**
+3. **If test FAILS - use `/helpmetest-debugger`:**
 
-   Don't guess or make blind fixes. Interactive debugging shows you exactly what's happening on the page when the test fails. Guessing leads to incorrect fixes that hide the real problem.
+   Don't guess or make blind fixes. The debugger skill reproduces failures interactively, identifies whether the problem is a test issue (fixable) or an application bug (document in Feature.bugs), and validates fixes before applying them.
 
-   **Step 6.1: Reproduce failure interactively**
-   ```robot
-   # Run the exact test steps interactively
-   As  <auth_state>
-   Go To  <scenario.url>
-
-   # Execute each step from the test ONE AT A TIME
-   <step 1>
-   # Observe: Did it work? Check the result.
-
-   <step 2>
-   # Observe: Did it work? Check the result.
-
-   <failing step>
-   # Observe: What error? What's the page state?
-   ```
-
-   **Step 6.2: Investigate the exact failure point**
-
-   **If "Element not found":**
-   ```robot
-   # Find what's actually on the page
-   Get Elements  button  # All buttons
-   Get Elements  input  # All inputs
-   Get Elements  [data-testid]  # Test IDs
-   Get Elements  <failing-selector>  # Exact failing selector
-
-   # Try alternate selectors
-   Get Elements  button >> "Submit"
-   Get Elements  button.primary
-   Get Elements  [type="submit"]
-
-   # Document: What selector SHOULD we use?
-   ```
-
-   **If "Click failed" / "Not interactable":**
-   ```robot
-   # Check element state
-   Get Element State  <selector>  visible
-   Get Element State  <selector>  enabled
-
-   # Check if overlapped or need scroll
-   Scroll To Element  <selector>
-   Wait For Elements State  <selector>  enabled  timeout=5000
-
-   # Document: What's needed before click?
-   ```
-
-   **If "Assertion failed" / "Wrong value":**
-   ```robot
-   # Check actual values
-   Get Text  <selector>  # What's actually displayed?
-   Get Attribute  <selector>  value  # What's the actual value?
-
-   # Check page state
-   Get Url  # Right page?
-   Get Elements  .error  # Any errors?
-
-   # Document: Is actual value a bug or did test expect wrong thing?
-   ```
-
-   **If "Timeout" / "No response":**
-   ```robot
-   # Try with longer timeout
-   Wait For Response  url=<expected>  timeout=30000
-
-   # Check if API call happens at all
-   # Check current URL
-   Get Url
-
-   # Check if page is in error state
-   Get Elements  .error
-   Get Text  .error
-
-   # Document: Is app slow or is request failing?
-   ```
-
-   **Step 6.3: Determine root cause**
-
-   Based on interactive investigation:
-   - **Test issue:** Selector wrong, timing issue, wrong expectation → Fix test
-   - **Application bug:** Feature broken, returns error, doesn't save → Document bug
-
-   **Step 6.4A: If TEST issue - Fix and validate interactively**
-   ```robot
-   # Run COMPLETE corrected flow to prove it works
-   As  <auth_state>
-   Go To  <url>
-
-   # All steps with corrections applied
-   Fill Text  <CORRECTED-selector>  <value>
-   Wait For Elements State  <button>  enabled  # ADDED wait
-   Click  <button>
-   Wait For Response  url=/api/save  status=200  # ADDED verification
-   Get Text  .success  ==  Data saved  # CORRECTED expected value
-
-   # Verify persistence
-   Reload
-   Get Attribute  <selector>  value  ==  <value>
-   ```
-
-   **→ Only update test when ENTIRE flow works interactively**
-
-   **Step 6.4B: If APPLICATION bug - Document in Feature.bugs**
-   ```json
-   {
-     "name": "Brief bug description",
-     "given": "Precondition from scenario",
-     "when": "Action from scenario",
-     "then": "Expected from scenario",
-     "actual": "What actually happens (from interactive investigation)",
-     "severity": "blocker|critical|major|minor",
-     "test_ids": ["test-id"],
-     "tags": ["priority:high", "severity:critical"]
-   }
-   ```
-
-   **Step 6.5: Update test with fixes (if test issue)**
-   - Use `helpmetest_upsert_test` with validated corrections
-   - Re-run test to confirm it passes
-   - If still fails, return to Step 7.1
-
-   **Step 6.6: Verify fix**
-   - Run test again
-   - Confirm it passes
-   - If fails, repeat debugging process
+   Pass it: the failing test ID, the error message, and the Feature artifact ID.
 
 4. **Update Feature.status** based on results:
    - All tests pass → "working"
@@ -393,30 +282,6 @@ Delete Email  ${email}
 ```
 
 Always use `Create Fake Email` instead of hardcoding emails. Hardcoded emails cause conflicts when tests run in parallel or multiple times - the second run fails because the email already exists.
-
-## Tag Schema
-
-Tags use `category:value` format for consistency and filtering. This lets you query tests by priority, feature, or role without parsing free-form strings.
-
-### Required Test Tags
-- `priority:X` - REQUIRED. Values: `critical`, `high`, `medium`, `low`
-
-### Allowed Test Tags
-- `project:X` - ProjectOverview ID (e.g., `project:evershop`, `project:qa-playground-hub`)
-- `feature:X` - Feature area (e.g., `feature:login`, `feature:cart`, `feature:checkout`)
-- `role:X` - Persona type (e.g., `role:customer`, `role:admin`, `role:qa-engineer`)
-- `url:X` - Associated URL (e.g., `url:playground.helpmetest.com`)
-
-### Invalid Tags (DO NOT USE)
-❌ Flat tags: `critical`, `e2e`, `login`
-❌ Wrong separators: `feature_login`, `priority-high`
-❌ Wrong case: `Priority:Critical`, `FEATURE:LOGIN`
-❌ Invalid categories: `type:`, `platform:`, `browser:`, `scenario:`, `status:`
-
-### Valid Example
-```robot
-[Tags]    priority:critical    feature:login    project:evershop
-```
 
 ## Critical Rules
 

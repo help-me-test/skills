@@ -1,6 +1,6 @@
 ---
 name: helpmetest-discover
-description: "Website exploration and feature discovery. Use when user says 'explore this site', 'discover features', 'map out app', 'what does this site do', or needs to understand site capabilities before testing. Creates comprehensive Persona, Feature, and ProjectOverview artifacts with scenario enumeration."
+description: "Use this skill when the user doesn't yet know what to test. This is the \"learn the site first\" step — for unfamiliar websites, new projects, or any situation where Feature/Persona artifacts don't exist yet. Use when the user: gives a URL with no specific test in mind, asks what features or flows a site has, wants to explore or walk through a site, is new to a project, or says \"explore before we test\". Also use for bare \"test [URL]\" commands with no further context. Do not use when Feature artifacts already exist or the user references specific known tests or bugs."
 allowed-tools: mcp__helpmetest-*
 ---
 
@@ -362,41 +362,6 @@ Create scenario for EACH discovered error case:
 - ProjectOverview artifact with persona_ids, capabilities
 - Feature artifacts for each capability
 - Summary of what was discovered
-
-## Tag Schema
-
-Tags use `category:value` format for consistency and filtering. This lets you query scenarios by priority, feature, or workflow without parsing free-form strings.
-
-### Required Scenario Tags
-- `priority:X` - REQUIRED. Values: `critical`, `high`, `medium`, `low`
-
-### Recommended Scenario Tags
-- `feature:X` - Feature area (e.g., `feature:authentication`, `feature:checkout`)
-- `scenario:X` - Values: `happy-path`, `error-handling`, `edge-case`
-- `workflow:X` - User journey (e.g., `workflow:purchase-flow`, `workflow:onboarding`)
-- `role:X` - Required role (e.g., `role:admin`, `role:user`, `role:guest`)
-- `project:X` - Links to ProjectOverview (e.g., `project:project-evershop`)
-- `severity:X` - For bugs. Values: `blocker`, `critical`, `major`, `minor`, `trivial`
-
-### Invalid Tags (DO NOT USE)
-❌ Flat tags: `critical`, `authentication`, `happy-path`
-❌ Wrong separators: `feature_auth`, `scenario-happy-path`
-❌ Made-up categories: `type:feature`, `category:auth`, `site:example`
-
-### Valid Examples
-Scenario tags:
-```json
-{
-  "tags": ["priority:critical", "feature:authentication", "scenario:happy-path", "role:user", "project:project-evershop"]
-}
-```
-
-Bug tags:
-```json
-{
-  "tags": ["priority:high", "severity:major", "feature:checkout", "scenario:error-handling"]
-}
-```
 
 ## Critical Rules
 

@@ -1,0 +1,11 @@
+# Skill evaluation workspaces (generated during skill development/testing)
+*-workspace/
+
+# Trigger optimization workspace
+trigger-opt-workspace/
+
+# Trigger eval sets stored inside skill directories
+*/trigger-evals/
+
+# Skill development eval sets (not user-facing)
+*/evals/

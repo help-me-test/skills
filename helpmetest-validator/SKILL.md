@@ -1,6 +1,6 @@
 ---
 name: helpmetest-validator
-description: "Test quality validator and bullshit detector. Use when validating test quality, checking if test meets standards, scoring tests, or before running newly created tests. Rejects tests that verify page structure instead of business functionality. Use when user asks 'is this test good', 'validate test', 'check quality'."
+description: "Invoke this skill when a user shares test code and questions whether it actually works as intended — not to run or fix the test, but to evaluate whether the test has real value. Triggers on: \"is this test any good?\", \"would this catch a real bug?\", \"this test always passes — is that normal?\", \"review these tests before I commit\", or \"does this test verify anything meaningful?\". Also triggers when someone suspects a test is useless, wants a pre-commit quality gate, or is unsure if an auto-generated test is worth keeping. The core question this skill answers: \"Would this test fail if the feature broke?\" If not, the test gets rejected. Do NOT use for generating new tests, fixing failing tests, or exploring application features."
 allowed-tools: mcp__helpmetest-*
 ---
 
@@ -10,7 +10,12 @@ Validates and scores test quality. Rejects tests that don't meet quality standar
 
 ## Prerequisites
 
-**MANDATORY:** Call `how_to({ type: "test_quality_guardrails" })` to load quality criteria.
+```
+how_to({ type: "context_discovery" })
+how_to({ type: "test_quality_guardrails" })
+```
+
+`context_discovery` identifies the Feature artifact the test should link to. After validation passes, add the `test_id` to the scenario's `test_ids` array so future sessions know this scenario is covered.
 
 ## Input
 

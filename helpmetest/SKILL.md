@@ -95,13 +95,16 @@ how_to({ type: "interactive_debugging" })
 **When user runs /helpmetest, start here:**
 
 1. **Understand available capabilities** - You have these sub-skills:
+   - `/helpmetest-context` - Discover existing artifacts and link new work back
    - `/helpmetest-discover` - Discover and explore site
    - `/helpmetest-test-generator` - Generate tests for a feature
    - `/helpmetest-validator` - Validate tests and score quality
    - `/helpmetest-debugger` - Debug failing tests
    - `/helpmetest-self-heal` - Self-healing test maintenance
 
-2. **Present the process** to the user in your own words:
+2. **Check context first** using `/helpmetest-context` — find existing ProjectOverview, Personas, and Features before doing any work.
+
+3. **Present the process** to the user in your own words:
 
    ```markdown
    # QA Testing Process
@@ -312,13 +315,5 @@ All detailed standards are in `references/standards/`:
 - **Definition of Done:** Read `references/standards/definition-of-done.md`
   - Complete checklist with ALL numbers required
   - Provide these numbers before claiming "done" - vague reports hide coverage gaps
-
-## Sub-Skills
-
-- `/helpmetest-discover` - Discover and explore site
-- `/helpmetest-test-generator` - Generate tests for a feature
-- `/helpmetest-validator` - Validate tests and score quality
-- `/helpmetest-debugger` - Debug failing tests
-- `/helpmetest-self-heal` - Self-healing test maintenance
 
 **Version:** 0.1

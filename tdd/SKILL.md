@@ -487,34 +487,11 @@ Syntax errors waste time - catch them before running tests.
 
 ### Proxy Troubleshooting
 
-**If tests can't reach your local server:**
-
-See the helpmetest-proxy skill for complete troubleshooting, including:
+**If tests can't reach your local server**, use the `/helpmetest-proxy` skill for complete troubleshooting:
 - Verifying proxy is running
 - Checking local server connectivity
 - Fixing common connection issues
-- Choosing the right proxy strategy for your architecture
-```javascript
-// Vite (vite.config.js)
-export default defineConfig({
-  server: {
-    proxy: {
-      '/api': 'http://localhost:3001'  // Routes /api/* to backend
-    }
-  }
-});
-```
-
-Then:
-1. Proxy only the frontend: `helpmetest proxy start localhost:3000`
-2. Backend runs on localhost:3001 (not proxied)
-3. Frontend proxies `/api` requests to backend locally
-4. Tests use: `Go To  http://localhost` (accesses frontend, which calls backend)
-
-**Future enhancement needed**: Modify proxy to support port-based routing:
-- Register: `tunnel_registry[company]["localhost:3001"] = {"port": 3001}` (store domain:port as key)
-- Route: Match on `f"{host}:{port}"` instead of just `host` in tunnel_plugin.py
-- This would allow: `http://localhost:3000` → port 3000, `http://localhost:3001` → port 3001
+- Choosing the right proxy strategy (including setups where a frontend dev server already proxies the backend internally, e.g. Vite's `server.proxy` config)
 
 ## Tag Schema
 
@@ -544,92 +521,6 @@ Also include standard tags:
 
 ## Example: Complete TDD Flow
 
-**User**: "Add a wishlist feature where users can save items for later"
-
-**TDD Agent**:
-
-```
-Step 1: Understanding requirements
-- Add items to wishlist
-- View wishlist
-- Remove from wishlist
-- Persist across sessions
-
-Step 2: Setting up local development
-Is your app running on localhost? What port?
-
-Step 3: Starting proxy
-$ helpmetest proxy start localhost:3000
-✓ Proxying localhost -> localhost:3000
-
-Step 4: Creating Feature artifact...
-[creates feature-wishlist artifact]
-
-Step 5: Writing ALL tests (not implementing yet!)
-
-Tests to write:
-1. ✅ Add item to wishlist (priority:critical)
-2. ✅ View wishlist items (priority:critical)
-3. ✅ Remove from wishlist (priority:critical)
-4. ✅ Empty wishlist shows message (priority:medium)
-5. ✅ Cannot add duplicate items (priority:high)
-6. ✅ Wishlist persists after reload (priority:critical)
-7. ✅ Add fails gracefully if API error (priority:medium)
-8. ✅ Wishlist has max 100 items (priority:low)
-
-Writing all 8 tests now...
-[creates all 8 tests with helpmetest_upsert_test]
-
-✅ 8 tests written. Running them...
-[runs all tests]
-
-Expected results:
-❌ All 8 tests failing (feature not implemented)
-
-This is GOOD! Tests show exactly what to build.
-
-Step 6: Starting implementation...
-
-Next: Make "Add item to wishlist" pass
-
-Checking syntax...
-✅ Syntax OK
-
-Implementing add functionality...
-[writes code]
-
-Running test...
-✅ Test passes!
-
-Next: Make "View wishlist items" pass
-[implements]
-[checks syntax]
-[runs test]
-✅ Test passes!
-
-[continues until all 8 tests pass]
-
-✅ All 8 tests passing!
-
-Reviewing for missing edge cases...
-Found gap: What if user adds item while offline?
-
-Writing test for offline scenario...
-[writes test]
-❌ Test fails as expected
-[implements offline handling]
-[checks syntax]
-✅ Test passes!
-
-✅ All 9 tests passing!
-✅ No other edge cases found
-✅ Feature complete!
-
-Summary:
-- 9 tests written (4 critical, 3 high, 2 medium)
-- All tests passing ✅
-- Covers happy paths, edge cases, and persistence
-- Offline handling implemented
-```
+See `references/examples/wishlist-example.md` for a complete walkthrough of adding a wishlist feature using TDD — covering proxy setup, test creation, incremental implementation, and edge case discovery.
 
 **Version:** 0.1
