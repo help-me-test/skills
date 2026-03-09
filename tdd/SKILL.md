@@ -24,7 +24,30 @@ Use for ANY code change that affects user-facing behavior:
 
 ### Step 1: Understand What Needs to Change
 
-Ask the user:
+Before asking the user questions, scan the conversation and codebase for answers — most of these are already there.
+
+**Read conversation context:**
+- What was the user building or discussing? → answers "what's changing"
+- Any feature description, bug report, or user story mentioned? → answers "expected behavior"
+- Any URL, port number, or server command visible? → answers URL/port and hostname
+
+**Check what code is in-flight:**
+```bash
+git diff --stat HEAD
+git status --short
+```
+If files are already modified, this tells you what feature is being built and which part of the stack is affected (frontend components → UI feature, API routes → backend feature, auth files → auth flow).
+
+**Synthesize and confirm** rather than ask from scratch. Instead of four open questions, present what you inferred and let the user correct:
+```
+Based on our conversation, it looks like you're [building X / fixing bug Y / refactoring Z].
+I'll write tests for [expected behavior] against [URL/port].
+Does that sound right, or anything to adjust?
+```
+
+Only fall back to asking individual questions if the conversation gives no signal.
+
+Original questions for reference (use only what context doesn't already answer):
 1. **What's changing?** (new feature / refactoring / bug fix / enhancement)
 2. **What's the expected behavior?** (what should work after the change)
 3. **What URL/port is affected?** (localhost:3000? production URL?)

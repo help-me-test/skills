@@ -23,6 +23,17 @@ Use `context_discovery` to find the existing SelfHealing artifact (if any) and r
 
 ## Startup: Fix Existing Failures
 
+**Before scanning all tests blindly, check what recently changed in the codebase.** This lets you prioritize the most likely failures first and skip unrelated ones.
+
+```bash
+git diff --stat HEAD
+git log --oneline -5
+```
+
+Map changed file paths to feature domains (e.g., `components/Checkout` → `feature:checkout`, `auth/session.js` → `feature:auth`). Then when you fetch failing tests, sort them: tests tagged with a matching `feature:X` get investigated first. Tests in unrelated features are deprioritized — they may be failing for a different reason entirely.
+
+If no git repository exists or no recent changes, proceed with the standard full scan below.
+
 On startup, check all tests for failures:
 
 1. Get list of all failing tests using `helpmetest_status`

@@ -28,6 +28,31 @@ how_to({ type: "debugging_self_healing" })
 - Error message/logs
 - Feature artifact the test belongs to
 
+Before asking the user for any of these, scan the conversation — they're almost always already there.
+
+## Context Reading (do this before Phase 1)
+
+Scan the conversation history for:
+- **Test ID**: any mention of a test name, test ID, or a test runner output block → use it directly, don't ask
+- **Error message**: any stack trace, "Element not found", timeout message, or assertion failure → pre-classify the failure type before loading test details
+- **Feature domain**: any mention of the feature being tested (e.g., "the login test broke") → pre-load the matching Feature artifact
+
+Then check what code recently changed:
+```bash
+git diff --stat HEAD
+git log --oneline -5
+```
+
+Map changed files to likely failure causes:
+- Selector-heavy files (`components/`, `pages/`, template files) → likely selector changes
+- Auth/session files → likely auth state or session issues
+- API route files → likely backend errors or changed response shapes
+- Config or env files → likely timing or environment issues
+
+Use this to **pre-classify** the failure pattern before any interactive investigation. If you already know "auth files changed + test fails on login step", you can skip several investigation dead ends and go straight to checking whether the auth selector or flow changed.
+
+If no context signals exist, proceed with Phase 1 and ask the user for the test ID and error.
+
 ## Workflow
 
 ### Phase 1: Understand the Failure

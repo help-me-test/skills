@@ -104,6 +104,35 @@ how_to({ type: "interactive_debugging" })
 
 2. **Check context first** using `/helpmetest-context` — find existing ProjectOverview, Personas, and Features before doing any work.
 
+2.5. **Read conversation and code context** — gather signals to personalize your proposal before showing the user a menu.
+
+   a) **Scan the conversation history** for:
+      - URLs mentioned → candidate site or page to test
+      - Error messages / stack traces → regression scenario (the bug was just fixed, lock it in)
+      - "I deployed", "I released", "I pushed" → smoke test the deployment
+      - Feature descriptions or user stories → acceptance tests for the new flow
+      - Bug discussions or issue references → regression prevention tests
+
+   b) **Check uncommitted code changes:**
+      ```bash
+      git status --short
+      git diff --stat HEAD
+      ```
+      Map changed file paths to feature domains:
+      - `auth/`, `login/`, `session/` → auth / login feature
+      - `checkout/`, `cart/`, `order/` → checkout feature
+      - `api/`, `routes/`, `server/` → API / backend feature
+      - `components/`, `pages/`, `src/` → UI feature (narrow by filename)
+      - Any changed files → search for an existing Feature artifact with a matching `feature:X` tag
+
+   c) **Synthesize ONE recommendation** — the single most relevant thing to do right now:
+      - Bug was discussed → regression test to lock in the fix
+      - Files were changed → tests for the changed components
+      - Deployment just happened → smoke tests to verify it landed
+      - New feature was described → acceptance tests for the new flow
+      - URL was mentioned → targeted test of that URL/page
+      - No signals → fall back to the generic menu without a recommendation
+
 3. **Present the process** to the user in your own words:
 
    ```markdown
@@ -153,9 +182,21 @@ how_to({ type: "interactive_debugging" })
    - I'll ask questions if I find ambiguous behavior
    ```
 
-4. **Offer menu of options:**
+4. **Offer menu of options** — lead with your recommendation if you found context signals:
+
+   If you identified a recommendation in step 2.5, open with it before the menu:
+   ```
+   Based on our conversation, I can see you were [what you observed — e.g., "fixing a bug in the auth flow" / "deploying a new release" / "working on the checkout page"].
+
+   → Recommended: [specific action, e.g., "Write a regression test for the auth bug so it can't come back"]
+     [One sentence explaining why this is the right move now]
+   ```
+
+   Then present the full menu:
    ```
    What would you like to do?
+
+   * (Recommended) [Context-specific option if signals found]
 
    1. 🚀 Full test automation
       → Test <URL> comprehensively (discovery + features + tests + report)

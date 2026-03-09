@@ -45,6 +45,35 @@ Check for existing work before asking the user for input. This prevents redundan
 
 Call `how_to({ type: "context_discovery" })` to see what's already been done.
 
+**Before asking the user which feature to test, read conversation and code context to propose the right one:**
+
+a) **Scan the conversation history** for:
+   - Feature or component names mentioned (e.g., "I fixed the registration form") → that's the feature to test
+   - Bug descriptions or error messages → regression test for whatever was just broken
+   - A URL or page the user was working on → look for a Feature artifact covering that page
+
+b) **Check uncommitted code changes:**
+   ```bash
+   git status --short
+   git diff --stat HEAD
+   ```
+   Map changed file paths to a feature domain (e.g., `auth/` → auth, `checkout/` → checkout, `components/ProfileForm.jsx` → profile). Then search for an existing Feature artifact with a matching `feature:X` tag using `helpmetest_search_artifacts`.
+
+c) **If a matching Feature artifact is found** → propose it:
+   ```
+   Based on our conversation, you were working on [what you saw].
+   I found Feature artifact [name] — want me to generate tests for it?
+   ```
+
+d) **If no matching Feature artifact exists** → propose creating one first:
+   ```
+   I don't see a Feature artifact for [domain] yet.
+   I'd suggest: first run /helpmetest-discover to enumerate the scenarios, then come back here to generate tests.
+   Or I can create a basic Feature artifact now based on what we discussed — want me to do that?
+   ```
+
+e) **If no context signals at all** → fall back to standard selection:
+
 - Prioritize features with `status: "untested"`
 - Find scenarios with empty `test_ids` arrays
 - **Sort scenarios by priority** - Test `priority:critical` scenarios first. These are the end-to-end flows that prove the core business value works. If you test 10 partial scenarios but skip the 1 critical end-to-end flow, you've missed the most important verification.

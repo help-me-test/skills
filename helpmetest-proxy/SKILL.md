@@ -19,6 +19,39 @@ HelpMeTest tests run against URLs (http://localhost, http://my.app.com). For loc
 - Routing frontend and backend on different ports
 - Before writing or running any local tests
 
+## Context Reading (do this before asking the user for ports)
+
+Before showing the generic setup, scan the conversation and project for port information:
+
+**a) Check the conversation history for:**
+- Port numbers mentioned directly (e.g., "running on 3000", "localhost:8080", "port 5173")
+- Server startup commands the user ran (e.g., `npm run dev`, `python manage.py runserver 8080`, `node server.js --port 4000`, `./h devspace dev`)
+- URLs pasted by the user (e.g., `http://localhost:5001`) → extract the port
+
+**b) Check common project config files for the dev port:**
+```bash
+# package.json scripts may reveal the port
+cat package.json 2>/dev/null | grep -E '"(dev|start|serve)"'
+
+# Vite config
+cat vite.config.* 2>/dev/null | grep -i port
+
+# webpack, next.config, etc.
+cat next.config.* 2>/dev/null | grep -i port
+```
+
+**c) If you found a port**, propose the specific command instead of the generic template:
+```
+Based on our conversation, your app is running on port [PORT].
+Here's the proxy command to use:
+
+  helpmetest proxy start localhost:[PORT]
+
+Want me to run that?
+```
+
+**d) If no port is found**, fall through to the Quick Start below and ask the user.
+
 ## Quick Start
 
 **Basic setup:**
