@@ -119,6 +119,18 @@ gh run view <run-id> --log-failed
 
 **Known expected failure**: The workflow may fail on "Restart installer deployment" with a `Forbidden` error — this is a known namespace permission issue and is safe to ignore. Proceed to step 8.
 
+**Known failure — artifact storage quota**: The `Upload binaries` step may fail with "Artifact storage quota has been hit." This happens because old artifacts from previous runs accumulate and are never auto-deleted. Fix it by deleting all old artifacts, then re-running:
+
+```bash
+# Delete all stored artifacts to free quota
+gh api repos/help-me-test/cli-code/actions/artifacts --paginate --jq '.artifacts[].id' | while read id; do
+  gh api -X DELETE repos/help-me-test/cli-code/actions/artifacts/$id
+done
+
+# Re-run the failed workflow
+gh run rerun <run-id>
+```
+
 If the failure is unexpected (build error, test failure, etc.), stop and investigate before continuing.
 
 ## Step 8: Clear the installer cache
