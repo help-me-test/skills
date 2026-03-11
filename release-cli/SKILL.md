@@ -119,17 +119,19 @@ gh run view <run-id> --log-failed
 
 **Known expected failure**: The workflow may fail on "Restart installer deployment" with a `Forbidden` error — this is a known namespace permission issue and is safe to ignore. Proceed to step 8.
 
-**Known failure — artifact storage quota**: The `Upload binaries` step may fail with "Artifact storage quota has been hit." This happens because old artifacts from previous runs accumulate and are never auto-deleted. Fix it by deleting all old artifacts, then re-running:
+**Known failure — artifact storage quota**: The `Upload binaries` step may fail with "Artifact storage quota has been hit." GitHub recalculates usage every 6-12 hours, so deleting artifacts and re-running won't help immediately. **Fall back to building and publishing locally instead:**
 
 ```bash
-# Delete all stored artifacts to free quota
-gh api repos/help-me-test/cli-code/actions/artifacts --paginate --jq '.artifacts[].id' | while read id; do
-  gh api -X DELETE repos/help-me-test/cli-code/actions/artifacts/$id
-done
+cd cli
 
-# Re-run the failed workflow
-gh run rerun <run-id>
+# Build all platform binaries (bun cross-compiles from macOS)
+./build.sh
+
+# Publish to both GitHub repos
+GITHUB_TOKEN=<token-from-workflow-file> ./publish.sh
 ```
+
+The `GITHUB_TOKEN` value is in `.github/workflows/build-release.yml`. This produces the same result as CI — all 8 platform binaries published to both `help-me-test/cli-code` and `help-me-test/cli`. Note: macOS `.pkg` installers won't be rebuilt (requires Apple signing secrets) — existing ones from a previous release will be attached instead.
 
 If the failure is unexpected (build error, test failure, etc.), stop and investigate before continuing.
 
