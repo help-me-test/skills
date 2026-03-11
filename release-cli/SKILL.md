@@ -127,11 +127,14 @@ cd cli
 # Build all platform binaries (bun cross-compiles from macOS)
 ./build.sh
 
+# Build signed macOS .pkg installers (signing keys are in the repo)
+APPLE_ID=<apple-id> APPLE_APP_PASSWORD=<app-password> APPLE_TEAM_ID=<team-id> ./build-pkg.sh
+
 # Publish to both GitHub repos
 GITHUB_TOKEN=<token-from-workflow-file> ./publish.sh
 ```
 
-The `GITHUB_TOKEN` value is in `.github/workflows/build-release.yml`. This produces the same result as CI — all 8 platform binaries published to both `help-me-test/cli-code` and `help-me-test/cli`. Note: macOS `.pkg` installers won't be rebuilt (requires Apple signing secrets) — existing ones from a previous release will be attached instead.
+The `GITHUB_TOKEN` value is in `.github/workflows/build-release.yml`. The Apple credentials (`APPLE_ID`, `APPLE_APP_PASSWORD`, `APPLE_TEAM_ID`) are GitHub secrets — check 1Password or ask. The signing certs and keys (`developerID_*.cer`, `DeveloperID*.key`) are already in the `cli/` directory. This produces the exact same result as CI including signed macOS installers.
 
 If the failure is unexpected (build error, test failure, etc.), stop and investigate before continuing.
 
