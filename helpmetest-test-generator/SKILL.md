@@ -105,8 +105,6 @@ For each scenario (starting with priority:critical):
 5. **Verify the Then** — check the outcome. Try the actual assertion selectors.
 6. **For edge cases** — try the invalid input, observe the exact error message and selector
 
-**Email fields during exploration:** Always use `Create Fake Email` or `Create Email And Fill` — never hardcode `test@example.com`. Hardcoded emails break on second run (account already exists), making exploration results unreliable.
-
 After each interactive run, you have:
 - Confirmed selectors (not guessed `data-testid` attributes that may not exist)
 - Actual timing behavior (know where waits are needed)

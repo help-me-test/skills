@@ -55,29 +55,6 @@ Get Elements  .error
 Get Text  .error
 ```
 
-### Using FakeMail During Investigation
-
-When exploring forms that require email addresses, **never hardcode emails** — use `Create Fake Email`:
-
-```robot
-# Generate a real fakemail address for the session
-${email}=    Create Fake Email
-Fill Text    input[name='email']    ${email}
-# or use the combo keyword:
-${email}=    Create Email And Fill    input[name='email']
-```
-
-Why this matters during investigation too:
-- Hardcoded emails like `test@example.com` fail on repeat runs (account already exists)
-- `Create Fake Email` gives you a real, unique address each time — verification codes actually arrive
-- Keeps investigation reproducible and independent of prior state
-
-If you need a verification code sent to the email:
-```robot
-${code}=    Get Email Verification Code    ${email}
-Fill Text    input[name='code']    ${code}
-```
-
 ### Checking API Calls
 
 ```robot
