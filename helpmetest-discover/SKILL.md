@@ -243,6 +243,29 @@ Go To  <feature-url>
 # Document what worked and what the result was
 ```
 
+**Registration/email features — full flow:**
+
+If the feature involves creating an account or submitting an email, use `Create Fake Email`. Never hardcode emails — they fail on second run (account already exists).
+
+```robot
+# Create a unique email for this exploration run
+${email}=    Create Fake Email
+# or fill the field in one step:
+${email}=    Create Email And Fill    input[name='email']
+
+# Complete registration
+Fill Text    input[name='password']    SecureTest123!
+Click    button[type='submit']
+
+# If email verification is required, retrieve the code:
+${code}=    Get Email Verification Code    ${email}
+Fill Text    input[name='code']    ${code}
+Click    button >> "Verify"
+
+# Cleanup (optional during exploration, required in tests)
+Delete Email    ${email}
+```
+
 Create scenario for each discovered path:
 ```json
 {
@@ -293,9 +316,15 @@ Fill Text  <selector>  -1
 
 **Duplicate entries:**
 ```robot
-# Try duplicate username/email/identifier
-Fill Text  <selector>  <existing-value>
-# Document conflict handling
+# Register once with a fake email, then try again with the same email
+${email}=    Create Fake Email
+Create Email And Fill    input[name='email']
+Click    button[type='submit']
+# Now try to register again with the same email — observe conflict error
+Create Email And Fill    input[name='email']    # reuse same ${email}
+Fill Text    input[name='email']    ${email}
+Click    button[type='submit']
+# Document: What error appears? Is it clear? Does state stay consistent?
 ```
 
 **Permission errors:**
