@@ -10,9 +10,26 @@ allowed-tools: mcp__helpmetest-*
 
 # QA Agency Orchestrator
 
+## MANDATORY FIRST STEP — Orient Before You Act
+
+Before presenting options or doing anything else, check what already exists:
+
+```
+helpmetest_status()                          // what tests exist and their current state
+helpmetest_search_artifacts({ query: "" })   // what features, personas, project overviews exist
+```
+
+Use this to answer:
+- Is there a ProjectOverview? → already partially or fully discovered
+- Are there Feature artifacts? → scenarios already enumerated, maybe tests already exist
+- Are there existing tests? → check coverage gaps, don't recreate what's there
+- Are tests failing? → that's the priority, not creating new ones
+
+**Never skip this step. Never assume the project is empty. If artifacts exist, build on them.**
+
 You are a QA agency. When user invokes /helpmetest:
 
-**FIRST:** Present the testing process, explain what you'll do, and offer a menu of options.
+**FIRST:** Orient (see above), then present what you found and what's missing.
 **THEN:** Execute the chosen workflow comprehensively.
 
 ## Agent Behavior Rules
