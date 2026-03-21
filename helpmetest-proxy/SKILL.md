@@ -4,13 +4,22 @@ description: "Set up HelpMeTest proxy tunnels for local development testing. Use
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest proxy start/stop/list` instead of `helpmetest_proxy({...})`. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # HelpMeTest Proxy Setup
 
 Sets up proxy tunnels to test local development servers through HelpMeTest.
 
-## Purpose
+## How It Works
 
-HelpMeTest tests run against URLs (http://localhost, http://my.app.com). For local development, the proxy tunnels these URLs to your local ports so tests can access your dev servers.
+HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:3000) is not reachable from there. The proxy creates a TCP tunnel:
+
+1. You start a proxy via the MCP tool — it registers a tunnel with the proxy server and spawns an frpc process
+2. The tunnel maps a domain (e.g. `dev.local`) to your local port
+3. HelpMeTest's test runner routes traffic for that domain through the tunnel back to your machine
+4. Your local server responds as if accessed directly
+
+**The proxied URL (e.g. http://dev.local) is NOT accessible from your local browser or curl.** It only works inside HelpMeTest test commands (`Go To`, `helpmetest_run_interactive_command`, etc.).
 
 ## When to Use
 
@@ -19,251 +28,138 @@ HelpMeTest tests run against URLs (http://localhost, http://my.app.com). For loc
 - Routing frontend and backend on different ports
 - Before writing or running any local tests
 
-## Context Reading (do this before asking the user for ports)
-
-Before showing the generic setup, scan the conversation and project for port information:
-
-**a) Check the conversation history for:**
-- Port numbers mentioned directly (e.g., "running on 3000", "localhost:8080", "port 5173")
-- Server startup commands the user ran (e.g., `npm run dev`, `python manage.py runserver 8080`, `node server.js --port 4000`, `./h devspace dev`)
-- URLs pasted by the user (e.g., `http://localhost:5001`) → extract the port
-
-**b) Check common project config files for the dev port:**
-```bash
-# package.json scripts may reveal the port
-cat package.json 2>/dev/null | grep -E '"(dev|start|serve)"'
-
-# Vite config
-cat vite.config.* 2>/dev/null | grep -i port
-
-# webpack, next.config, etc.
-cat next.config.* 2>/dev/null | grep -i port
-```
-
-**c) If you found a port**, propose the specific command instead of the generic template:
-```
-Based on our conversation, your app is running on port [PORT].
-Here's the proxy command to use:
-
-  helpmetest proxy start localhost:[PORT]
-
-Want me to run that?
-```
-
-**d) If no port is found**, fall through to the Quick Start below and ask the user.
-
 ## Quick Start
 
-**Basic setup:**
-```bash
-# If your app runs on port 3000
-helpmetest proxy start localhost:3000
+**Start a proxy:**
+```
+helpmetest_proxy({ action: "start", domain: "dev.local", sourcePort: 3000 })
 ```
 
-**Verify it works:**
-```robot
-# Use HelpMeTest interactive command
-helpmetest_run_interactive_command({ command: "Go To  http://localhost" })
-# Should load your local app
+**Verify it works (use HelpMeTest, NOT curl):**
+```
+helpmetest_run_interactive_command({ command: "Go To  http://dev.local" })
+```
+Should load your local app. If it doesn't, fix the proxy before writing tests.
+
+**Check active proxies:**
+```
+helpmetest_proxy({ action: "list" })
 ```
 
-**Then write/run tests using:**
-```robot
-Go To  http://localhost
+**Stop a proxy:**
+```
+helpmetest_proxy({ action: "stop", domain: "dev.local" })
 ```
 
 ## Three Proxy Strategies
 
 ### Strategy 1: Single Tunnel to Frontend
 
-**When to use:** Your dev server already proxies some routes internally (e.g., `/api` → backend port)
+**When:** Your dev server already proxies some routes internally (e.g., Vite's `server.proxy` sends `/api` to backend port)
 
-**Setup:**
-```bash
-# Frontend on port 5001, it proxies /api internally to port 3001
-helpmetest proxy start localhost:5001
+```
+helpmetest_proxy({ action: "start", domain: "dev.local", sourcePort: 5001 })
 ```
 
-**In tests:**
-```robot
-Go To  http://localhost
-# Both UI and /api calls work through the single tunnel
-```
-
-**Example:** Vite, webpack-dev-server with proxy configuration
+Tests use `http://dev.local` — both UI and API calls work through one tunnel.
 
 ---
 
 ### Strategy 2: Separate Tunnels for Frontend and Backend
 
-**When to use:**
-- Services need different hostnames (cookies, CORS)
-- You want explicit separation in tests
-- No internal proxy configured
+**When:** Services need different hostnames (cookies, CORS), or no internal proxy configured.
 
-**Setup:**
-```bash
-# Frontend on port 5001
-helpmetest proxy start frontend.local:5001
-
-# Backend on port 3001
-helpmetest proxy start backend.local:3001
+```
+helpmetest_proxy({ action: "start", domain: "frontend.local", sourcePort: 5001 })
+helpmetest_proxy({ action: "start", domain: "backend.local", sourcePort: 3001 })
 ```
 
-**In tests:**
-```robot
-Go To  http://frontend.local      # For UI
-# API calls use http://backend.local/api
-```
+Tests use `http://frontend.local` for UI and `http://backend.local` for API.
 
 ---
 
 ### Strategy 3: Substitute Production with Local
 
-**When to use:**
-- You have tests running against production URLs
-- Want to test local changes without modifying test code
-- Need production domain for cookies/sessions
+**When:** You have tests running against production URLs and want to test local changes without modifying test code.
 
-**Setup:**
-```bash
-# Intercept my.awesome.app and route to local port 3000
-helpmetest proxy start my.awesome.app:80:3000
+```
+helpmetest_proxy({ action: "start", domain: "my.awesome.app", sourcePort: 3000, externalPort: 80 })
 ```
 
-**In tests:**
-```robot
-Go To  http://my.awesome.app
-# Routes to localhost:3000 instead of production
-```
+Tests use `http://my.awesome.app` — routes to localhost:3000 instead of production.
 
-**The port mapping format:**
-- `domain` - hostname in test URLs
-- `external_port` - port in test URLs (usually 80 for HTTP, 443 for HTTPS)
-- `source_port` - your local development port
+**Port mapping:**
+- `domain` — hostname in test URLs
+- `externalPort` — port in test URLs (default 80 for HTTP)
+- `sourcePort` — your local development port
 
-**Example:** Production tests use `http://my.awesome.app:80`, but you want to test local code running on port 3000
+## WebSocket Support
+
+- `wss://` (TLS WebSocket) works through the tunnel via CONNECT
+- `ws://` (plain WebSocket) does NOT work — browsers block non-TLS WebSocket through HTTP proxy
+
+If your app uses WebSocket, make sure it connects over `wss://`.
 
 ## Verification
 
-**After starting proxy, always verify using HelpMeTest:**
+**After starting a proxy, always verify using HelpMeTest interactive commands:**
 
-The proxy only intercepts traffic within HelpMeTest's infrastructure. Use interactive commands to verify:
-
-```robot
-# For localhost
-helpmetest_run_interactive_command({ command: "Go To  http://localhost" })
-
-# For custom hostnames
-helpmetest_run_interactive_command({ command: "Go To  http://frontend.local" })
-
-# For production substitution
-helpmetest_run_interactive_command({ command: "Go To  http://my.awesome.app" })
+```
+helpmetest_run_interactive_command({ command: "Go To  http://dev.local" })
 ```
 
-**Expected:** You should see your local app load successfully, not a connection error.
+Expected: Your local app loads successfully. If you see `chrome-error://chromewebdata/` or a connection error, the proxy is not working — fix it before writing tests.
 
-**If verification fails:** Don't write tests yet - fix the proxy setup first.
+**Do NOT try to verify with curl or your local browser** — the proxy only works inside HelpMeTest's infrastructure.
 
 ## Troubleshooting
 
-### Tests can't reach the URL
+### Tests show chrome-error or connection refused
 
-**Check proxy is running:**
-```bash
-ps aux | grep "helpmetest proxy"
-```
+1. **Check proxy is running:** `helpmetest_proxy({ action: "list" })`
+2. **Check local server is running:** `curl http://127.0.0.1:3000` (this works locally)
+3. **Restart proxy if needed:** Stop and start again
 
-**Check local server is running:**
-```bash
-# Direct connection to your local port (bypasses proxy)
-curl http://127.0.0.1:3000
-```
+### Stale frpc processes blocking new proxy
 
-**Check proxy output shows your tunnel:**
-```
-✓ Proxying localhost -> localhost:3000
-# or
-✓ Proxying frontend.local -> localhost:5001
-```
+If starting a proxy fails with "proxy already exists":
+- A previous frpc process may still be running with the same name
+- Stop the proxy first: `helpmetest_proxy({ action: "stop", domain: "dev.local" })`
+- Or stop all: `helpmetest_proxy({ action: "stop_all" })`
+- If MCP-managed stop doesn't work, check for orphaned frpc processes: `ps aux | grep frpc`
 
-**If tunnel missing:** Restart the proxy command
+### MCP tool shows old output format
 
----
+If the proxy tool output looks different from what's documented here, the MCP server may be running old code. Restart the MCP server with `/mcp`.
 
-### Custom hostname not resolving (frontend.local, etc.)
+### Custom hostname not resolving
 
-Custom hostnames are handled by the proxy - you don't need to edit `/etc/hosts`. If verification fails:
-
-1. Verify proxy is running
-2. Check the exact hostname in proxy output
-3. Ensure you're using HTTP (not HTTPS) unless you configured SSL
-
----
-
-### Production substitution not working
-
-**Check port mapping:**
-```bash
-# Wrong (missing source port)
-helpmetest proxy start my.awesome.app:80
-
-# Correct
-helpmetest proxy start my.awesome.app:80:3000
-```
-
-**Verify substitution:**
-```robot
-# Use HelpMeTest to verify routing
-helpmetest_run_interactive_command({ command: "Go To  http://my.awesome.app" })
-# Should load from localhost:3000, not production
-```
+Custom hostnames (like `frontend.local`) are handled entirely by the proxy — no `/etc/hosts` edits needed. If verification fails:
+1. Verify proxy is running with `list` action
+2. Make sure you're using HTTP (not HTTPS) unless you have TLS configured
+3. Check the exact domain matches what you used in `start`
 
 ## Multiple Services Example
 
-**Complex setup with frontend, backend, and production substitution:**
+```
+# Local frontend on port 5001
+helpmetest_proxy({ action: "start", domain: "frontend.local", sourcePort: 5001 })
 
-```bash
-# Local frontend
-helpmetest proxy start frontend.local:5001
+# Local backend API on port 3001
+helpmetest_proxy({ action: "start", domain: "api.local", sourcePort: 3001 })
 
-# Local backend API
-helpmetest proxy start api.local:3001
-
-# Production service running locally
-helpmetest proxy start prod.myapp.com:80:8000
+# Production service running locally on port 8000
+helpmetest_proxy({ action: "start", domain: "prod.myapp.com", sourcePort: 8000, externalPort: 80 })
 ```
 
-**Tests can now use all three:**
-```robot
-Go To  http://frontend.local
-# Make API call to http://api.local/endpoint
-# Access production service at http://prod.myapp.com
-```
+Tests can now use all three domains inside HelpMeTest commands.
 
 ## Best Practices
 
-1. **Start proxy BEFORE writing tests** - Don't waste time debugging test failures caused by proxy not running
+1. **Start proxy BEFORE writing tests** — don't debug test failures caused by missing proxy
+2. **Always verify with HelpMeTest** — use interactive commands, not curl or browser
+3. **Choose simplest strategy** — if frontend already proxies backend, use Strategy 1
+4. **Use consistent domains** — if you use `frontend.local` in one test, use it in all tests for that service
+5. **Stop proxies when done** — `stop_all` cleans up everything
 
-2. **Always verify with HelpMeTest** - Use `helpmetest_run_interactive_command` to confirm routing works before writing automated tests
-
-3. **Choose simplest strategy** - If frontend already proxies backend, use Strategy 1 (single tunnel)
-
-4. **Keep proxy running** - Start in background/separate terminal, don't restart unnecessarily
-
-5. **Use consistent hostnames** - If you use `frontend.local` in one test, use it in all tests for that service
-
-## Output Messages
-
-**Success:**
-```
-✓ Proxying localhost -> localhost:3000
-```
-
-**Already exists (safe to ignore):**
-```
-[W] new proxy type error: proxy already exists
-```
-Means tunnel is already registered - your tests will still work.
-
-**Version:** 0.1
+**Version:** 0.2

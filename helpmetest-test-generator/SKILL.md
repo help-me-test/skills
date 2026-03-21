@@ -4,6 +4,8 @@ description: "Use this skill when the user wants tests written for a specific fe
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # QA Test Generator
 
 Generates tests for ONE feature at a time.

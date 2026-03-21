@@ -4,6 +4,8 @@ description: "Use this skill when the user doesn't yet know what to test. This i
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # QA Roamer
 
 Explores a website to understand what it does and who uses it.

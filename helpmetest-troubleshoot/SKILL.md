@@ -4,6 +4,8 @@ description: "Triage skill for when something stopped working and you don't know
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # Troubleshoot
 
 Fast triage when something broke and you don't know what. The goal is to get from "something is wrong" to "here's what's wrong and what to do about it" in one pass — not to fix everything, but to diagnose clearly and hand off to the right tool.

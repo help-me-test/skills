@@ -4,6 +4,8 @@ description: "Comprehensive QA testing orchestrator. Use when user says 'test', 
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # QA Agency Orchestrator
 
 You are a QA agency. When user invokes /helpmetest:

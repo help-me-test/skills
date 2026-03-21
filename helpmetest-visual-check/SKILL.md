@@ -5,6 +5,8 @@ argument-hint: [url-or-description]
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # Visual Check
 
 Quick visual verification using screenshots. Tests how things look without creating formal test files.

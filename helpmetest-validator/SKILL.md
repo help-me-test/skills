@@ -4,6 +4,8 @@ description: "Invoke this skill when a user shares test code and questions wheth
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # QA Validator
 
 Validates and scores test quality. Rejects tests that don't meet quality standards.

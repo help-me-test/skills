@@ -4,6 +4,8 @@ description: "When a test is broken and you need to know why, use this skill. It
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # QA Debugger
 
 Debugs failing tests to determine root cause and fix.

@@ -4,6 +4,8 @@ description: "Test-Driven Development enforcer using HelpMeTest. Use when user w
 allowed-tools: mcp__helpmetest-*
 ---
 
+> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+
 # Test-Driven Development
 
 Enforces test-driven development using HelpMeTest end-to-end tests as guardrails.
@@ -24,30 +26,7 @@ Use for ANY code change that affects user-facing behavior:
 
 ### Step 1: Understand What Needs to Change
 
-Before asking the user questions, scan the conversation and codebase for answers — most of these are already there.
-
-**Read conversation context:**
-- What was the user building or discussing? → answers "what's changing"
-- Any feature description, bug report, or user story mentioned? → answers "expected behavior"
-- Any URL, port number, or server command visible? → answers URL/port and hostname
-
-**Check what code is in-flight:**
-```bash
-git diff --stat HEAD
-git status --short
-```
-If files are already modified, this tells you what feature is being built and which part of the stack is affected (frontend components → UI feature, API routes → backend feature, auth files → auth flow).
-
-**Synthesize and confirm** rather than ask from scratch. Instead of four open questions, present what you inferred and let the user correct:
-```
-Based on our conversation, it looks like you're [building X / fixing bug Y / refactoring Z].
-I'll write tests for [expected behavior] against [URL/port].
-Does that sound right, or anything to adjust?
-```
-
-Only fall back to asking individual questions if the conversation gives no signal.
-
-Original questions for reference (use only what context doesn't already answer):
+Ask the user:
 1. **What's changing?** (new feature / refactoring / bug fix / enhancement)
 2. **What's the expected behavior?** (what should work after the change)
 3. **What URL/port is affected?** (localhost:3000? production URL?)
@@ -108,18 +87,20 @@ python3 -m http.server 3000
 
 The proxy skill will guide you through:
 - Choosing the right strategy (single tunnel, separate tunnels, or production substitution)
-- Setting up the tunnel command
-- Verifying it works with curl
+- Starting the tunnel via the MCP tool
+- Verifying it works with HelpMeTest interactive commands
 
 **Quick reference:**
-```bash
+```
 # Most common: single tunnel
-helpmetest proxy start localhost:3000
+helpmetest_proxy({ action: "start", domain: "dev.local", sourcePort: 3000 })
 
-# Verify before proceeding (use HelpMeTest, not curl)
-helpmetest_run_interactive_command({ command: "Go To  http://localhost" })
+# Verify before proceeding (use HelpMeTest, NOT curl or browser)
+helpmetest_run_interactive_command({ command: "Go To  http://dev.local" })
 # Should load your local app
 ```
+
+**The proxied URL only works inside HelpMeTest test commands** — not in your local browser or curl.
 
 **Only write tests after proxy is confirmed working.**
 
@@ -511,10 +492,11 @@ Syntax errors waste time - catch them before running tests.
 ### Proxy Troubleshooting
 
 **If tests can't reach your local server**, use the `/helpmetest-proxy` skill for complete troubleshooting:
-- Verifying proxy is running
+- Verifying proxy is running: `helpmetest_proxy({ action: "list" })`
 - Checking local server connectivity
-- Fixing common connection issues
-- Choosing the right proxy strategy (including setups where a frontend dev server already proxies the backend internally, e.g. Vite's `server.proxy` config)
+- Fixing stale frpc processes or MCP server running old code
+- Choosing the right proxy strategy (single tunnel, separate tunnels, production substitution)
+- WebSocket limitations (wss:// works, ws:// doesn't)
 
 ## Tag Schema
 

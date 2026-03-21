@@ -39,6 +39,31 @@ These skills follow the [Agent Skills open standard](https://github.com/vercel-l
 - GitHub Copilot
 - And 30+ other AI coding agents
 
+## No MCP? Use the CLI
+
+If your AI agent doesn't support MCP, or you prefer shell commands, the HelpMeTest CLI has **full feature parity** with all MCP tools. Every MCP tool has an equivalent CLI command:
+
+| MCP tool | CLI equivalent |
+|----------|----------------|
+| `helpmetest_status` | `helpmetest status` |
+| `helpmetest_run_test` | `helpmetest test run <id>` |
+| `helpmetest_upsert_test` | `helpmetest test create` / `helpmetest test update <id>` |
+| `helpmetest_run_interactive_command` | `helpmetest interactive "<command>"` |
+| `helpmetest_keywords` | `helpmetest keywords [search]` |
+| `how_to` | `helpmetest how-to [type]` |
+| `helpmetest_proxy` | `helpmetest proxy start/stop/list/stop_all` |
+| `helpmetest_upsert_artifact` | `helpmetest artifact upsert` |
+| `helpmetest_get_artifact` | `helpmetest artifact get <id>` |
+| `helpmetest_search_artifacts` | `helpmetest artifact list` |
+| `helpmetest_generate_artifact` | `helpmetest artifact generate <type>` |
+| `helpmetest_delete_artifact` | `helpmetest artifact delete <id>` |
+| `helpmetest_deploy` | `helpmetest deploy` |
+| `helpmetest_open` | `helpmetest open <id>` |
+| `helpmetest_delete_test` | `helpmetest delete test <id>` |
+| `helpmetest_undo_update` | `helpmetest undo` |
+
+Skills use `mcp__helpmetest-*` in their frontmatter, but you can ignore that and use the CLI equivalents above. The skills describe workflows — the tool names are interchangeable.
+
 ## Contributing
 
 Skills are defined using standard SKILL.md format with YAML frontmatter. See individual skill directories for examples.
