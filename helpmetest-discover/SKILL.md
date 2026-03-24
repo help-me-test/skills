@@ -38,7 +38,7 @@ Call `how_to({ type: "context_discovery" })` to see what's already been done.
 
 1. **Navigate** to the URL with `helpmetest_run_interactive_command`:
    ```
-   Go To  <url>  timeout=10000
+   Go To  <url>  timeout=10s
    ```
 
 2. **Read the page** - What does this site do?

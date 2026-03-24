@@ -178,7 +178,7 @@ Based on this, you'd say: "I found existing work on EverShop. Should I continue 
 
 When you run:
 ```robot
-Go To  https://example.com  timeout=10000
+Go To  https://example.com  timeout=10s
 ```
 
 You get:

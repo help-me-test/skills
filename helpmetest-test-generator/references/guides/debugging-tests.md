@@ -50,7 +50,7 @@ Get Element State  <selector>  enabled
 
 # Check if overlapped or need scroll
 Scroll To Element  <selector>
-Wait For Elements State  <selector>  enabled  timeout=5000
+Wait For Elements State  <selector>  enabled  timeout=5s
 
 # Document: What's needed before click?
 ```
@@ -73,7 +73,7 @@ Get Elements  .error  # Any errors?
 
 ```robot
 # Try with longer timeout
-Wait For Response  url=<expected>  timeout=30000
+Wait For Response  url=<expected>  timeout=30s
 
 # Check if API call happens at all
 # Check current URL

@@ -175,7 +175,7 @@ Use `helpmetest_upsert_test` for **EVERY** test:
 
 ```robot
 # Navigate to page
-Go To  http://localhost  timeout=5000
+Go To  http://localhost  timeout=5s
 
 # Get text from element
 ${text}=  Get Text  [data-testid="some-element"]
@@ -190,10 +190,10 @@ Click  [data-testid="submit-button"]
 Fill Text  input[name="username"]  testuser
 
 # Wait for API response
-Wait For Response  url=**/api/endpoint**  status=200  timeout=5000
+Wait For Response  url=**/api/endpoint**  status=200  timeout=5s
 
 # Wait for element state
-Wait For Elements State  [data-testid="result"]  visible  timeout=5000
+Wait For Elements State  [data-testid="result"]  visible  timeout=5s
 
 # Assertions
 Should Be Equal  ${actual}  ${expected}
@@ -214,7 +214,7 @@ Sleep  0.5s
 
 ```robot
 # Given - Set up initial state
-Go To  http://localhost  timeout=5000
+Go To  http://localhost  timeout=5s
 ${initial_state}=  Get Text  [data-testid="element"]
 
 # When - Perform the action being tested
@@ -252,7 +252,7 @@ Write a test that REPRODUCES the bug:
 
 ```robot
 # Bug reproduction: Steps that trigger the specific bug
-Go To  http://localhost  timeout=5000
+Go To  http://localhost  timeout=5s
 
 # Set up the conditions that cause the bug
 ${initial_state}=  Get Text  [data-testid="element"]
@@ -350,7 +350,7 @@ If syntax error: fix it, re-run test.
 **4. Debug interactively** if unclear:
    ```robot
    # Run test steps manually to see what's happening
-   Go To  http://localhost  timeout=5000
+   Go To  http://localhost  timeout=5s
 
    # See what's actually on the page
    Get Elements  button  # All buttons

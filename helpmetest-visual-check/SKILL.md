@@ -143,7 +143,7 @@ Scroll To Element  <selector>
 Scroll By  <x>  <y>
 
 # Waiting (if page loads slowly)
-Wait For Elements State  <selector>  visible  timeout=5000
+Wait For Elements State  <selector>  visible  timeout=5s
 ```
 
 Every command automatically returns a screenshot.

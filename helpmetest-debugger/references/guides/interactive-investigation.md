@@ -35,7 +35,7 @@ Get Element State  <selector>  enabled
 
 # Try making it interactable
 Scroll To Element  <selector>
-Wait For Elements State  <selector>  enabled  timeout=5000
+Wait For Elements State  <selector>  enabled  timeout=5s
 ```
 
 ### Inspecting Values
@@ -59,7 +59,7 @@ Get Text  .error
 
 ```robot
 # Wait longer to see if it's just slow
-Wait For Response  url=<expected>  timeout=30000
+Wait For Response  url=<expected>  timeout=30s
 
 # Check page state after action
 Get Url  # Did navigation happen?

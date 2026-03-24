@@ -164,7 +164,7 @@ If problem is with the test (NOT a bug in the application):
    Get Attribute  <corrected-selector>  value  ==  <value>  # Verify it worked
 
    # Step 2 with fix
-   Wait For Elements State  <button>  enabled  timeout=5000  # Added wait
+   Wait For Elements State  <button>  enabled  timeout=5s  # Added wait
    Click  <button>
 
    # Step 3 with fix
