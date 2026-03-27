@@ -34,7 +34,8 @@
         "./helpmetest-debugger",
         "./helpmetest-self-heal",
         "./helpmetest-visual-check",
-        "./tdd"
+        "./tdd",
+        "./helpmetest-sync"
       ]
     }
   ]

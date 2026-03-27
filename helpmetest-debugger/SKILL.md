@@ -26,6 +26,41 @@ how_to({ type: "debugging_self_healing" })
 
 `context_discovery` tells you which Feature artifact the failing test belongs to, what scenarios are covered, and whether the bug is already known. This prevents documenting a bug that's already in `feature.bugs[]`.
 
+## Tasks Artifact (MANDATORY)
+
+Create a Tasks artifact to track the debugging workflow before starting. This makes progress visible and lets you resume if interrupted.
+
+```json
+{
+  "id": "tasks-debug-[test-id]",
+  "type": "Tasks",
+  "name": "Tasks: Debug [test name]",
+  "content": {
+    "overview": "Debug failing test [test-id]. Determine root cause — bug vs test issue — and resolve.",
+    "tasks": [
+      { "id": "1.0", "title": "Understand the failure", "status": "pending", "priority": "critical",
+        "subtasks": [
+          { "id": "1.1", "title": "Get test history and classify failure pattern", "status": "pending" },
+          { "id": "1.2", "title": "Identify failing step and error", "status": "pending" }
+        ]
+      },
+      { "id": "2.0", "title": "Reproduce interactively", "status": "pending", "priority": "critical",
+        "subtasks": []
+      },
+      { "id": "3.0", "title": "Determine root cause", "status": "pending", "priority": "critical",
+        "subtasks": []
+      },
+      { "id": "4.0", "title": "Fix test OR document bug", "status": "pending", "priority": "critical",
+        "subtasks": []
+      }
+    ],
+    "notes": []
+  }
+}
+```
+
+Update each task status as you move through the workflow. Add findings to `task.notes` — e.g., "Failure is on step 3: selector `.submit-btn` not found. Element moved to `[data-testid='submit']`".
+
 ## Input
 
 - Failing test ID

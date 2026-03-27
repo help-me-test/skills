@@ -21,6 +21,33 @@ how_to({ type: "test_quality_guardrails" })
 
 `context_discovery` identifies the Feature artifact the test should link to. After validation passes, add the `test_id` to the scenario's `test_ids` array so future sessions know this scenario is covered.
 
+## Tasks Artifact
+
+**For batch validation (3+ tests):** Create a Tasks artifact to track which tests have been validated:
+
+```json
+{
+  "id": "tasks-validate-[feature-name]",
+  "type": "Tasks",
+  "name": "Tasks: Validate Tests for [Feature Name]",
+  "content": {
+    "overview": "Validate all tests for [Feature Name]. Each subtask is one test — PASS or REJECT.",
+    "source_artifact_ids": ["feature-[name]"],
+    "tasks": [
+      { "id": "1.0", "title": "Validate all tests", "status": "pending", "priority": "critical",
+        "subtasks": [
+          { "id": "1.1", "title": "[test-id]: [test name]", "status": "pending" },
+          { "id": "1.2", "title": "[test-id]: [test name]", "status": "pending" }
+        ]
+      }
+    ],
+    "notes": []
+  }
+}
+```
+
+Mark each subtask `done` (PASS) or `blocked` with notes explaining rejection reason. For single-test validation, Tasks is optional.
+
 ## Input
 
 - Test ID or test content to validate

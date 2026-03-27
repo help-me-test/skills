@@ -16,6 +16,38 @@ Fast triage when something broke and you don't know what. The goal is to get fro
 
 Don't investigate deeply. Investigate broadly and quickly, then narrow. You're looking for the signal that explains the most failures with the fewest assumptions. Once you have a plausible cause, stop gathering data and state your diagnosis.
 
+## Tasks Artifact
+
+Create a Tasks artifact to track the triage investigation before starting:
+
+```json
+{
+  "id": "tasks-troubleshoot-[date]",
+  "type": "Tasks",
+  "name": "Tasks: Troubleshoot [date]",
+  "content": {
+    "overview": "Triage session — identify root cause of failures and hand off to right skill.",
+    "tasks": [
+      { "id": "1.0", "title": "Check current failure state", "status": "pending", "priority": "critical",
+        "subtasks": [
+          { "id": "1.1", "title": "Run helpmetest_status verbose", "status": "pending" },
+          { "id": "1.2", "title": "Identify failing test patterns", "status": "pending" }
+        ]
+      },
+      { "id": "2.0", "title": "Check recent code changes", "status": "pending", "priority": "critical", "subtasks": [] },
+      { "id": "3.0", "title": "Correlate and produce diagnosis", "status": "pending", "priority": "critical",
+        "notes": "Document diagnosis in task notes before handing off",
+        "subtasks": []
+      },
+      { "id": "4.0", "title": "Hand off to right skill", "status": "pending", "priority": "high", "subtasks": [] }
+    ],
+    "notes": []
+  }
+}
+```
+
+Update statuses and add your findings to `task.notes` — e.g., "3.0 notes: 7 tests failing all tagged feature:checkout. Last commit 2h ago changed checkout/OrderSummary.jsx. High confidence regression."
+
 ## Step 1: Capture What the User Knows
 
 Before gathering data, extract anything the user already mentioned:

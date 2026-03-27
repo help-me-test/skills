@@ -25,6 +25,48 @@ how_to({ type: "interactive_debugging" })
 
 Use `context_discovery` to find the existing SelfHealing artifact (if any) and resume from it rather than creating a duplicate. Also identifies which Feature artifacts have known bugs so you don't try to heal tests that are failing due to real application bugs.
 
+## Tasks Artifact (MANDATORY)
+
+The SelfHealing artifact tracks technical fix details. The Tasks artifact tracks the healing *plan* — which tests need attention and what their status is. Both are required.
+
+**At startup, before healing any test:**
+
+1. Search for an existing Tasks artifact from a previous healing session:
+   ```
+   helpmetest_search_artifacts({ type: "Tasks", query: "self-heal" })
+   ```
+
+2. If none exists, create one with each failing test as a subtask:
+   ```json
+   {
+     "id": "tasks-self-heal-[date]",
+     "type": "Tasks",
+     "name": "Tasks: Self-Heal Session [date]",
+     "content": {
+       "overview": "Healing [N] failing tests. Each task is one failing test — investigate, fix or document.",
+       "tasks": [
+         {
+           "id": "1.0", "title": "[test-id-1]: [test name]", "status": "pending", "priority": "critical",
+           "notes": "[error summary from last run]",
+           "subtasks": []
+         },
+         {
+           "id": "2.0", "title": "[test-id-2]: [test name]", "status": "pending", "priority": "high",
+           "subtasks": []
+         }
+       ],
+       "notes": ["SelfHealing artifact: self-healing-log"]
+     }
+   }
+   ```
+
+3. **Update task status as you process each test:**
+   - Starting: `tasks.N.status = in_progress`
+   - Fixed: `tasks.N.status = done`, update notes with what was fixed
+   - Not fixable (bug): `tasks.N.status = blocked`, update notes with why
+
+This gives a single, scannable view of the healing session progress — separate from the SelfHealing artifact's technical log.
+
 ## Startup: Fix Existing Failures
 
 **Before scanning all tests blindly, check what recently changed in the codebase.** This lets you prioritize the most likely failures first and skip unrelated ones.

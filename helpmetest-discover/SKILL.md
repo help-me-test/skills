@@ -22,6 +22,48 @@ how_to({ type: "authentication_state_management" })
 how_to({ type: "tag_schema" })
 ```
 
+## Tasks Artifact (MANDATORY)
+
+Create a Tasks artifact at the start to track discovery phases. Discovery is multi-step work that often spans sessions — Tasks makes it resumable.
+
+1. **Search for an existing discovery Tasks artifact first:**
+   ```
+   helpmetest_search_artifacts({ type: "Tasks", query: "discover" })
+   ```
+
+2. **If none exists, create one:**
+   ```json
+   {
+     "id": "tasks-discover-[domain]",
+     "type": "Tasks",
+     "name": "Tasks: Discover [Site Name]",
+     "content": {
+       "overview": "Explore [URL] to discover features, personas, and user journeys.",
+       "tasks": [
+         { "id": "1.0", "title": "Phase 1: Navigate and explore pages", "status": "pending", "priority": "critical",
+           "subtasks": [
+             { "id": "1.1", "title": "Set up authentication", "status": "pending" },
+             { "id": "1.2", "title": "Explore unauthenticated pages", "status": "pending" },
+             { "id": "1.3", "title": "Explore authenticated pages", "status": "pending" }
+           ]
+         },
+         { "id": "2.0", "title": "Phase 2: Create Persona artifacts", "status": "pending", "priority": "critical",
+           "subtasks": []
+         },
+         { "id": "3.0", "title": "Phase 3: Create ProjectOverview artifact", "status": "pending", "priority": "critical",
+           "subtasks": []
+         },
+         { "id": "4.0", "title": "Phase 4: Create Feature artifacts with scenarios", "status": "pending", "priority": "high",
+           "subtasks": []
+         }
+       ],
+       "notes": []
+     }
+   }
+   ```
+
+3. **Update task statuses** as each phase completes. If you resume in a later session, the Tasks artifact tells you exactly where you left off.
+
 ## Workflow
 
 ### Phase 0: Context Discovery
