@@ -1,5 +1,5 @@
 ---
-name: qa
+name: helpmetest
 description: "Comprehensive QA testing orchestrator. Use when user says 'test', 'qa', 'check site', 'find bugs', 'helpmetest', provides a URL to test, or wants complete testing coverage from discovery through bug reporting. Discovers ALL pages, enumerates ALL features, tests comprehensively, reports exact metrics."
 allowed-tools: mcp__helpmetest-*
 ---
