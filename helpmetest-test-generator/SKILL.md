@@ -49,6 +49,42 @@ Check for existing work before asking the user for input. This prevents redundan
 
 Call `how_to({ type: "context_discovery" })` to see what's already been done.
 
+**Also check for an existing Tasks artifact for this feature:**
+```
+helpmetest_search_artifacts({ type: "Tasks" })
+```
+
+If a Tasks artifact exists for this feature (linked via `source_artifact_ids`), read it — it may have subtasks tracking which scenarios are already generated. Resume from the first `pending` scenario subtask rather than starting over.
+
+**If generating tests for 3+ scenarios, create a Tasks artifact to track progress:**
+```json
+{
+  "id": "tasks-tests-[feature-name]",
+  "type": "Tasks",
+  "name": "Tasks: Generate Tests for [Feature Name]",
+  "content": {
+    "overview": "Generate E2E tests for all scenarios in [Feature Name]",
+    "source_artifact_ids": ["feature-[name]"],
+    "tasks": [
+      {
+        "id": "1.0", "title": "Generate functional scenario tests", "status": "pending", "priority": "critical",
+        "subtasks": [
+          { "id": "1.1", "title": "[Scenario name]", "status": "pending" },
+          { "id": "1.2", "title": "[Scenario name]", "status": "pending" }
+        ]
+      },
+      {
+        "id": "2.0", "title": "Generate edge case tests", "status": "pending", "priority": "high",
+        "subtasks": []
+      }
+    ],
+    "notes": []
+  }
+}
+```
+
+Mark each subtask `in_progress` → `done` as you generate and validate each test. This lets you resume if the session is interrupted.
+
 **Before asking the user which feature to test, read conversation and code context to propose the right one:**
 
 a) **Scan the conversation history** for:

@@ -15,8 +15,9 @@ allowed-tools: mcp__helpmetest-*
 Before presenting options or doing anything else, check what already exists:
 
 ```
-helpmetest_status()                          // what tests exist and their current state
-helpmetest_search_artifacts({ query: "" })   // what features, personas, project overviews exist
+helpmetest_status()                              // what tests exist and their current state
+helpmetest_search_artifacts({ query: "" })       // what features, personas, project overviews exist
+helpmetest_search_artifacts({ type: "Tasks" })   // any in-progress implementation work
 ```
 
 Use this to answer:
@@ -24,6 +25,7 @@ Use this to answer:
 - Are there Feature artifacts? → scenarios already enumerated, maybe tests already exist
 - Are there existing tests? → check coverage gaps, don't recreate what's there
 - Are tests failing? → that's the priority, not creating new ones
+- **Is there a Tasks artifact with `in_progress` tasks?** → implementation work is ongoing, resume it — don't start fresh discovery when someone is mid-implementation
 
 **Never skip this step. Never assume the project is empty. If artifacts exist, build on them.**
 

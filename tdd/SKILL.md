@@ -26,6 +26,62 @@ Use for ANY code change that affects user-facing behavior:
 
 ## Workflow
 
+### Step 0: Create Tasks Artifact (MANDATORY)
+
+Before any implementation work begins, create a Tasks artifact to plan and track the work. This is non-negotiable — it gives you a structured plan and lets you resume if the session is interrupted.
+
+1. **Search for an existing Tasks artifact** — don't create duplicates:
+   ```
+   helpmetest_search_artifacts({ type: "Tasks" })
+   ```
+   If one exists for this feature, read it and resume from the first non-done task.
+
+2. **If none exists, create one** before writing a single line of code or a single test:
+   ```json
+   {
+     "id": "tasks-[feature-name]",
+     "type": "Tasks",
+     "name": "Tasks: [Feature Name]",
+     "content": {
+       "overview": "What this work implements and why it exists",
+       "source_artifact_ids": ["feature-[name]"],
+       "relevant_files": [
+         { "path": "path/to/file.js", "description": "Why this file is touched" }
+       ],
+       "tasks": [
+         { "id": "1.0", "title": "Write all tests first", "status": "pending", "priority": "critical",
+           "subtasks": [
+             { "id": "1.1", "title": "Create Feature artifact", "status": "pending" },
+             { "id": "1.2", "title": "Write happy path tests", "status": "pending" },
+             { "id": "1.3", "title": "Write edge case tests", "status": "pending" }
+           ]
+         },
+         { "id": "2.0", "title": "Implement to make tests pass", "status": "pending", "priority": "critical",
+           "subtasks": []
+         },
+         { "id": "3.0", "title": "All tests green — review for gaps", "status": "pending", "priority": "high",
+           "subtasks": []
+         }
+       ],
+       "notes": []
+     }
+   }
+   ```
+
+3. **Update task statuses throughout the workflow** using partial updates (never re-upsert full content):
+   ```
+   # Starting a task
+   helpmetest_upsert_artifact({ id: "tasks-[name]", content: { "tasks.0.status": "in_progress" } })
+
+   # Finishing a subtask
+   helpmetest_upsert_artifact({ id: "tasks-[name]", content: { "tasks.0.subtasks.0.status": "done" } })
+
+   # Blocked with reason
+   helpmetest_upsert_artifact({ id: "tasks-[name]", content: { "tasks.1.status": "blocked", "tasks.1.notes": "Waiting for..." } })
+   ```
+
+**The Tasks artifact is your contract with the user.** It shows exactly what's planned, what's being worked on, and what's done — at any point in the session.
+
 ### Step 1: Understand What Needs to Change
 
 Ask the user:
@@ -426,6 +482,10 @@ Only when:
 - ✅ No obvious edge cases missing
 - ✅ User confirms implementation matches requirements
 - ✅ Feature artifact updated with status: "working"
+- ✅ Tasks artifact — mark all tasks done:
+  ```
+  helpmetest_upsert_artifact({ id: "tasks-[name]", content: { "tasks.0.status": "done", "tasks.1.status": "done", "tasks.2.status": "done" } })
+  ```
 
 **Summary to user:**
 
