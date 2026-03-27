@@ -1,5 +1,5 @@
 ---
-name: helpmetest-proxy
+name: proxy
 description: "Set up HelpMeTest proxy tunnels for local development testing. Use when user needs to test localhost, wants to substitute production URLs with local ports, or needs to route multiple services. Use when user says 'set up proxy', 'test localhost', 'tunnel to local', or before running tests against local development servers."
 allowed-tools: mcp__helpmetest-*
 ---

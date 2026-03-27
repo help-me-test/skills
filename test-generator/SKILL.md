@@ -1,5 +1,5 @@
 ---
-name: helpmetest-test-generator
+name: test-generator
 description: "Use this skill when the user wants tests written for a specific feature or flow. Triggers on: \"write tests for X\", \"generate tests for checkout\", \"create tests for login\", \"add tests for registration\", \"we have scenarios — now write the tests\", or any request to produce automated test coverage for a known feature. Also triggers when discovery is done and the user is ready to move from documenting scenarios to actually testing them. Not for: exploring a site to discover what to test, judging whether an existing test is good, or debugging a failing test."
 allowed-tools: mcp__helpmetest-*
 ---
@@ -24,7 +24,7 @@ Why this matters: Tests written without complete scenario enumeration end up bei
 - ✅ Features have been explored interactively to discover test scenarios
 - ✅ Phase 2 (Feature Enumeration) is 100% complete
 
-**If you're still discovering features or enumerating scenarios, use /helpmetest-discover instead.**
+**If you're still discovering features or enumerating scenarios, use /discover instead.**
 
 ## Prerequisites
 
@@ -108,7 +108,7 @@ c) **If a matching Feature artifact is found** → propose it:
 d) **If no matching Feature artifact exists** → propose creating one first:
    ```
    I don't see a Feature artifact for [domain] yet.
-   I'd suggest: first run /helpmetest-discover to enumerate the scenarios, then come back here to generate tests.
+   I'd suggest: first run /discover to enumerate the scenarios, then come back here to generate tests.
    Or I can create a basic Feature artifact now based on what we discussed — want me to do that?
    ```
 
@@ -231,7 +231,7 @@ Edge Case: <scenario.name>
 
 Every test needs validation before running. This catches bullshit tests early - tests that verify page structure instead of business functionality, or tests that would pass even if the feature is broken.
 
-Validate each test using `/helpmetest-validator`:
+Validate each test using `/validate-tests`:
 
 1. Pass test ID and feature ID to validator
 2. Validator checks:
@@ -274,7 +274,7 @@ Update Feature artifact - add test_id to each scenario's test_ids:
    - ✅ Move to next scenario
    - Update scenario status
 
-3. **If test FAILS - use `/helpmetest-debugger`:**
+3. **If test FAILS - use `/debug-tests`:**
 
    Don't guess or make blind fixes. The debugger skill reproduces failures interactively, identifies whether the problem is a test issue (fixable) or an application bug (document in Feature.bugs), and validates fixes before applying them.
 

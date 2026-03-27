@@ -1,5 +1,5 @@
 ---
-name: helpmetest-troubleshoot
+name: troubleshoot
 description: "Triage skill for when something stopped working and you don't know why. Use when user says 'what's wrong', 'it was working a minute ago', 'something broke', 'everything is down', 'why isn't this working', 'tests are failing', 'it stopped working after the deploy', or any vague 'something is off' signal. Gathers the full picture fast — failing tests, health checks, recent code changes, recent deployments — then correlates them to produce a specific diagnosis and handoff to the right fix. Do NOT use for: debugging a known specific test failure (use helpmetest-debugger), bulk-fixing many failing tests (use helpmetest-self-heal), or writing new tests (use helpmetest-test-generator)."
 allowed-tools: mcp__helpmetest-*
 ---
@@ -114,16 +114,16 @@ Confidence: high / medium / low
 Based on the diagnosis, hand off to the right skill:
 
 **If it's a specific test failure** (1-3 tests, clear error):
-→ "Let me debug this with `/helpmetest-debugger`"
+→ "Let me debug this with `/debug-tests`"
 
 **If it's many tests failing after a code change** (systemic regression):
-→ "This looks like a regression from [commit]. Use `/helpmetest-self-heal` to fix the affected tests, or roll back the change."
+→ "This looks like a regression from [commit]. Use `/heal-tests` to fix the affected tests, or roll back the change."
 
 **If it's infrastructure/health** (health checks down, server errors):
 → "The issue looks like it's at the infrastructure level — tests can't reach the app. Check [service/proxy/env]. Once the service is back, run the tests again."
 
 **If it's a deployment issue**:
-→ "The deploy at [time] likely introduced this. Consider rolling back [commit], or use `/helpmetest-debugger` on [specific failing test] to confirm."
+→ "The deploy at [time] likely introduced this. Consider rolling back [commit], or use `/debug-tests` on [specific failing test] to confirm."
 
 **If the cause is unclear** (low confidence):
 → "I'm not certain, but the most likely lead is [X]. Want me to dig deeper into [specific area]?"

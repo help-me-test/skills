@@ -1,5 +1,5 @@
 ---
-name: helpmetest-visual-check
+name: visual-check
 description: "Instant visual verification via screenshots. For quick checks like 'does button look blue', 'is layout centered', 'header look right on mobile'. Fast alternative to formal testing - just look and confirm. Use when user wants visual inspection without creating test files."
 argument-hint: [url-or-description]
 allowed-tools: mcp__helpmetest-*
@@ -24,9 +24,9 @@ Use when user asks casual verification questions like:
 - "Check that modal is showing correctly"
 
 **NOT for:**
-- Creating formal tests (use `/helpmetest-test-generator`)
+- Creating formal tests (use `/test-generator`)
 - Comprehensive site testing (use `/helpmetest`)
-- Debugging failing tests (use `/helpmetest-debugger`)
+- Debugging failing tests (use `/debug-tests`)
 
 ## Process
 
@@ -225,7 +225,7 @@ Actual: [What it is]
 
 This skill is for QUICK checks. If user asks:
 - "Test this thoroughly" → Use `/helpmetest`
-- "Create a test for this" → Use `/helpmetest-test-generator`
-- "Why is this test failing?" → Use `/helpmetest-debugger`
+- "Create a test for this" → Use `/test-generator`
+- "Why is this test failing?" → Use `/debug-tests`
 
 Keep it simple: Look, describe, confirm.

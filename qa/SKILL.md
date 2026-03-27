@@ -1,5 +1,5 @@
 ---
-name: helpmetest
+name: qa
 description: "Comprehensive QA testing orchestrator. Use when user says 'test', 'qa', 'check site', 'find bugs', 'helpmetest', provides a URL to test, or wants complete testing coverage from discovery through bug reporting. Discovers ALL pages, enumerates ALL features, tests comprehensively, reports exact metrics."
 allowed-tools: mcp__helpmetest-*
 ---
@@ -52,7 +52,7 @@ Work comprehensively and report progress honestly with exact numbers. Users need
 3. **Loop until complete, don't stop at first milestone:**
    - Discovery: Keep exploring until NO new pages found for 3 rounds
    - Testing: Test ALL scenarios in ALL features, one feature at a time
-   - Validation: EVERY test must pass /helpmetest-validator
+   - Validation: EVERY test must pass /validate-tests
 
 4. **Be honest about coverage:**
    - If you tested 30% → say "30% tested, continuing"
@@ -88,7 +88,7 @@ Work comprehensively and report progress honestly with exact numbers. Users need
 - ✅ Identify ALL critical user paths during feature enumeration
 - ✅ Test priority:critical scenarios FIRST within each feature
 - ✅ Test EVERY scenario in EVERY feature
-- ✅ Validate EVERY test with /helpmetest-validator
+- ✅ Validate EVERY test with /validate-tests
 - ✅ Report exact numbers (pages, features, scenarios, tests, pass rates)
 - ✅ Document ALL bugs in feature.bugs[]
 
@@ -118,14 +118,14 @@ how_to({ type: "interactive_debugging" })
 **When user runs /helpmetest, start here:**
 
 1. **Understand available capabilities** - You have these sub-skills:
-   - `/helpmetest-context` - Discover existing artifacts and link new work back
-   - `/helpmetest-discover` - Discover and explore site
-   - `/helpmetest-test-generator` - Generate tests for a feature
-   - `/helpmetest-validator` - Validate tests and score quality
-   - `/helpmetest-debugger` - Debug failing tests
-   - `/helpmetest-self-heal` - Self-healing test maintenance
+   - `/context` - Discover existing artifacts and link new work back
+   - `/discover` - Discover and explore site
+   - `/test-generator` - Generate tests for a feature
+   - `/validate-tests` - Validate tests and score quality
+   - `/debug-tests` - Debug failing tests
+   - `/heal-tests` - Self-healing test maintenance
 
-2. **Check context first** using `/helpmetest-context` — find existing ProjectOverview, Personas, and Features before doing any work.
+2. **Check context first** using `/context` — find existing ProjectOverview, Personas, and Features before doing any work.
 
 2.5. **Read conversation and code context** — gather signals to personalize your proposal before showing the user a menu.
 
@@ -182,7 +182,7 @@ how_to({ type: "interactive_debugging" })
    - For each scenario:
      - Test interactively first to understand behavior
      - Create test for expected behavior (not just current)
-     - Validate with /helpmetest-validator (reject bullshit tests)
+     - Validate with /validate-tests (reject bullshit tests)
      - Run test and document results
      - If fails: determine bug vs test issue, document in feature.bugs[]
    - Result: All scenarios tested, bugs documented
@@ -228,13 +228,13 @@ how_to({ type: "interactive_debugging" })
       → Explore site and enumerate features (no tests yet)
 
    3. 📝 Generate tests for existing features
-      → Use /helpmetest-test-generator
+      → Use /test-generator
 
    4. 🐛 Debug failing tests
-      → Use /helpmetest-debugger
+      → Use /debug-tests
 
    5. ✅ Validate test quality
-      → Use /helpmetest-validator
+      → Use /validate-tests
 
    6. ▶️ Continue previous work
       → Resume testing from where we left off
@@ -322,7 +322,7 @@ If user says "continue"/"same as before" → infer URL from existing ProjectOver
    - Sort scenarios by priority (critical first)
    - For each scenario:
      * Create test (5+ steps, outcome verification)
-     * Validate with /helpmetest-validator (reject bullshit tests)
+     * Validate with /validate-tests (reject bullshit tests)
      * Link test to scenario
      * Run test
      * If fails: debug interactively, determine bug vs test issue
@@ -333,7 +333,7 @@ If user says "continue"/"same as before" → infer URL from existing ProjectOver
 **Exit Criteria:**
 - ✅ Tests for ALL scenarios (100% coverage)
 - ✅ **ALL priority:critical scenarios have test_ids**
-- ✅ ALL tests validated by /helpmetest-validator
+- ✅ ALL tests validated by /validate-tests
 - ✅ ALL tests executed
 
 ### Phase 4: Bug Reporting

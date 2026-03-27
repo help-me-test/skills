@@ -553,7 +553,7 @@ Syntax errors waste time - catch them before running tests.
 
 ### Proxy Troubleshooting
 
-**If tests can't reach your local server**, use the `/helpmetest-proxy` skill for complete troubleshooting:
+**If tests can't reach your local server**, use the `/proxy` skill for complete troubleshooting:
 - Verifying proxy is running: `helpmetest_proxy({ action: "list" })`
 - Checking local server connectivity
 - Fixing stale frpc processes or MCP server running old code

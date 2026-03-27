@@ -1,5 +1,5 @@
 ---
-name: helpmetest-sync
+name: sync-tests
 description: "Sync tests with code — find discrepancies, fix what's stale. Use when tests are failing after a code change, when you suspect tests are out of date, after a refactor or rename, before a release, or whenever you want to audit whether tests and code actually agree. Triggers on: 'sync tests', 'tests out of date', 'tests don't match code', 'what's failing and why', 'test audit', 'align tests with code', 'tests are stale', 'do tests still match', 'cleanup tests'. Goes beyond a simple test run — it classifies each discrepancy (code broke it, test is stale, not deployed yet, false positive, etc.) and lets you decide per-item whether the test or the code is the source of truth."
 allowed-tools: mcp__helpmetest-*
 ---
