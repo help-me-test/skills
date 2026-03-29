@@ -77,6 +77,22 @@ List all pages you will visit. This becomes your review checklist.
 
 ---
 
+## ⚠️ Screenshots: Use What You Already Have
+
+**NEVER invent an alternative screenshot method.** Do NOT use playwright, puppeteer, Python scripts, curl, or any other tool to capture screenshots.
+
+`run_interactive_command` with `screenshot: true` returns the screenshot as an image directly in the response. That image IS the screenshot. Use it.
+
+To upload a screenshot to storage, pass the base64 from the image response directly to `helpmetest_upload`:
+
+```
+helpmetest_upload({ base64: <base64 from screenshot response>, filename: "page-name-desktop.png" })
+```
+
+The base64 is in the image content block returned by `run_interactive_command`. Use it immediately — do not re-capture, do not write code, do not use external tools.
+
+---
+
 ## Phase 2: Desktop Walkthrough (1440x900)
 
 For each page in your checklist:
