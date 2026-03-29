@@ -13,7 +13,7 @@
     {
       "name": "HelpMeTest Skills",
       "source": "./",
-      "description": "11 skills for comprehensive test automation: QA orchestration, website discovery, test generation, test validation, debugging, self-healing, troubleshooting, visual verification, proxy setup, test sync, and TDD.",
+      "description": "11 skills for comprehensive test automation: QA orchestration, website discovery, test generation, test validation, debugging, self-healing, troubleshooting, UI review, proxy setup, test sync, and TDD.",
       "version": "1.0.0",
       "category": "testing",
       "tags": [
@@ -34,7 +34,7 @@
         "./debug-tests",
         "./heal-tests",
         "./troubleshoot",
-        "./visual-check",
+        "./ui-review",
         "./proxy",
         "./sync-tests",
         "./tdd"

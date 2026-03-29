@@ -1,6 +1,6 @@
 ---
 name: helpmetest
-description: "Comprehensive QA testing orchestrator. Use when user says 'test', 'qa', 'check site', 'find bugs', 'helpmetest', provides a URL to test, or wants complete testing coverage from discovery through bug reporting. Discovers ALL pages, enumerates ALL features, tests comprehensively, reports exact metrics."
+description: "Full site QA — discover, enumerate features, write and run tests, report bugs. Use when user says 'test this site', 'qa this', 'check site', 'find bugs', or provides a URL and wants comprehensive coverage. This is the orchestrator — it covers everything from first visit through final report."
 allowed-tools: mcp__helpmetest-*
 ---
 
@@ -117,15 +117,7 @@ how_to({ type: "interactive_debugging" })
 
 **When user runs /helpmetest, start here:**
 
-1. **Understand available capabilities** - You have these sub-skills:
-   - `/context` - Discover existing artifacts and link new work back
-   - `/discover` - Discover and explore site
-   - `/test-generator` - Generate tests for a feature
-   - `/validate-tests` - Validate tests and score quality
-   - `/debug-tests` - Debug failing tests
-   - `/heal-tests` - Self-healing test maintenance
-
-2. **Check context first** using `/context` — find existing ProjectOverview, Personas, and Features before doing any work.
+1. **Check context first** — find existing ProjectOverview, Personas, and Features before doing any work.
 
 2.5. **Read conversation and code context** — gather signals to personalize your proposal before showing the user a menu.
 
@@ -221,28 +213,22 @@ how_to({ type: "interactive_debugging" })
 
    * (Recommended) [Context-specific option if signals found]
 
-   1. 🚀 Full test automation
+   1. 🚀 Full QA run
       → Test <URL> comprehensively (discovery + features + tests + report)
 
    2. 🔍 Discovery only
       → Explore site and enumerate features (no tests yet)
 
-   3. 📝 Generate tests for existing features
-      → Use /test-generator
+   3. ✅ Validate test quality
+      → Review existing tests for quality issues
 
-   4. 🐛 Debug failing tests
-      → Use /debug-tests
-
-   5. ✅ Validate test quality
-      → Use /validate-tests
-
-   6. ▶️ Continue previous work
-      → Resume testing from where we left off
+   4. ▶️ Continue previous work
+      → Resume from where we left off
 
    Please provide:
    - Option number OR
    - URL to test (assumes option 1) OR
-   - "continue" (assumes option 6)
+   - "continue" (assumes option 4)
    ```
 
 5. **Wait for user response** before proceeding to Phase 0
