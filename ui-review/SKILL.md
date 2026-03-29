@@ -323,6 +323,28 @@ Go To  https://app.example.com/dashboard
 
 ---
 
+## Phase 6: Fix Loop (when the user asks you to fix an action)
+
+When the user picks an action and says "fix this" or "can you fix #N":
+
+1. **Fix the code** — make the change in the source file
+2. **Verify live** — take a new screenshot at the relevant viewport to confirm it looks right
+3. **Upload the new screenshot** — `helpmetest_upload({ file_path: "<path>" })`
+4. **Update the artifact** — two partial updates:
+   - Mark the action done: `helpmetest_upsert_artifact({ id, content: { "actions.<N>.status": "done" } })`
+   - Replace the screenshot: `helpmetest_upsert_artifact({ id, content: { "pages.<P>.screenshots.<V>.url": "<new-url>" } })`
+
+   Where `<N>` is the action index (0-based), `<P>` is the page index, `<V>` is the screenshot index for the viewport that changed.
+
+**Never mark an action done without a new screenshot proving it works.**
+
+**Screenshot index reference:**
+- `pages.<P>.screenshots.0` = desktop
+- `pages.<P>.screenshots.1` = mobile
+- `pages.<P>.screenshots.2` = tablet
+
+---
+
 ## Checklist Before Creating the Artifact
 
 - [ ] Visited every page at desktop (1440x900)
@@ -335,3 +357,11 @@ Go To  https://app.example.com/dashboard
 - [ ] Every action has `rank`, `page`, `title`, `description`, `priority`, `status`
 - [ ] `title` is short and actionable ("Fix X", "Add Y")
 - [ ] `description` has enough context to act on without reading anything else
+
+## Checklist After Fixing an Action
+
+- [ ] Code change made in source file
+- [ ] New screenshot taken at the affected viewport showing the fix
+- [ ] New screenshot uploaded via `helpmetest_upload`
+- [ ] Action `status` updated to `"done"` via partial artifact update
+- [ ] Screenshot URL in artifact updated to the new post-fix screenshot

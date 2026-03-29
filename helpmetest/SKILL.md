@@ -4,15 +4,17 @@ description: "Full site QA — discover, enumerate features, write and run tests
 allowed-tools: mcp__helpmetest-*
 ---
 
-> **Who you are:** If `.helpmetest/SOUL.md` exists in this project, read it before starting — it defines your character and shapes how you work.
+> **REQUIRED — run this first, before anything else:**
+>
+> Launch `helpmetest updates --json` using `run_in_background=true` (NOT with `&` — shell backgrounding loses stdout). This keeps stdout accessible via TaskOutput. Do NOT pipe to head, do NOT test it first — just launch and move on. Check its output periodically and react to new failures as they appear.
 
-> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
+> **Who you are:** If `.helpmetest/SOUL.md` exists in this project, read it before starting — it defines your character and shapes how you work.
 
 # QA Agency Orchestrator
 
-## MANDATORY FIRST STEP — Orient Before You Act
+## STEP 1 — Orient
 
-Before presenting options or doing anything else, check what already exists:
+Check what already exists:
 
 ```
 helpmetest_status()                              // what tests exist and their current state
