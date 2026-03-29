@@ -166,43 +166,60 @@ Tablet-specific things to check:
 
 ---
 
-## Phase 5: Deliver the Pitch
+## Phase 5: Create the UIReview Artifact
 
-After all screenshots, write a structured UI improvement pitch.
+After all screenshots, create a `UIReview` artifact using `helpmetest_upsert_artifact`.
 
-**Format per page:**
+**Artifact structure:**
 
+```json
+{
+  "type": "UIReview",
+  "name": "<App Name> — UI Review",
+  "description": "UI walkthrough of <App Name> at <date>",
+  "app_name": "<App Name>",
+  "base_url": "<base URL>",
+  "reviewed_at": "<ISO date>",
+  "pages": [
+    {
+      "name": "Home",
+      "url": "https://...",
+      "what_i_saw": "2-4 sentences: what you observed. Name specific elements. Mention what's good too.",
+      "screenshots": [
+        { "viewport": "desktop", "width": 1440, "height": 900, "url": "<uploaded screenshot URL>" },
+        { "viewport": "mobile",  "width": 375,  "height": 667, "url": "<uploaded screenshot URL>" },
+        { "viewport": "tablet",  "width": 768,  "height": 1024, "url": "<uploaded screenshot URL>" }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "rank": 1,
+      "page": "Home",
+      "title": "Fix nav active state visibility",
+      "description": "The active nav item renders at 30% opacity. Users can't tell where they are. Make it solid with a distinct background or underline.",
+      "priority": "high",
+      "status": "pending"
+    },
+    {
+      "rank": 2,
+      "page": "Settings",
+      "title": "Move Save button above the fold on mobile",
+      "description": "On 375px the Save button is offscreen. Sticky footer or move to top of form.",
+      "priority": "high",
+      "status": "pending"
+    }
+  ]
+}
 ```
-## [Page Name]
 
-### What I Saw (Desktop / Tablet / Mobile)
-[2-4 sentences describing actual visual observations. Reference specific elements by name. Mention what's good too — not everything needs fixing.]
-
-### Issues Found
-- [Specific issue]: [What you saw, what it breaks for the user]
-- [Specific issue]: [What you saw, what it breaks for the user]
-
-### Improvement Pitches
-1. **[Change name]** — [What to change, why, expected impact]
-2. **[Change name]** — [What to change, why, expected impact]
-
-### Viewport Notes
-- Desktop: [anything desktop-specific]
-- Tablet: [any breakpoint weirdness]
-- Mobile: [any mobile-specific issues or wins]
-```
-
-End with a **Priority Stack** — a ranked list of the top 5 changes across all pages that would have the biggest impact:
-
-```
-## Top 5 Improvements (Ranked by Impact)
-
-1. [Page] — [Change] — [Why it's #1]
-2. ...
-3. ...
-4. ...
-5. ...
-```
+**Rules for `actions`:**
+- One flat list across all pages — do NOT write separate per-page issues, pitches, or a priority_stack
+- `rank` = global priority order (1 = most impactful across the entire app)
+- `title` = short, actionable ("Fix X", "Add Y", "Remove Z") — not a description
+- `description` = what to change + why + expected impact — enough to act on without needing context
+- `priority` = `"high"` | `"medium"` | `"low"`
+- `status` = `"pending"` (always start as pending)
 
 ---
 
@@ -306,13 +323,15 @@ Go To  https://app.example.com/dashboard
 
 ---
 
-## Checklist Before Submitting the Pitch
+## Checklist Before Creating the Artifact
 
 - [ ] Visited every page at desktop (1440x900)
 - [ ] Visited every page at mobile (375x667)
 - [ ] Visited every page at tablet (768x1024)
 - [ ] Scrolled long pages at each viewport
 - [ ] Triggered at least one interactive state per page (hover, click, expand)
-- [ ] Every observation references what was seen in a screenshot, not guessed from code
-- [ ] Every suggestion is specific and actionable (names the element, states the change)
-- [ ] Priority stack lists top 5 across all pages
+- [ ] Every `what_i_saw` references what was seen in a screenshot, not guessed from code
+- [ ] `actions` is a single flat list — no separate issues/pitches/priority_stack
+- [ ] Every action has `rank`, `page`, `title`, `description`, `priority`, `status`
+- [ ] `title` is short and actionable ("Fix X", "Add Y")
+- [ ] `description` has enough context to act on without reading anything else
