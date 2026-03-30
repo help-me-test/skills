@@ -141,28 +141,51 @@ For a **batch of tests**, output a table grouped by tier:
 
 Then a summary line: `X solid / Y mediocre / Z bullshit out of N total`
 
-Then immediately output a **numbered action menu** based on what was found. Only show options that apply:
+Then output **"What to do with these results"** — grouped action sections, only include groups where there's something to act on:
 
 ```
-What next? Reply with numbers (e.g. "1 3"):
+## What to do with these results
 
-1. Delete [N] score-10 tests: [id1], [id2]
-2. Rename [N] misleading tests (name doesn't match what test does)
-3. Fix [N] vacuous assertions (>= 0, always-true checks)
-4. Rewrite [N] mediocre tests into solid ones
+**1. Delete immediately (score 10) — no discussion needed**
+- `[id]` — [one-line reason: hash name / single Go To / Sleep with no assertion]
+
+**2. Fix or rename (misleading names)**
+- `[id]` — name says "[X]", test never does [X]. Either rename to `[suggestion]` or rewrite to actually [do X]
+
+**3. Fix assertions (vacuous)**
+- `[id]` — `>= 0` always passes. Change to `>= 1` / assert exact count / assert state change
+
+**4. Investigate failures**
+- `[id]` — failing with [Ns] timeout. Selector `[sel]` may have changed / feature removed
+
+**5. [test-id] — either kill or fix**
+- Currently [describe the hollow pattern]. Either:
+  - Delete it (tests nothing)
+  - Or [specific fix: replace Sleep with Wait For Elements State / add assertion X]
+```
+
+Each group has a number. End with the action menu:
+
+```
+Reply with numbers to act (e.g. "1 3" or "all"):
+
+1. Delete [N] score-10 tests
+2. Rename/fix [N] misleading tests
+3. Fix [N] vacuous assertions
+4. Rewrite [N] mediocre tests
 5. Investigate [N] failing tests
-6. All of the above
+all — do everything above
 ```
 
-**When user replies with numbers:**
+**When user replies with numbers or "all":**
 
-- Parse the reply as a space/comma-separated list of option numbers
-- Execute each selected action in order without asking for more input
-- For **delete**: call `helpmetest_delete_test` for each score-10 test ID
-- For **rename**: propose new name + ask to confirm before calling `helpmetest_upsert_test`
-- For **fix assertions**: show current code → show fixed code → call `helpmetest_upsert_test`
-- For **rewrite**: show rewritten test → call `helpmetest_upsert_test`
-- For **investigate**: run each failing test with `helpmetest_run_test` and report what broke
+- Parse as space/comma-separated list; "all" = every applicable option
+- Execute each in order without asking for more input
+- For **delete**: call `helpmetest_delete_test` for each ID — no confirmation needed for score 10
+- For **rename**: propose new name inline, then call `helpmetest_upsert_test`
+- For **fix assertions**: show diff of old → new code, then call `helpmetest_upsert_test`
+- For **rewrite**: show full rewritten test, then call `helpmetest_upsert_test`
+- For **investigate**: run each with `helpmetest_run_test`, report what broke
 
 ## Output
 
