@@ -98,22 +98,52 @@ Check for these bullshit patterns:
 
 **If ANY requirement fails → REJECT with specific feedback**
 
-### Step 4: Generate Validation Report
+### Step 4: Assign Bullshit Score
 
-Output either:
-- **✅ PASS:** Test verifies feature works, would fail if feature broken
-- **❌ REJECT:** [Specific reason] - Test doesn't verify feature functionality
+Rate the test on the **Bullshit Scale: 1–10** where 1 = solid test, 10 = pure bullshit.
 
-Include:
-- Test ID
-- Feature ID
-- Scenario name
-- Status (PASS/REJECT)
-- If REJECT: specific feedback on what needs to be fixed
-- If PASS: any optional recommendations for improvement
+| Score | Meaning |
+|-------|---------|
+| 1–3 | Solid — behavioral assertions, state changes verified, would catch real bugs |
+| 4–6 | Mediocre — some value but weak assertions, misleading name, or vacuously true checks |
+| 7–9 | Mostly bullshit — navigation only, `>= 0` assertions, no real behavior tested |
+| 10 | Pure bullshit — single `Go To`, unnamed hash ID, `Sleep` with no assertion |
+
+**Score ≤ 4 → PASS. Score ≥ 5 → REJECT** (unless the user asks only for a grade without enforcement).
+
+### Step 5: Generate Validation Report
+
+For a **single test**, output:
+
+```
+[score]/10 — ✅ PASS / ❌ REJECT
+Test ID: [id]
+Reason: [one sentence]
+[Optional: what to fix]
+```
+
+For a **batch of tests**, output a table grouped by tier:
+
+```
+### Solid (1–3)
+| Test | Score | Reason |
+|------|-------|--------|
+| test-name | 2 | End-to-end flow, before/after verified |
+
+### Mediocre (4–6)
+| Test | Score | Reason |
+...
+
+### Bullshit (7–10)
+| Test | Score | Reason |
+...
+```
+
+Then a summary line: `X solid / Y mediocre / Z bullshit out of N total`
 
 ## Output
 
+- Bullshit score (1–10) for every test reviewed
 - Validation status: PASS or REJECT
 - Specific feedback (why rejected OR recommendations if passed)
 - Updated Feature artifact if PASS (add test_id to scenario.test_ids)
