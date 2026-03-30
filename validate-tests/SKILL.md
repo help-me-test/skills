@@ -141,6 +141,29 @@ For a **batch of tests**, output a table grouped by tier:
 
 Then a summary line: `X solid / Y mediocre / Z bullshit out of N total`
 
+Then immediately output a **numbered action menu** based on what was found. Only show options that apply:
+
+```
+What next? Reply with numbers (e.g. "1 3"):
+
+1. Delete [N] score-10 tests: [id1], [id2]
+2. Rename [N] misleading tests (name doesn't match what test does)
+3. Fix [N] vacuous assertions (>= 0, always-true checks)
+4. Rewrite [N] mediocre tests into solid ones
+5. Investigate [N] failing tests
+6. All of the above
+```
+
+**When user replies with numbers:**
+
+- Parse the reply as a space/comma-separated list of option numbers
+- Execute each selected action in order without asking for more input
+- For **delete**: call `helpmetest_delete_test` for each score-10 test ID
+- For **rename**: propose new name + ask to confirm before calling `helpmetest_upsert_test`
+- For **fix assertions**: show current code → show fixed code → call `helpmetest_upsert_test`
+- For **rewrite**: show rewritten test → call `helpmetest_upsert_test`
+- For **investigate**: run each failing test with `helpmetest_run_test` and report what broke
+
 ## Output
 
 - Bullshit score (1–10) for every test reviewed
