@@ -38,11 +38,36 @@ Go To  http://dev.local
 
 **After starting the proxy, every test URL must use the proxy domain, not localhost.**
 
-## ❌ Myth: "Vite/service binds to 127.0.0.1, can't proxy"
+## ⚠️ Service must be reachable from where frpc runs
 
-This is false. The proxy (frpc) runs on your local machine and connects to `127.0.0.1:PORT` locally — it doesn't matter whether your dev server listens on `127.0.0.1` or `0.0.0.0`. Both work fine through the tunnel.
+frpc connects to `127.0.0.1:PORT` from the machine it runs on. If frpc runs in a container or cloud agent environment, it cannot reach a service that is only bound to `127.0.0.1` on the user's local machine.
 
-If the proxy fails, the cause is almost never the bind address. Check: is the server actually running? Is the proxy registered? Use `helpmetest_proxy({ action: "list" })` to verify.
+**If the proxy fails to connect to your local server:**
+
+Check whether your dev server is bound to `127.0.0.1` (loopback only) instead of `0.0.0.0` (all interfaces). Many tools default to loopback:
+
+```bash
+# Vite — add --host flag
+vite --host
+# or in vite.config.js: server: { host: '0.0.0.0' }
+
+# Next.js
+next dev -H 0.0.0.0
+
+# Other Node.js servers — pass host option or set HOST=0.0.0.0 env var
+```
+
+After changing the bind address, restart the server and retry the proxy.
+
+## frpc Installation
+
+frpc is **auto-installed on first use** — no manual steps needed. When you run `helpmetest proxy start` (or `helpmetest_proxy({ action: "start", ... })`), the CLI checks for frpc at `~/.local/bin/frpc`. If missing, it downloads and installs automatically from `https://slava.helpmetest.com/install/frpc`.
+
+If auto-install fails (e.g., network error), install manually:
+```bash
+brew install frp   # macOS
+# or download from https://github.com/fatedier/frp/releases
+```
 
 ## When to Use
 
@@ -144,9 +169,9 @@ Expected: Your local app loads successfully. If you see `chrome-error://chromewe
 3. **Check local server is running:** `curl http://127.0.0.1:3000` (this works locally — if this fails, start your server)
 4. **Restart proxy if needed:** Stop and start again
 
-### "Service is on 127.0.0.1, not 0.0.0.0"
+### Service on 127.0.0.1 not reachable
 
-Not a problem. frpc connects to 127.0.0.1 on your local machine — no need to change your server's bind address.
+If your server is bound to `127.0.0.1` (loopback only), restart it with `0.0.0.0` binding — see the "Service must be reachable" section above.
 
 ### Stale frpc processes blocking new proxy
 
