@@ -14,12 +14,35 @@ Sets up proxy tunnels to test local development servers through HelpMeTest.
 
 HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:3000) is not reachable from there. The proxy creates a TCP tunnel:
 
-1. You start a proxy via the MCP tool — it registers a tunnel with the proxy server and spawns an frpc process
+1. You start a proxy via the MCP tool — it registers a tunnel with the proxy server and spawns an frpc process (frpc is **bundled with the CLI** — no separate installation needed)
 2. The tunnel maps a domain (e.g. `dev.local`) to your local port
 3. HelpMeTest's test runner routes traffic for that domain through the tunnel back to your machine
 4. Your local server responds as if accessed directly
 
 **The proxied URL (e.g. http://dev.local) is NOT accessible from your local browser or curl.** It only works inside HelpMeTest test commands (`Go To`, `helpmetest_run_interactive_command`, etc.).
+
+## ❌ The #1 Mistake — Using localhost in test URLs
+
+Setting up the proxy and then using `localhost` in tests accomplishes nothing. The cloud runner cannot reach localhost.
+
+```robot
+# WRONG — cloud runner can't reach localhost, proxy is useless
+Go To  http://localhost:3000
+
+# WRONG — same problem
+Go To  http://127.0.0.1:3000
+
+# RIGHT — use the proxy domain you configured
+Go To  http://dev.local
+```
+
+**After starting the proxy, every test URL must use the proxy domain, not localhost.**
+
+## ❌ Myth: "Vite/service binds to 127.0.0.1, can't proxy"
+
+This is false. The proxy (frpc) runs on your local machine and connects to `127.0.0.1:PORT` locally — it doesn't matter whether your dev server listens on `127.0.0.1` or `0.0.0.0`. Both work fine through the tunnel.
+
+If the proxy fails, the cause is almost never the bind address. Check: is the server actually running? Is the proxy registered? Use `helpmetest_proxy({ action: "list" })` to verify.
 
 ## When to Use
 
@@ -116,9 +139,14 @@ Expected: Your local app loads successfully. If you see `chrome-error://chromewe
 
 ### Tests show chrome-error or connection refused
 
-1. **Check proxy is running:** `helpmetest_proxy({ action: "list" })`
-2. **Check local server is running:** `curl http://127.0.0.1:3000` (this works locally)
-3. **Restart proxy if needed:** Stop and start again
+1. **Check you're using the proxy domain in test URLs** — `Go To  http://dev.local` NOT `http://localhost:3000`
+2. **Check proxy is running:** `helpmetest_proxy({ action: "list" })`
+3. **Check local server is running:** `curl http://127.0.0.1:3000` (this works locally — if this fails, start your server)
+4. **Restart proxy if needed:** Stop and start again
+
+### "Service is on 127.0.0.1, not 0.0.0.0"
+
+Not a problem. frpc connects to 127.0.0.1 on your local machine — no need to change your server's bind address.
 
 ### Stale frpc processes blocking new proxy
 
