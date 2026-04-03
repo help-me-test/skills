@@ -86,16 +86,41 @@ Go To  <url>
 # Execute each Given/When/Then step, observe what actually happens
 ```
 
-**3. Write tests** for `priority:critical` scenarios first, then high, then medium. For each:
+**3. Before writing each test, answer this out loud:**
+> "If this test passes but the feature is actually broken, what user complaint would we miss until a customer reports it?"
+
+Write that answer as the `PROTECTS:` line in `[Documentation]`. This is the contract the test makes with the user — not optional boilerplate. If you can't answer it in one sentence, the scenario needs more thought, not a test.
+
+**4. Write tests** for `priority:critical` scenarios first, then high, then medium. For each:
 - 5+ meaningful steps
 - Verify business outcomes (data saved, state changed) — not just that an element is visible
 - Use `Create Fake Email` for any registration/email fields — never hardcode
+- `[Documentation]` must start with `PROTECTS: <what user complaint this catches>`
 
-**4. Link tests back** — add each test ID to `scenario.test_ids` in the Feature artifact.
+**5. Validate** each test with `validate-tests` **before** linking it to the scenario. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
 
-**5. Validate** each test with `validate-tests` before running. Catches tests that pass when the feature is broken.
+**6. Link tests back** — add each test ID to `scenario.test_ids` in the Feature artifact **only after** it passes validation.
 
-**6. Run and fix** — see "Fix broken tests" below if a newly-written test fails.
+**7. Run and fix** — see "Fix broken tests" below if a newly-written test fails.
+
+---
+
+## After Running a Test
+
+> ⚡ MANDATORY: Present this result to the user now. Do not just return the raw tool output.
+
+Write a clear summary that covers ALL of the following:
+
+1. **What this test does** — one sentence goal, what user behaviour it emulates
+2. **Steps the test takes** — walk through the key actions in plain language (not Robot Framework syntax)
+3. **What it verifies** — what assertions or outcomes prove success
+4. **Result** — did it pass or fail? If it failed, what went wrong and what should be fixed next?
+5. **Any warnings or lint issues** — explain in plain English what the agent should change
+6. **Links** — include both the 🔗 Test URL and the 🔗 This run URL so the user can open them
+
+Do NOT paste raw Robot Framework code. Speak to the user as if describing the work you just did.
+
+Check if linked features and project artifacts for this test need updates that reflect your changes in tests.
 
 ---
 
@@ -181,6 +206,22 @@ Reload
 <re-assert that state survived>
 ```
 
+### Documentation format
+
+Every test must have `[Documentation]` with two parts:
+
+```robot
+[Documentation]    PROTECTS: <one sentence — what user complaint this catches if the feature breaks>
+...                Given: <given> | When: <when> | Then: <then>
+```
+
+**PROTECTS: good examples:**
+- ✅ `PROTECTS: Users who complete checkout don't get charged without receiving an order confirmation`
+- ✅ `PROTECTS: Users typing wrong passwords aren't silently logged in or shown a blank error`
+- ✅ `PROTECTS: Profile email changes don't silently fail — user would see stale email still showing`
+- ❌ `PROTECTS: The login form works` — too vague, what breaks? who notices?
+- ❌ `PROTECTS: Tests that the form submits` — that's what the test does, not what it protects
+
 ### What makes a good test
 
 ✅ Verifies a business outcome — data saved, filter applied, order created
@@ -235,6 +276,26 @@ Verify it works before writing any tests. See the `proxy` skill for details.
 
 - ✅ All tests passing
 - ✅ All `priority:critical` scenarios have `test_ids`
+- ✅ Every test has a `PROTECTS:` line in `[Documentation]`
+- ✅ Every test passed `/validate-tests` before being linked
 - ✅ Bugs documented in `feature.bugs[]`
 - ✅ Feature.status updated (`working` / `broken` / `partial`)
 - ✅ Tasks artifact all done
+
+## Final summary format
+
+Never end with "N tests created, M passing." End with this:
+
+```
+## What you can now trust works
+- <user-facing statement> (test: <id>)
+- <user-facing statement> (test: <id>)
+
+## What's still unprotected
+- <what could silently break with no test catching it>
+
+## Bugs found
+- <bug description> — documented in feature.bugs[]
+```
+
+If you can't write the first section in user-facing language, your tests are not done.
