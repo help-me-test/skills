@@ -105,25 +105,6 @@ Write that answer as the `PROTECTS:` line in `[Documentation]`. This is the cont
 
 ---
 
-## After Running a Test
-
-> ⚡ MANDATORY: Present this result to the user now. Do not just return the raw tool output.
-
-Write a clear summary that covers ALL of the following:
-
-1. **What this test does** — one sentence goal, what user behaviour it emulates
-2. **Steps the test takes** — walk through the key actions in plain language (not Robot Framework syntax)
-3. **What it verifies** — what assertions or outcomes prove success
-4. **Result** — did it pass or fail? If it failed, what went wrong and what should be fixed next?
-5. **Any warnings or lint issues** — explain in plain English what the agent should change
-6. **Links** — include both the 🔗 Test URL and the 🔗 This run URL so the user can open them
-
-Do NOT paste raw Robot Framework code. Speak to the user as if describing the work you just did.
-
-Check if linked features and project artifacts for this test need updates that reflect your changes in tests.
-
----
-
 ### "Fix broken tests" / "Tests are failing"
 
 **First: understand the failure pattern**
