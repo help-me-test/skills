@@ -340,6 +340,136 @@ POST    /api/admin/users    body={"name": "Bob"}
 Response Status Should Be    403
 ```
 
+## Contract Testing
+
+API contracts ensure that when your backend changes, consumers (frontend, mobile, other services) don't silently break. HelpMeTest's API library has everything you need — no Pact Broker required.
+
+### The Core Idea
+
+A contract test answers: **"If this endpoint changes, will I know before users do?"**
+
+Test from the **consumer's perspective** — only assert what the consumer actually uses. Extra fields are fine; missing fields break consumers.
+
+### Define a Contract with `Response Body Should Match`
+
+Use type placeholders to lock the shape without hardcoding values:
+
+```robot
+*** Test Cases ***
+User API contract — consumer perspective
+    As    Admin
+    Go To    https://app.example.com
+
+    GET    /api/users/1
+    Response Status Should Be    200
+    # Consumer needs: id, name, email — assert exactly those
+    Response Body Should Match    {
+    ...    "id": "#number",
+    ...    "name": "#string",
+    ...    "email": "#string"
+    ...    }
+    # Extra fields ignored — contract is about what consumer needs
+```
+
+### Backward Compatibility: Fields Must Not Disappear
+
+```robot
+*** Test Cases ***
+GET /api/orders — backward compatibility
+    As    User
+    Go To    https://app.example.com
+
+    GET    /api/orders
+    Response Status Should Be    200
+    # These fields existed before v2 — they must still exist
+    Field Should Exist    0.id
+    Field Should Exist    0.status
+    Field Should Exist    0.total
+    Field Should Exist    0.created_at
+    # New field added in v2 — that's fine, consumers ignore it
+    # Field Should Exist    0.metadata   ← don't assert new fields yet
+```
+
+### Error Response Contract
+
+Error responses have a contract too — clients parse them:
+
+```robot
+*** Test Cases ***
+Error responses follow contract
+    As    User
+    Go To    https://app.example.com
+
+    # 400 — validation error must include field-level details
+    POST    /api/users    body={"name": ""}
+    Response Status Should Be    400
+    Field Should Exist    error
+    Field Should Exist    error.message
+    # If client parses error.fields, it must always be present
+    Field Should Exist    error.fields
+
+    # 404 — not found must include message
+    GET    /api/users/nonexistent-id
+    Response Status Should Be    404
+    Field Should Exist    error.message
+```
+
+### Testing API Evolution (Adding Fields is Safe, Removing is Not)
+
+```robot
+*** Test Cases ***
+Adding optional field does not break existing consumers
+    As    Admin
+    Go To    https://app.example.com
+
+    POST    /api/products    body={"name": "Widget", "price": 9.99}
+    Response Status Should Be    201
+    ${id}=    Get Response Field    id
+
+    # Old contract — must still work
+    Response Body Should Match    {"id": "#number", "name": "#string", "price": "#number"}
+
+    # New field present but consumer doesn't need it — use #ignore
+    Response Body Should Match    {"id": "#number", "name": "#string", "metadata": "#ignore"}
+```
+
+### Chaining Contract Tests (Consumer Workflow)
+
+Test the full consumer workflow — not just individual endpoints:
+
+```robot
+*** Test Cases ***
+Checkout flow API contract
+    As    User
+    Go To    https://app.example.com
+
+    # Step 1: Add to cart — consumer needs cart id
+    POST    /api/cart    body={"product_id": 1, "quantity": 2}
+    Response Status Should Be    201
+    ${cart_id}=    Get Response Field    id
+    Field Type Should Be    id    number
+
+    # Step 2: Get cart — consumer needs items array with price
+    GET    /api/cart/${cart_id}
+    Response Body Should Match    {"id": "#number", "items": "#array", "total": "#number"}
+    Field Should Not Be Empty    items
+
+    # Step 3: Checkout — consumer needs order id for confirmation page
+    POST    /api/orders    body={"cart_id": "${cart_id}"}
+    Response Status Should Be    201
+    Field Should Exist    id
+    Field Should Exist    status
+    Field Should Be One Of    status    pending,confirmed
+```
+
+### What Makes a Good API Contract Test
+
+- **Assert structure, not specific values** — use type placeholders, not exact IDs
+- **Assert what consumers use** — if the frontend only reads `id` and `name`, only assert those
+- **Always test error contracts** — clients parse errors, those need contracts too
+- **Test status codes explicitly** — `Response Status Should Be` before any field assertions
+- **Chain requests for real consumer flows** — a consumer rarely calls one endpoint in isolation
+
 ## Common Pitfalls
 
 **Don't use Javascript fetch in tests.** The API library exists precisely so you don't have to. `Javascript    fetch(...)` bypasses auth, skips rrweb recording, and produces brittle tests.

@@ -224,14 +224,25 @@ how_to({ type: "interactive_debugging" })
    3. ✅ Validate test quality
       → Review existing tests for quality issues
 
-   4. ▶️ Continue previous work
+   4. 🔌 API testing
+      → Write and run tests against REST endpoints (auth automatic via browser session)
+
+   5. 📋 Test strategy
+      → Map what needs to be tested for a feature before writing anything
+
+   6. ▶️ Continue previous work
       → Resume from where we left off
 
    Please provide:
    - Option number OR
    - URL to test (assumes option 1) OR
-   - "continue" (assumes option 4)
+   - "continue" (assumes option 6)
    ```
+
+   **Signal → option mapping** (use when context signals are found):
+   - Changed `api/`, `routes/`, `server/` files → suggest option 4 (API testing)
+   - User described a new feature → suggest option 5 (test strategy) before writing tests
+   - URL provided directly → skip menu, go to option 1
 
 5. **Wait for user response** before proceeding to Phase 0
 
