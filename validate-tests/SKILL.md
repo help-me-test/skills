@@ -90,7 +90,8 @@ Check for these bullshit patterns:
 - Verifies state change (before/after OR API response OR data persistence)?
 - Tests scenario's Given/When/Then, not just "page loads"?
 - Uses stable selectors?
-- Has [Documentation]?
+- Has [Documentation] with a `PROTECTS:` line? (e.g. `PROTECTS: Users who complete checkout don't get charged without confirmation`)
+- `PROTECTS:` line is specific — names the user complaint, not just "the feature works"?
 - Tags use category:value format (priority:high)?
 - Has required tags: priority:?
 - Tags include feature:?
@@ -98,15 +99,33 @@ Check for these bullshit patterns:
 
 **If ANY requirement fails → REJECT with specific feedback**
 
+A missing or vague `PROTECTS:` line is an automatic REJECT. "PROTECTS: The form works" is vague. "PROTECTS: Users submitting invalid email get a clear error, not a silent failure" is specific.
+
+### Step 3.5: Mutation Resistance Check
+
+Before scoring, apply the **mutation test**: mentally introduce a deliberate bug and ask if the test would catch it.
+
+For each meaningful step, ask: "If I deleted this line of application code, would this test fail?"
+
+Examples:
+- If the save button's `onClick` handler was removed → does the test catch it? If not → weak
+- If the API endpoint returned 200 but wrote nothing to DB → does the test catch it? If not → weak (missing persistence check)
+- If the error message was changed to empty string → does the test catch it? If not → weak assertion
+- If authentication was bypassed → does the test catch it? If not → missing auth check
+
+**Any test where you can introduce a realistic bug and the test still passes → score 7+**
+
+The mutation check is not theoretical — pick the ONE most likely real-world bug for the feature (e.g. "save silently fails", "validation doesn't run on submit", "wrong user's data shown") and verify the test would catch it.
+
 ### Step 4: Assign Bullshit Score
 
 Rate the test on the **Bullshit Scale: 1–10** where 1 = solid test, 10 = pure bullshit.
 
 | Score | Meaning |
 |-------|---------|
-| 1–3 | Solid — behavioral assertions, state changes verified, would catch real bugs |
-| 4–6 | Mediocre — some value but weak assertions, misleading name, or vacuously true checks |
-| 7–9 | Mostly bullshit — navigation only, `>= 0` assertions, no real behavior tested |
+| 1–3 | Solid — behavioral assertions, state changes verified, mutation-resistant, would catch real bugs |
+| 4–6 | Mediocre — some value but weak assertions, misleading name, vacuously true checks, or survives obvious mutations |
+| 7–9 | Mostly bullshit — navigation only, `>= 0` assertions, no real behavior tested, zero mutation resistance |
 | 10 | Pure bullshit — single `Go To`, unnamed hash ID, `Sleep` with no assertion |
 
 **Score ≤ 4 → PASS. Score ≥ 5 → REJECT** (unless the user asks only for a grade without enforcement).

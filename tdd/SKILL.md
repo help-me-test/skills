@@ -189,19 +189,37 @@ Reload
 
 ### Documentation format
 
-Every test must have `[Documentation]` with two parts:
+Every test must have `[Documentation]` with four explicit lines:
 
 ```robot
-[Documentation]    PROTECTS: <one sentence — what user complaint this catches if the feature breaks>
-...                Given: <given> | When: <when> | Then: <then>
+[Documentation]
+...    Given: <precondition — what state the system is in before the action>
+...    When: <action — what the user/system does>
+...    Then: <outcome — what is asserted, specifically>
+...    Risk: <what silent failure this catches — user complaint if this test were deleted>
 ```
 
-**PROTECTS: good examples:**
-- ✅ `PROTECTS: Users who complete checkout don't get charged without receiving an order confirmation`
-- ✅ `PROTECTS: Users typing wrong passwords aren't silently logged in or shown a blank error`
-- ✅ `PROTECTS: Profile email changes don't silently fail — user would see stale email still showing`
-- ❌ `PROTECTS: The login form works` — too vague, what breaks? who notices?
-- ❌ `PROTECTS: Tests that the form submits` — that's what the test does, not what it protects
+**Full example:**
+```robot
+[Documentation]
+...    Given: registered user with valid account
+...    When: submits login form with wrong password
+...    Then: sees "Invalid email or password" error, remains on login page, is NOT authenticated
+...    Risk: silent login failure — attacker gets in, or user is confused with no feedback
+```
+
+**Given/When/Then — what makes them good:**
+- ✅ `Given: registered user with valid account` — specific precondition
+- ✅ `When: submits login form with wrong password` — exact action
+- ✅ `Then: sees "Invalid email or password" error, remains on login page, is NOT authenticated` — concrete, multiple assertions named
+- ❌ `Given: user is logged in | When: they do something | Then: it works` — vague, tells you nothing when the test fails
+
+**Risk — good examples:**
+- ✅ `Risk: users completing checkout get charged without receiving an order confirmation`
+- ✅ `Risk: users typing wrong passwords are silently logged in or shown a blank screen`
+- ✅ `Risk: profile email changes silently fail — user sees stale email with no indication`
+- ❌ `Risk: the login form breaks` — too vague, what breaks? who notices?
+- ❌ `Risk: the form doesn't submit` — that's what the test does, not what it protects against
 
 ### What makes a good test
 
@@ -257,7 +275,7 @@ Verify it works before writing any tests. See the `proxy` skill for details.
 
 - ✅ All tests passing
 - ✅ All `priority:critical` scenarios have `test_ids`
-- ✅ Every test has a `PROTECTS:` line in `[Documentation]`
+- ✅ Every test has `Given:`, `When:`, `Then:`, `Risk:` lines in `[Documentation]`
 - ✅ Every test passed `/validate-tests` before being linked
 - ✅ Bugs documented in `feature.bugs[]`
 - ✅ Feature.status updated (`working` / `broken` / `partial`)
