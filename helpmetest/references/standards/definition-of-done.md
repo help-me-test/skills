@@ -34,7 +34,7 @@
 ## Test Coverage
 
 - [ ] **Tests created:** X (should be >= number of scenarios)
-- [ ] **Tests validated:** X (100% must pass /helpmetest-validator)
+- [ ] **Tests validated:** X (100% must pass /fix-tests)
 - [ ] **Tests executed:** X (100% must be run)
 - [ ] **Critical scenarios tested:** 100% (ALL priority:critical scenarios MUST have test_ids)
 - [ ] **Tests passing:** A

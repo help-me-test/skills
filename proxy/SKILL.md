@@ -6,6 +6,17 @@ allowed-tools: mcp__helpmetest-*
 
 > **No MCP?** The CLI has full feature parity — use `helpmetest proxy start/stop/list` instead of `helpmetest_proxy({...})`. See the [CLI reference](../README.md#no-mcp-use-the-cli).
 
+---
+
+> ### 🔴 YOU WRITE THE TEST FIRST.
+> Changed code → run the tests.
+> New feature → write the test before the code.
+> The test is the spec. The test is done when it's green.
+> **No test = not done.**
+
+---
+
+
 # HelpMeTest Proxy Setup
 
 Sets up proxy tunnels to test local development servers through HelpMeTest.

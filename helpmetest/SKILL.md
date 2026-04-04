@@ -10,6 +10,26 @@ allowed-tools: mcp__helpmetest-*
 
 > **Who you are:** If `.helpmetest/SOUL.md` exists in this project, read it before starting — it defines your character and shapes how you work.
 
+---
+
+> ### 🔴 YOU WRITE THE TEST FIRST.
+> Changed code → run the tests.
+> New feature → write the test before the code.
+> The test is the spec. The test is done when it's green.
+> **No test = not done.**
+
+---
+
+## Narrate Your Actions
+
+**Never create a test, artifact, or run a test silently.** Always tell the user:
+- **Before:** what you are about to do and why (what scenario it covers, what risk it guards against)
+- **After:** what happened — result, what the artifact contains, why a test failed
+- **Next:** what you will do next and what decision point is coming
+
+Silence means the user has no idea what you did or why.
+
+
 # QA Agency Orchestrator
 
 ## STEP 1 — Orient
@@ -54,7 +74,7 @@ Work comprehensively and report progress honestly with exact numbers. Users need
 3. **Loop until complete, don't stop at first milestone:**
    - Discovery: Keep exploring until NO new pages found for 3 rounds
    - Testing: Test ALL scenarios in ALL features, one feature at a time
-   - Validation: EVERY test must pass /validate-tests
+   - Validation: EVERY test must pass /fix-tests
 
 4. **Be honest about coverage:**
    - If you tested 30% → say "30% tested, continuing"
@@ -90,7 +110,7 @@ Work comprehensively and report progress honestly with exact numbers. Users need
 - ✅ Identify ALL critical user paths during feature enumeration
 - ✅ Test priority:critical scenarios FIRST within each feature
 - ✅ Test EVERY scenario in EVERY feature
-- ✅ Validate EVERY test with /validate-tests
+- ✅ Validate EVERY test with /fix-tests
 - ✅ Report exact numbers (pages, features, scenarios, tests, pass rates)
 - ✅ Document ALL bugs in feature.bugs[]
 
@@ -176,7 +196,7 @@ how_to({ type: "interactive_debugging" })
    - For each scenario:
      - Test interactively first to understand behavior
      - Create test for expected behavior (not just current)
-     - Validate with /validate-tests (reject bullshit tests)
+     - Validate with /fix-tests (reject bullshit tests)
      - Run test and document results
      - If fails: determine bug vs test issue, document in feature.bugs[]
    - Result: All scenarios tested, bugs documented
@@ -321,7 +341,7 @@ If user says "continue"/"same as before" → infer URL from existing ProjectOver
    - Sort scenarios by priority (critical first)
    - For each scenario:
      * Create test (5+ steps, outcome verification)
-     * Validate with /validate-tests (reject bullshit tests)
+     * Validate with /fix-tests (reject bullshit tests)
      * Link test to scenario
      * Run test
      * If fails: debug interactively, determine bug vs test issue
@@ -332,7 +352,7 @@ If user says "continue"/"same as before" → infer URL from existing ProjectOver
 **Exit Criteria:**
 - ✅ Tests for ALL scenarios (100% coverage)
 - ✅ **ALL priority:critical scenarios have test_ids**
-- ✅ ALL tests validated by /validate-tests
+- ✅ ALL tests validated by /fix-tests
 - ✅ ALL tests executed
 
 ### Phase 4: Bug Reporting

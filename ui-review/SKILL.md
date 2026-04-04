@@ -1,6 +1,6 @@
 ---
 name: ui-review
-description: "Deep UI walkthrough with screenshot-based analysis across all pages and viewports (desktop + tablet + mobile). Delivers per-page improvement pitches grounded in what you actually see. Use when user says 'review the UI', 'pitch UI improvements', 'how does this look', 'UX audit', 'walk through the app'."
+description: "Visual inspection of your app — from a quick 'does this button look right?' to a full UX audit across all pages and viewports. Always produces a UIReview artifact with screenshots and ranked actions. Use for: 'review the UI', 'pitch UI improvements', 'how does this look', 'UX audit', 'walk through the app', 'does this look right on mobile', 'check this layout', or any visual question. No one-off checks without artifacts — everything gets documented."
 argument-hint: [url-or-app-name]
 allowed-tools: mcp__helpmetest-*
 ---
@@ -9,24 +9,63 @@ allowed-tools: mcp__helpmetest-*
 
 > **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
 
+---
+
+> ### 🔴 YOU WRITE THE TEST FIRST.
+> Changed code → run the tests.
+> New feature → write the test before the code.
+> The test is the spec. The test is done when it's green.
+> **No test = not done.**
+
+---
+
+
 # UI Review
 
 Systematic visual walkthrough of every page in the app. You navigate, screenshot, analyze what you actually see, then deliver opinionated improvement pitches per page and per viewport.
 
 This is NOT a formal test run. It is a design and UX audit through a real browser.
 
+## Quick Check vs Full Audit
+
+**Quick Check** — a focused visual question about one page or element.
+Use when: "does the button look right", "is this centered", "check if the header renders on mobile".
+Still produces a UIReview artifact — it's just scoped to what was asked.
+
+**Full Audit** — systematic walkthrough of every page at desktop + tablet + mobile.
+Use when: "review the UI", "walk through the app", "UX audit", "give me UI feedback".
+
+The skill auto-detects which mode based on the scope of the request. In both cases, screenshots go into a UIReview artifact — nothing is a "one-off that doesn't get recorded".
+
 ## When to Use This Skill
 
+- "Does this button look right?" / "Is this layout broken?"
 - "Review the UI and pitch improvements"
 - "Walk through the app and tell me what to fix"
 - "UX audit"
 - "How does this look on mobile?"
-- "Give me UI feedback on all pages"
+- Any visual question — quick or thorough
 
 **NOT for:**
-- Creating automated tests (use `/test-generator`)
+- Creating automated tests (use `/tdd`)
 - Finding functional bugs (use `/helpmetest`)
-- Debugging a specific broken test (use `/debug-tests`)
+- Debugging a specific broken test (use `/fix-tests`)
+
+---
+
+## Quick Check Mode
+
+If the request is focused (one page, one element, one question):
+
+1. Navigate and screenshot the relevant state
+2. Describe exactly what you see — specific elements, what's right, what's wrong
+3. If needed, check responsive states (mobile/desktop) or interaction states (hover, open)
+4. Create a UIReview artifact even for a quick check — scoped to the question:
+   - `pages`: just the pages you looked at
+   - `actions`: any fixes found, ranked
+   - If nothing is wrong: `actions: []` is valid
+
+Then stop. Don't launch a full audit unless the user asks for one.
 
 ---
 

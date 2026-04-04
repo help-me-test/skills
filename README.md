@@ -1,32 +1,50 @@
 # HelpMeTest Skills
 
-Official skills for HelpMeTest - AI-powered test automation agent.
+Official skills for HelpMeTest — AI-powered test automation agent.
 
 ## Installation
 
-### Using npx skills (Standard)
-
 ```bash
+helpmetest install skills
+# or
 npx skills add help-me-test/skills
 ```
 
-### Using HelpMeTest CLI (Convenience)
+Skills are installed to `.agents/skills/` in your project. Your AI agent can then invoke them with `/<skill-name>`.
 
-```bash
-helpmetest install skills
+---
+
+> ### 🔴 YOU WRITE THE TEST FIRST.
+> Changed code → run the tests.
+> New feature → write the test before the code.
+> The test is the spec. The test is done when it's green.
+> **No test = not done.**
+
+---
+
+## Available Skills (8)
+
+- **onboard** — new project setup: interview, explore, create all foundational artifacts, write HELPMETEST.md
+- **discover** — map what exists into Feature artifacts, whether the source is a live app, PRD, API spec, tickets, or codebase
+- **tdd** — test-first development: plan coverage → write all tests (they fail) → implement until green
+- **helpmetest** — full QA pass: discover pages, set up auth, enumerate features, generate and run tests, report bugs
+- **fix-tests** — everything wrong with your tests: one broken, suite broken, stale after refactor, or quality review. Detects the situation, picks the mode.
+- **ui-review** — visual inspection from a quick "does this look right?" to a full UX audit across all pages and viewports. Always produces a UIReview artifact.
+- **api-testing** — test REST endpoints via authenticated browser session
+- **proxy** — tunnel from HelpMeTest cloud browsers to your localhost dev server
+
+## Which skill to use
+
 ```
-
-This command uses the `skills` package under the hood but provides HelpMeTest-branded experience.
-
-## Available Skills
-
-- **helpmetest** - QA Agency orchestrator for comprehensive test automation
-- **helpmetest-discover** - Explore websites to discover features and personas
-- **helpmetest-test-generator** - Generate Robot Framework tests for features
-- **helpmetest-validator** - Validate test quality and score
-- **helpmetest-debugger** - Debug failing tests
-- **helpmetest-self-heal** - Self-healing test maintenance
-- **helpmetest-visual-check** - Quick visual verification of design and UI
+NEW PROJECT → /onboard
+HAVE SPECS / LIVE APP / TICKETS → /discover
+WRITING CODE / TESTS → /tdd
+FULL QA PASS → /helpmetest
+TESTS BROKEN / STALE / SUSPICIOUS → /fix-tests
+VISUAL QUESTION (any scope) → /ui-review
+API TESTING → /api-testing
+LOCALHOST TESTING → /proxy (then any other skill)
+```
 
 ## Compatibility
 
@@ -41,7 +59,7 @@ These skills follow the [Agent Skills open standard](https://github.com/vercel-l
 
 ## No MCP? Use the CLI
 
-If your AI agent doesn't support MCP, or you prefer shell commands, the HelpMeTest CLI has **full feature parity** with all MCP tools. Every MCP tool has an equivalent CLI command:
+If your AI agent doesn't support MCP, the HelpMeTest CLI has **full feature parity** with all MCP tools:
 
 | MCP tool | CLI equivalent |
 |----------|----------------|
@@ -51,22 +69,14 @@ If your AI agent doesn't support MCP, or you prefer shell commands, the HelpMeTe
 | `helpmetest_run_interactive_command` | `helpmetest interactive "<command>"` |
 | `helpmetest_keywords` | `helpmetest keywords [search]` |
 | `how_to` | `helpmetest how-to [type]` |
-| `helpmetest_proxy` | `helpmetest proxy start/stop/list/stop_all` |
+| `helpmetest_proxy` | `helpmetest proxy start/stop/list` |
 | `helpmetest_upsert_artifact` | `helpmetest artifact upsert` |
 | `helpmetest_get_artifact` | `helpmetest artifact get <id>` |
 | `helpmetest_search_artifacts` | `helpmetest artifact list` |
-| `helpmetest_generate_artifact` | `helpmetest artifact generate <type>` |
-| `helpmetest_delete_artifact` | `helpmetest artifact delete <id>` |
 | `helpmetest_deploy` | `helpmetest deploy` |
 | `helpmetest_open` | `helpmetest open <id>` |
 | `helpmetest_delete_test` | `helpmetest delete test <id>` |
 | `helpmetest_undo_update` | `helpmetest undo` |
-
-Skills use `mcp__helpmetest-*` in their frontmatter, but you can ignore that and use the CLI equivalents above. The skills describe workflows — the tool names are interchangeable.
-
-## Contributing
-
-Skills are defined using standard SKILL.md format with YAML frontmatter. See individual skill directories for examples.
 
 ## License
 

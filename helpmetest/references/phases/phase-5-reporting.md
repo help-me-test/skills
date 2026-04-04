@@ -55,7 +55,7 @@ Use this exact format:
 ### Test Execution Results
 
 **Tests Created:** X
-**Tests Validated:** X (100% passed /helpmetest-validator)
+**Tests Validated:** X (100% passed /fix-tests)
 **Tests Executed:** X
 
 **Test Results:**

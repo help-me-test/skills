@@ -32,7 +32,7 @@ Selectors wrong, timing issue, test logic error.
 
 **Actions:**
 - Fix the test
-- Re-validate with /helpmetest-validator
+- Re-validate with /fix-tests
 - Re-run test
 - Continue testing
 

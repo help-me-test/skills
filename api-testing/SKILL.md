@@ -4,6 +4,14 @@ description: "HelpMeTest API library — write Robot Framework tests that make H
 allowed-tools: mcp__helpmetest-*
 ---
 
+> ### 🔴 YOU WRITE THE TEST FIRST.
+> Changed code → run the tests.
+> New feature → write the test before the code.
+> The test is the spec. The test is done when it's green.
+> **No test = not done.**
+
+---
+
 # API Testing with HelpMeTest
 
 The API library runs HTTP requests inside the active browser tab. This means the browser's session cookies, auth headers, and credentials are sent automatically — no token juggling.

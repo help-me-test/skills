@@ -5,16 +5,16 @@
     "url": "https://github.com/help-me-test"
   },
   "metadata": {
-    "description": "AI-powered test automation skills for Claude Code and other AI agents. Includes comprehensive documentation, phase guides, standards, debugging guides, and scenario enumeration patterns.",
-    "version": "1.0.0",
+    "description": "AI-powered test automation skills for Claude Code and other AI agents. Covers the full workflow: project onboarding, discovery, TDD, full QA, test fixing, visual review, API testing, and localhost proxy.",
+    "version": "2.0.0",
     "repository": "https://github.com/help-me-test/skills"
   },
   "plugins": [
     {
       "name": "HelpMeTest Skills",
       "source": "./",
-      "description": "12 skills for comprehensive test automation: QA orchestration, website discovery, test generation, test validation, test strategy planning, debugging, self-healing, troubleshooting, UI review, proxy setup, test sync, and TDD.",
-      "version": "1.0.0",
+      "description": "8 skills for the complete test automation lifecycle: project setup, discovery, TDD, full QA orchestration, test fixing, visual review, API testing, and localhost proxy.",
+      "version": "2.0.0",
       "category": "testing",
       "tags": [
         "testing",
@@ -24,21 +24,18 @@
         "test-generation",
         "debugging",
         "self-healing",
-        "visual-testing"
+        "visual-testing",
+        "tdd"
       ],
       "skills": [
-        "./helpmetest",
+        "./onboard",
+        "./tdd",
         "./discover",
-        "./test-generator",
-        "./validate-tests",
-        "./debug-tests",
-        "./heal-tests",
-        "./troubleshoot",
+        "./fix-tests",
+        "./helpmetest",
         "./ui-review",
         "./proxy",
-        "./sync-tests",
-        "./tdd",
-        "./test-strategy"
+        "./api-testing"
       ]
     }
   ]

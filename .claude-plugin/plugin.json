@@ -2,9 +2,9 @@
   "schemaVersion": "1.0.0",
   "id": "helpmetest-skills",
   "name": "helpmetest-skills",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "displayName": "HelpMeTest Skills",
-  "description": "7 skills for AI-powered test automation: QA orchestration, website discovery, test generation, test validation, debugging, self-healing, and visual verification. Works with Claude Code and 30+ AI agents.",
+  "description": "8 skills for AI-powered test automation: project onboarding, discovery, TDD, full QA pass, test fixing, visual review, API testing, and localhost proxy.",
   "author": {
     "name": "HelpMeTest",
     "url": "https://github.com/help-me-test"
@@ -20,7 +20,8 @@
     "test-generation",
     "debugging",
     "self-healing",
-    "visual-testing"
+    "visual-testing",
+    "tdd"
   ],
   "capabilities": {
     "skills": {
@@ -36,12 +37,13 @@
     ]
   },
   "skills": [
+    "./onboard",
+    "./tdd",
+    "./discover",
+    "./fix-tests",
     "./helpmetest",
-    "./helpmetest-discover",
-    "./helpmetest-test-generator",
-    "./helpmetest-validator",
-    "./helpmetest-debugger",
-    "./helpmetest-self-heal",
-    "./helpmetest-visual-check"
+    "./ui-review",
+    "./proxy",
+    "./api-testing"
   ]
 }

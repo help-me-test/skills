@@ -8,6 +8,25 @@ allowed-tools: mcp__helpmetest-*
 
 > **No MCP?** Use `helpmetest <command>` instead of MCP tools.
 
+---
+
+> ### 🔴 YOU WRITE THE TEST FIRST.
+> Changed code → run the tests.
+> New feature → write the test before the code.
+> The test is the spec. The test is done when it's green.
+> **No test = not done.**
+
+---
+
+## Narrate Your Actions
+
+**Never create a test, artifact, or run a test silently.** Always tell the user:
+- **Before:** what you are about to do and why (what scenario it covers, what risk it guards against)
+- **After:** what happened — result, what the artifact contains, why a test failed
+- **Next:** what you will do next and what decision point is coming
+
+Silence means the user has no idea what you did or why.
+
 # Tests — Write, Generate, Fix
 
 ## Orient First (Always)
@@ -64,11 +83,22 @@ New feature, bug fix, or refactor. Tests come first — they define what "done" 
 }
 ```
 
-**3. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec.
+**3. Plan coverage before writing a single test.** For every feature, enumerate scenarios across four types:
 
-**4. Implement incrementally** — pick the highest-priority failing test, make it pass, move to the next.
+| Type | Always? | Question to ask |
+|------|---------|-----------------|
+| Critical path | ✅ always | What does a real user do when everything works? |
+| Error paths | ✅ always | What are the 3 most likely ways this breaks in prod? |
+| Boundary conditions | if data/logic | Where does behavior change based on a threshold? |
+| Edge cases | selectively | What would a QA engineer test that a dev wouldn't? |
 
-**5. Done when** all tests are green and you've reviewed for missing edge cases.
+Mark each scenario: **write immediately** (critical/high) / **write before launch** (medium) / **skip** (cosmetic, already covered, unreliable). Don't test everything — test what would hurt if it broke.
+
+**4. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec.
+
+**5. Implement incrementally** — pick the highest-priority failing test, make it pass, move to the next.
+
+**6. Done when** all tests are green and you've reviewed for missing edge cases.
 
 ---
 
@@ -97,7 +127,7 @@ Write that answer as the `PROTECTS:` line in `[Documentation]`. This is the cont
 - Use `Create Fake Email` for any registration/email fields — never hardcode
 - `[Documentation]` must start with `PROTECTS: <what user complaint this catches>`
 
-**5. Validate** each test with `validate-tests` **before** linking it to the scenario. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
+**5. Validate** each test with `fix-tests` **before** linking it to the scenario. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
 
 **6. Link tests back** — add each test ID to `scenario.test_ids` in the Feature artifact **only after** it passes validation.
 
@@ -276,7 +306,7 @@ Verify it works before writing any tests. See the `proxy` skill for details.
 - ✅ All tests passing
 - ✅ All `priority:critical` scenarios have `test_ids`
 - ✅ Every test has `Given:`, `When:`, `Then:`, `Risk:` lines in `[Documentation]`
-- ✅ Every test passed `/validate-tests` before being linked
+- ✅ Every test passed `/fix-tests` before being linked
 - ✅ Bugs documented in `feature.bugs[]`
 - ✅ Feature.status updated (`working` / `broken` / `partial`)
 - ✅ Tasks artifact all done

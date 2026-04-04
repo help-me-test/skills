@@ -2,6 +2,8 @@
 
 **CRITICAL: Only start this phase AFTER Phase 2 is 100% complete (all features enumerated, all scenarios discovered).**
 
+**Narrate as you go.** Before each test: "Writing test for [scenario] — this protects against [risk]." After each run: "Passed / failed — here's what that means." Never act silently.
+
 ## Philosophy
 
 Generate tests for EVERY scenario. One feature at a time. Failing tests are VALUABLE - they document what needs fixing.
@@ -39,12 +41,11 @@ Using `helpmetest_upsert_test`:
 
 #### b. Validate Test Quality
 
-Call `/helpmetest-validator`:
-- Pass test_id and feature_id to validator
-- Validator checks for bullshit patterns
-- If REJECTED → Fix test based on feedback, validate again
-- If PASSED → Continue
-- DO NOT SKIP VALIDATION
+Invoke `/fix-tests` in validate mode — describe the test and ask it to score it:
+- It checks for bullshit patterns (navigation only, click without verification, no state change)
+- Score ≤ 4 → PASS, link test to scenario
+- Score ≥ 5 → REJECT — fix the test based on the feedback, validate again
+- **DO NOT SKIP. A test that passes when the feature is broken is worse than no test.**
 
 #### c. Link Test to Scenario
 
@@ -108,7 +109,7 @@ Repeat the process.
 - ✅ Phase 2 MUST be complete before starting Phase 3
 - ✅ All scenarios already discovered in Phase 2 - don't re-explore
 - ✅ Create test for expected behavior (from scenario)
-- ✅ VALIDATE EVERY test with /helpmetest-validator
+- ✅ VALIDATE EVERY test with /fix-tests
 - ✅ Run EVERY test immediately after creation
 - ✅ Document bugs in feature.bugs[], don't wait for fixes
 - ✅ Complete ONE feature fully before moving to next
@@ -131,7 +132,7 @@ This validation prevents you from saying "tested 25 features" when the most impo
 
 - ✅ Tests created for ALL scenarios (100% coverage)
 - ✅ **ALL priority:critical scenarios have test_ids** (NO exceptions)
-- ✅ ALL tests validated by /helpmetest-validator
+- ✅ ALL tests validated by /fix-tests
 - ✅ ALL tests executed
 - ✅ ALL bugs documented in feature.bugs[]
 - ✅ ALL feature.status updated based on results
