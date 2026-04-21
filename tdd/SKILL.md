@@ -244,12 +244,57 @@ Every test must have `[Documentation]` with four explicit lines:
 - ✅ `Then: sees "Invalid email or password" error, remains on login page, is NOT authenticated` — concrete, multiple assertions named
 - ❌ `Given: user is logged in | When: they do something | Then: it works` — vague, tells you nothing when the test fails
 
+**Language rules — the description must be readable by a product manager:**
+- ✅ Write in terms of user actions and visible outcomes
+- ❌ NEVER put CSS selectors, XPath, or DOM class names (`.keyword-line.current`, `#submit-btn`, `div[data-id]`)
+- ❌ NEVER put JavaScript internals, variable names, or debug APIs (`replayDebug.currentKeyword`, `window.__state`)
+- ❌ NEVER put Robot Framework syntax, keyword names, or technical implementation details
+- The test body is where selectors live. The description is where the product manager lives.
+
+Wrong:
+```
+Given: replay loaded with .banner-keywords visible
+When: user clicks .banner-next and replayDebug.currentKeyword changes
+Then: .keyword-line.current text matches window.replayDebug.currentKeyword.split(/ {2,}/)[0]
+```
+Right:
+```
+Given: a test replay is open and paused
+When: user steps forward then backward through keywords using the navigation buttons
+Then: the highlighted keyword in the banner matches the current playback position after each navigation
+```
+
 **Risk — good examples:**
 - ✅ `Risk: users completing checkout get charged without receiving an order confirmation`
 - ✅ `Risk: users typing wrong passwords are silently logged in or shown a blank screen`
 - ✅ `Risk: profile email changes silently fail — user sees stale email with no indication`
 - ❌ `Risk: the login form breaks` — too vague, what breaks? who notices?
 - ❌ `Risk: the form doesn't submit` — that's what the test does, not what it protects against
+
+### Inline comments
+
+**Every non-obvious step must have a `# comment` above it written for a product manager, not an engineer.**
+
+Comments explain *why* a step exists, what the user is experiencing, or what the test is checking — not what the keyword does.
+
+```robot
+# User opens an existing test replay — this is the entry point for debugging failed tests
+Go To  https://helpmetest.example.com/test/some-test
+
+# The banner shows the current keyword being replayed — it must stay in sync with what's actually executing
+Click  css=.banner-next
+
+# After stepping forward, the highlighted keyword in the banner must change to match the new position
+# If this fails, users see the wrong keyword highlighted while debugging — they investigate the wrong step
+${label}=  Get Text  css=.keyword-line.current .keyword-text
+Should Contain  ${label}  ${expected_keyword}
+```
+
+Comments are **mandatory** for:
+- Any `Javascript` call — explain what user-visible state it reads or changes
+- Any `Hover` or `Sleep` — explain why the UI requires this (hover to reveal hidden elements, sleep for animation)
+- Any multi-step assertion group — explain what the group collectively verifies
+- Any setup step that isn't obvious navigation
 
 ### What makes a good test
 
