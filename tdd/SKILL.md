@@ -47,6 +47,61 @@ helpmetest_search_artifacts({ type: "Tasks" })
 
 ## Use Cases
 
+### "Change this" / "Fix this bug" / "Refactor this" — Existing Code
+
+**This is the highest-risk scenario for silent test breakage. Code changes must never lead — tests must.**
+
+Before touching any file, do this in full:
+
+**Step 1: Find the blast radius**
+```bash
+grep -rn "@helpmetest" <files-to-change>
+helpmetest_status()
+git diff --stat HEAD
+```
+If no annotations exist: still check `helpmetest_status()`. Tests may exist without annotations — treat them as if they were annotated. If no tests exist at all, tell the user before coding: "No tests cover this code. Should I write them first?"
+
+**Step 2: Classify each affected test**
+
+For every test in the annotations:
+- **Still valid** — you're not changing the behavior this test covers → leave it alone
+- **Needs update** — you're intentionally changing what this test asserts → show the diff
+- **Delete** — the feature/behavior being removed → flag for explicit user decision
+- **New test needed** — your change adds new behavior with no coverage → propose it
+
+**Step 3: Present the test impact plan — STOP and wait for explicit approval**
+
+Write this out to the user before any code edit:
+
+```
+I'm about to change [what]. Here's the test impact:
+
+`test-name` → NEEDS UPDATE
+  currently asserts: [what the test checks now]
+  will change to:    [what it should check after]
+
+`test-name-2` → STILL VALID (no change needed)
+
+`test-name-3` → NEW TEST NEEDED
+  will cover: [new behavior being added]
+
+Approve this plan before I write any code?
+```
+
+**Step 4: After approval — update the tests first**
+
+Tests will fail immediately. That is correct — failing tests are now the spec for your implementation.
+
+**Step 5: Change the code**
+
+The failing tests tell you exactly what to implement. No more, no less.
+
+**Step 6: Run all listed tests — prove they're green**
+
+Done means green tests, not "this should work." Run them. Show the output.
+
+---
+
 ### "I need to build something" (TDD)
 
 New feature, bug fix, or refactor. Tests come first — they define what "done" means.
