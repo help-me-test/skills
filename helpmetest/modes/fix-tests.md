@@ -1,9 +1,3 @@
----
-name: fix-tests
-description: "Everything wrong with your tests — use this skill. Triggers on: 'test is failing', 'fix this test', 'why is this test red', 'test keeps failing', 'tests broke after deploy', 'tests broke after the update', 'something broke', 'it was working before', 'tests are flaky', 'test passes sometimes fails sometimes', 'are these tests any good', 'is this test worth keeping', 'review these tests', 'tests are out of date', 'tests don't match the code anymore', 'tests are stale after refactor', 'I think my tests are wrong', 'tests pass but I don't trust them', 'can you check if my tests actually work'. Picks the right mode automatically: triage (don't know what's wrong), debug (one failure, root cause), heal (bulk failures after deploy), sync (drift audit after refactor), validate (quality scoring — would this test catch a real bug?). You don't need to know the mode. Just say what's wrong."
-allowed-tools: mcp__helpmetest-*
----
-
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 > **No MCP?** Use `helpmetest <command>` CLI instead. See README for CLI reference.

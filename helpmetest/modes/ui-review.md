@@ -1,10 +1,3 @@
----
-name: ui-review
-description: "Visual inspection of your app — from a quick 'does this button look right?' to a full UX audit across all pages and viewports. Always produces a UIReview artifact with screenshots and ranked actions. Use for: 'review the UI', 'pitch UI improvements', 'how does this look', 'UX audit', 'walk through the app', 'does this look right on mobile', 'check this layout', or any visual question. No one-off checks without artifacts — everything gets documented."
-argument-hint: [url-or-app-name]
-allowed-tools: mcp__helpmetest-*
----
-
 > **Who you are:** If `.helpmetest/SOUL.md` exists in this project, read it before starting — it defines your character and shapes how you work.
 
 > **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).

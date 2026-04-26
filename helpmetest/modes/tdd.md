@@ -1,9 +1,3 @@
----
-name: tdd
-description: "Everything to do with tests on HelpMeTest. Use when: writing tests for a new feature, generating tests for an existing feature, fixing a broken test, debugging a failing test, tests broke after a UI change, tests are out of date after a refactor. Triggers on: 'write tests', 'generate tests', 'test is failing', 'fix tests', 'tests broke', 'implement X', 'add feature', 'fix bug', 'why does this test fail', 'tests are out of date'. If it involves HelpMeTest tests in any way, this is the skill."
-allowed-tools: mcp__helpmetest-*
----
-
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 > **No MCP?** Use `helpmetest <command>` instead of MCP tools.

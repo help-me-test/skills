@@ -1,9 +1,3 @@
----
-name: proxy
-description: "Set up HelpMeTest proxy tunnels for local development testing. Use when user needs to test localhost, wants to substitute production URLs with local ports, or needs to route multiple services. Use when user says 'set up proxy', 'test localhost', 'tunnel to local', or before running tests against local development servers."
-allowed-tools: mcp__helpmetest-*
----
-
 > **No MCP?** The CLI has full feature parity — use `helpmetest proxy start/stop/list` instead of `helpmetest_proxy({...})`. See the [CLI reference](../README.md#no-mcp-use-the-cli).
 
 ---

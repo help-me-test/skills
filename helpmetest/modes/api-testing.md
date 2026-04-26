@@ -1,9 +1,3 @@
----
-name: api-testing
-description: "HelpMeTest API library — write Robot Framework tests that make HTTP requests through the browser session (auth cookies included automatically). Use when user wants to test REST APIs, write API tests, chain requests, assert JSON fields, test CRUD flows, debug a failing API call, or use keywords like GET/POST/PUT/PATCH/DELETE/CURL. Triggers on: 'test the API', 'call this endpoint', 'check the response', 'POST /api/...', 'GET /api/...', 'write api tests', 'assert json', 'api returns 4xx', 'why is /api/x returning 401', 'debug this api call'. Also self-invokes when another test reveals an API call returning an unexpected status and you want to investigate or reproduce it in isolation."
-allowed-tools: mcp__helpmetest-*
----
-
 > ### 🔴 YOU WRITE THE TEST FIRST.
 > Changed code → run the tests.
 > New feature → write the test before the code.

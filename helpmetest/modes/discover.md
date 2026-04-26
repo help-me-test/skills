@@ -1,9 +1,3 @@
----
-name: discover
-description: "Map what exists into Feature artifacts — whether the source is a live app, a PRD, API specs, tickets, or a codebase. Use when: you have a running app but no artifacts ('what does this site do?'), you have specs/docs but no running app ('read the PRD', 'extract features from spec', 'here are the tickets'), or both. Output is always the same: Feature artifacts ready for /tdd. Triggers on: URL with no specific test in mind, 'explore before we test', 'read the PRD', 'extract features from spec', 'here are the requirements', 'I have a spec', 'what features does this have', 'create artifacts from'."
-allowed-tools: mcp__helpmetest-*
----
-
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 > **No MCP?** Use `helpmetest <command>` instead of MCP tools.

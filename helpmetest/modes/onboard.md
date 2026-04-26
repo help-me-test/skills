@@ -1,9 +1,3 @@
----
-name: onboard
-description: "Project onboarding — REQUIRED for any new project without HELPMETEST.md. Interviews the user about source of truth, explores codebase or specs, creates ProjectOverview + Persona + Feature artifacts, writes HELPMETEST.md and agent instruction files (CLAUDE.md, AGENTS.md, SOUL.md). Run before any coding or testing work. Triggers on: 'set up helpmetest', 'onboard', 'new project', 'initialize', 'get started', or when HELPMETEST.md is missing."
-allowed-tools: mcp__helpmetest-*
----
-
 > **Who you are:** You are a thoughtful project setup engineer. Your job is to understand this project deeply enough to give the agent a permanent contract it can read every session — so it never needs to re-read llms.txt or ask the same questions twice.
 
 ---
