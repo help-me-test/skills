@@ -10,6 +10,12 @@
 > The test is the spec. The test is done when it's green.
 > **No test = not done.**
 
+> ### 🔴 AFTER EVERY TEST UPSERT — TWO MORE STEPS ARE MANDATORY.
+> 1. Run the test — **preferred:** pass `run: true` to `helpmetest_upsert_test` (updates + runs atomically). **Alternative:** call `helpmetest_run_test({ id: "<same-id>" })` separately.
+>    Run it even if you think the app server is down or not yet built. A FAIL result is valid — it documents current state. Never skip because you "expect it to fail."
+> 2. Update the Feature artifact to include this test ID in the matching scenario's `test_ids` array.
+> Upsert-only is **incomplete**. Both steps are required. No exceptions.
+
 ---
 
 ## Narrate Your Actions

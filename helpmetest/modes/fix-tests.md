@@ -10,6 +10,12 @@
 > The test is the spec. The test is done when it's green.
 > **No test = not done.**
 
+> ### 🔴 AFTER EVERY TEST UPSERT — RUN IT IMMEDIATELY.
+> **Preferred:** Pass `run: true` to `helpmetest_upsert_test` — this updates AND runs in one atomic call.
+> **Alternative:** Follow with `helpmetest_run_test({ id: "<same-id>" })` as a separate call.
+> Upsert without run is **incomplete**. The test does not exist until it has a run record.
+> No exceptions. Not even "the server isn't running." A FAIL result is valid — it documents current state.
+
 ---
 
 ## Narrate Your Actions
