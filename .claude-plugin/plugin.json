@@ -4,7 +4,7 @@
   "name": "helpmetest-skills",
   "version": "2.0.0",
   "displayName": "HelpMeTest Skills",
-  "description": "8 skills for AI-powered test automation: project onboarding, discovery, TDD, full QA pass, test fixing, visual review, API testing, and localhost proxy.",
+  "description": "Single HelpMeTest skill with modes for TDD, discovery, onboarding, test fixing, visual review, API testing, localhost proxy, and more.",
   "author": {
     "name": "HelpMeTest",
     "url": "https://github.com/help-me-test"
@@ -37,13 +37,6 @@
     ]
   },
   "skills": [
-    "./onboard",
-    "./tdd",
-    "./discover",
-    "./fix-tests",
-    "./helpmetest",
-    "./ui-review",
-    "./proxy",
-    "./api-testing"
+    "./helpmetest"
   ]
 }
