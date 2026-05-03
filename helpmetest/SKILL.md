@@ -38,6 +38,10 @@ Parse the first remaining token:
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui-review** — visual walkthrough |
 | `onboard` | **onboard** — new project bootstrap |
+| `change-impact` or `impact` | **change-impact** — git diff → find @helpmetest annotations → run affected tests → RegressionRun artifact with verdict |
+| `pre-push` or `push` | **pre-push** — run all priority:critical tests + annotation-covered changed files → BLOCKED or CLEAR TO PUSH |
+| `pr-review` or `pr` | **pr-review** — branch diff → map to annotations → flag unannotated files as gaps → CoverageReport artifact (no test runs) |
+| `nightly` | **nightly** — run all Feature tests, mark broken ones, discover new URLs, create stub Features |
 | `continue` | **resume** — task mentions an existing Tasks artifact id; fetch it, find the first open subtask, resume (see `modes/agent.md` §Resuming an existing artifact). |
 | (empty / bare `/helpmetest`) | **full-qa** — full cycle: discover + tdd + validate |
 | anything else (e.g. looks like a task description) | **tdd** (default) with the whole input as the task |
@@ -94,4 +98,8 @@ api-testing   REST/GraphQL API tests in Robot Framework via the HTTP library.
 ui-review     Screenshot-driven visual walkthrough across viewports.
 onboard       New project setup: create HELPMETEST.md + ProjectOverview + initial artifacts.
 full-qa       End-to-end: discover → tdd → fix-tests — ran by default on bare /helpmetest.
+change-impact git diff → @helpmetest annotations → run affected tests → RegressionRun verdict.
+pre-push      All priority:critical tests + changed-file coverage → BLOCKED or CLEAR TO PUSH.
+pr-review     Branch diff → annotation map → gap report → CoverageReport (no test runs).
+nightly       Run all Feature tests, mark broken, discover new URLs, create stub Features.
 ```
