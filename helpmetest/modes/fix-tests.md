@@ -48,6 +48,21 @@ git log --oneline -10
 git diff --stat HEAD
 ```
 
+## Announce
+
+After orient, present before classifying or acting.
+
+**Specific failing tests found:**
+> "After diagnosis you'll know whether `[test-id]` is a broken selector, a timing issue, or an actual bug in the feature. [If bug: I'll document it in the Feature artifact so it doesn't get lost.] I'd start with `[highest-priority failing test]`. That, or is there a different test you need green urgently?"
+
+**Multiple failing tests:**
+> "After this you'll know which of the [N] failures are fixable today (selector, timing) and which are real bugs in the app. I'd work through them highest-priority first. Want me to go in that order, or is there one specific test you need fixed first?"
+
+**No failing tests, but user reported something broken:**
+> "Nothing is showing as failed in the last run, but something's clearly wrong. After this you'll know whether it's a test issue, a code issue, or an environment problem. I'll check git history and dig in — give me a minute."
+
+**Rule:** Always say what the user will know after this, not what you will do. Recommend one starting point.
+
 ## Read the Situation → Pick the Mode
 
 After orient, classify:

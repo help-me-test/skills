@@ -10,6 +10,14 @@ helpmetest_status()
 
 Snapshot the current state of critical tests before running anything.
 
+## Announce
+
+After orient, before running anything:
+
+> "After this you'll get a binary verdict — BLOCKED or CLEAR TO PUSH — based on all priority:critical tests plus tests covering your changed files. Takes [N critical tests + M annotation-covered] runs. Starting now."
+
+Then proceed immediately — this mode has no scope ambiguity.
+
 ---
 
 ## Step 1 — Find changed files

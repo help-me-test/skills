@@ -17,6 +17,14 @@ how_to({ type: "authentication_state_management" })
 
 You need a valid auth state (`As <StateName>`) for the discovery sub-flow. If none exists, skip Step 3 and note it in the summary.
 
+## Announce
+
+After orient, before running any tests:
+
+> "After this you'll know the health of every Feature and whether any new pages appeared since last run — broken features will be marked, stubs created for new URLs. Running [N] Feature tests now."
+
+Then proceed immediately — nightly has no scope ambiguity.
+
 ---
 
 ## Step 1 — Health check: run each Feature's tests

@@ -2,6 +2,19 @@
 
 ---
 
+## Announce (bare invocation — no port given)
+
+If the user invoked `/helpmetest proxy` without specifying a port or domain:
+
+> "After this your local dev server will be reachable by HelpMeTest's test runner — so every test you write can hit your local code as if it were deployed. What port is it running on? (e.g. 3000, 5173, 8080)"
+
+Once you have the port, set up the tunnel, verify it with an interactive command, and confirm it works before the user writes any tests.
+
+**If port is given upfront:** skip the question, go straight to setup + verification, then report:
+> "Tunnel is live on `dev.local`. I verified it with a `Go To` — your app loaded. You can now write tests using `http://dev.local` as the URL."
+
+---
+
 > ### 🔴 YOU WRITE THE TEST FIRST.
 > Changed code → run the tests.
 > New feature → write the test before the code.

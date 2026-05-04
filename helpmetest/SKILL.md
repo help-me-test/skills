@@ -85,21 +85,37 @@ Close out every subtask in the Tasks artifact with evidence before exiting (see 
 
 ## Mode reference
 
+Every mode follows the same pattern: orient → announce → act. The announce step always states what the user will have after the work, recommends a starting point, and ends with a binary scope choice (or proceeds if no ambiguity). See `modes/_shared.md §1b` for the full rule.
+
 ```
 agent         Tasks-artifact lifecycle only — baseline discipline, any workflow.
 tdd           Write or fix tests. Default for 'write tests', 'implement X', 'fix bug', 'refactor'.
+              Bare: presents TDD landscape (failing tests + uncovered scenarios), recommends one, asks "that or something specific?"
 discover      Map a live app, PRD, or spec into Feature artifacts. Prerequisite for full-qa.
+              Bare/no source: asks what the source is. Bare/existing artifacts: asks "extend or focus on a specific area?"
 fix-tests     Diagnose a failing test (selector, timing, auth, backend) and repair it.
+              Bare: triage mode — collects status + git state, announces findings, recommends highest-priority failing test.
 coverage      Read-only gap analysis — which scenarios lack tests, which tests are orphans.
+              Bare: announces what user will know after, asks "full scope or critical/high first?"
 regression    Given a list of changed files, run only tests affected by those files.
+              Bare/no files: asks "what changed?" in one sentence framed as "after this you'll know if it's safe to push."
 validate      Score existing tests against /tdd quality rules; produce a rewrite queue.
-proxy         Set up localhost tunneling (`helpmetest proxy start`) before testing dev servers.
+              Bare: announces what user will find, asks "full suite or critical first?"
+proxy         Set up localhost tunneling before testing dev servers.
+              Bare/no port: asks "what port?" — then sets up + verifies before any tests are written.
 api-testing   REST/GraphQL API tests in Robot Framework via the HTTP library.
+              Bare/no endpoint: asks "specific endpoint, feature area, or explore from Feature artifacts?"
 ui-review     Screenshot-driven visual walkthrough across viewports.
+              Bare: announces full audit (N pages × 3 viewports), asks "full audit or specific page?"
 onboard       New project setup: create HELPMETEST.md + ProjectOverview + initial artifacts.
+              Bare: runs the structured 3-question interview (source of truth, stage, goal).
 full-qa       End-to-end: discover → tdd → fix-tests — ran by default on bare /helpmetest.
 change-impact git diff → @helpmetest annotations → run affected tests → RegressionRun verdict.
+              Bare/no commit: announces intent, defaults to HEAD~1 diff, offers to use specific commit.
 pre-push      All priority:critical tests + changed-file coverage → BLOCKED or CLEAR TO PUSH.
+              Bare: announces binary verdict intent, proceeds immediately — no scope ambiguity.
 pr-review     Branch diff → annotation map → gap report → CoverageReport (no test runs).
+              Bare: announces analysis-only intent, proceeds immediately.
 nightly       Run all Feature tests, mark broken, discover new URLs, create stub Features.
+              Bare: announces N tests + discovery run, proceeds immediately.
 ```

@@ -23,6 +23,36 @@ Never assume the project is empty. Never create what already exists.
 
 **Also look for a `Memory` artifact** (`helpmetest_search_artifacts({ query: "Memory" })`) — it carries project-specific knowledge from past sessions (selectors, auth flows, timing quirks). If found, fetch and read it.
 
+## 1b. Present before acting — mandatory, every mode, every invocation
+
+After orient, before any tool call, present to the user. This is not optional narration — it is the moment the user decides whether to redirect.
+
+**Format — three things, in this order:**
+1. **What the user will have after this** — one sentence in user-value terms, not agent-action terms
+2. **Your recommendation** — what you'd do first and why (scope, priority, order); you are an advisor, not an executor
+3. **One binary scope choice** — must actually change what you do; not a go signal
+
+**The choice must be real:**
+- ❌ "Should I proceed?" — bureaucracy, user just says yes, nothing changes
+- ✅ "Full scope or critical/high first?" — user's answer changes the output
+
+**Frame in user-value terms, not agent-action terms:**
+
+| ❌ Agent-action | ✅ User-value |
+|---|---|
+| "I'll scan 4 Feature artifacts" | "After this you'll know what's unprotected" |
+| "I'll navigate 5 pages at 3 viewports" | "You'll get a ranked list of what to fix" |
+| "I'll score tests against 10 rules" | "You'll know which tests are lying to you" |
+| "I'll run the affected tests" | "You'll know if your change is safe to push" |
+
+**Self-directing modes** (coverage, validate, ui-review): present → scope choice → act on their answer.
+
+**Target-requiring modes** (tdd, discover, regression, proxy, api-testing): present orient findings → ask the mode-specific scope question. Never ask "what do you want to do?" — ask a question that only makes sense in this mode.
+
+The user must feel like they directed the work. Not like they watched it happen.
+
+---
+
 ## 2. Narrate before and after
 
 Never create a test, artifact, or run silently. Every significant action has three moments:

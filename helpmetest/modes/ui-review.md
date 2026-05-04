@@ -71,6 +71,16 @@ helpmetest_status()
 how_to({ type: "authentication_state_management" })
 ```
 
+After orient, announce before navigating anywhere:
+
+**No specific page or question given (bare invocation):**
+> "After this you'll have screenshots of every page at desktop, mobile, and tablet, plus a ranked list of what to fix — ordered by impact across the whole app. Takes about 10–15 minutes. Full audit, or is there a specific page or flow you want me to focus on?"
+
+**Specific page or question given:**
+> "After this you'll know exactly what's wrong with [page/element] and what to change. Taking a look now."
+
+Wait for scope answer if bare. If specific: proceed directly to Phase 1 scoped to that page.
+
 Check:
 1. What auth states are saved? (e.g. "Admin", "Helpmetest")
 2. When was the state last used? Is it stale?

@@ -15,6 +15,18 @@
 
 If the user's task names a feature or priority, filter to that. Otherwise scan everything.
 
+## Announce
+
+After orient, before scanning:
+
+**No filter given:**
+> "After this you'll know exactly which user flows could silently break with nothing catching it — ranked by how much it would hurt. I'd start with critical and high priority gaps; that's where the real risk is. Full scope across all [N] Feature artifacts, or critical/high first?"
+
+**Filter given (feature area or priority):**
+> "After this you'll know the coverage state of [scope] — which scenarios are protected and which aren't. Scanning [N] artifacts matching your filter. Starting now."
+
+Wait for scope answer if bare. Then run.
+
 ## Workflow
 
 ### 1. Orient

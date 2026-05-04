@@ -14,7 +14,17 @@ The user must tell you **which files changed** (you don't have shell access, so 
 - A diff pasted into the task
 - A feature area: *"regression on the auth flow"* (then treat all files under `app/**/*auth*` as changed)
 
-If the user didn't specify, ask once before starting: *"What files or feature area changed? I need to know what to target."*
+## Announce
+
+After orient:
+
+**Files or feature area provided:**
+> "After this you'll know if your change broke anything that was previously green — before you push. I'll run only the [N] tests that cover the files you changed, not the full suite. Starting now."
+
+**No files provided:**
+> "After this you'll know what's safe to ship. I need to know what changed — which files or feature area? (Or paste the diff and I'll figure it out.)"
+
+Wait for their answer if files weren't provided. Then run.
 
 ## Workflow
 

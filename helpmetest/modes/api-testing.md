@@ -12,6 +12,21 @@ The API library runs HTTP requests inside the active browser tab. This means the
 
 A live httpbin instance is available for examples and exploration: `https://httpbin.playground.helpmetest.com`
 
+## Announce (always — before writing any test)
+
+After orient, present before doing anything:
+
+**Endpoint or feature area given:**
+> "After this you'll have automated tests that catch contract breaks and regressions on [endpoint/feature] before users hit them. I'd cover: happy path, error responses, and the contract shape consumers depend on. Starting with the happy path — want me to also cover error cases and contract assertions in this run, or happy path only first?"
+
+**Bare invocation — nothing specified:**
+> "After this you'll have API tests that catch silent breakage before it reaches users. What do you want to test?
+> - A specific endpoint (give me the URL or method + path)
+> - A feature area (e.g. auth, checkout — I'll derive endpoints from the Feature artifacts)
+> - Explore what's available (I'll read the Feature artifacts and propose a test plan)"
+
+Wait for their answer, then proceed.
+
 ## The Golden Rule
 
 Authenticate with `As  <StateName>` FIRST, then make API calls. The browser session carries everything.

@@ -9,6 +9,14 @@ helpmetest_status()
 helpmetest_search_artifacts({ query: "" })
 ```
 
+## Announce
+
+After orient, before reading any diff:
+
+> "After this you'll know which files in this branch have test coverage and which don't — so you can decide whether it's ready to merge. No tests will be run; this is analysis only. Reading the diff now."
+
+Then proceed immediately.
+
 ---
 
 ## Step 1 — Read the branch diff

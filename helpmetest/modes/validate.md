@@ -12,6 +12,18 @@
 - A filter: *"validate all priority:critical tests"*, *"validate tests for feature-auth"*
 - Default (no filter): validate every test in the project (cap at 20 and report which you scored).
 
+## Announce
+
+After orient, before scoring:
+
+**No filter given:**
+> "After this you'll know which tests would pass even if the feature was broken — the ones lying to you. I'd start with priority:critical tests; if those are weak, everything else is moot. Critical first, or full suite?"
+
+**Specific test or filter given:**
+> "After this you'll know exactly what's wrong with [test-id / these N tests] and what to rewrite. Starting now."
+
+Wait for scope answer if bare. Then run.
+
 ## Workflow
 
 ### 1. Orient

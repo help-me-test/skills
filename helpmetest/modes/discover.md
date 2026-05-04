@@ -31,7 +31,24 @@ helpmetest_status()
 helpmetest_search_artifacts({ query: "" })
 ```
 
-If a ProjectOverview already exists → artifacts have been created before. Check what's covered, extend rather than recreate.
+---
+
+## Announce
+
+After orient, present before doing anything else.
+
+**No ProjectOverview exists (fresh discovery):**
+> "After this you'll have a complete map of this app — every feature, every user type, every scenario — structured and ready for test-first implementation. I need one thing to start: what's the source?
+> - Live URL to walk
+> - A PRD or spec doc (share the path or paste it)
+> - Tickets (GitHub, Linear, Jira — give me access or paste them)
+> - The codebase (I'll read it)
+> - Walk me through it directly"
+
+**ProjectOverview exists (already discovered):**
+> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. After this you'll have an up-to-date map with any flows that appeared or changed since then. I'd re-walk the live app and extend what's there. Full re-discovery, or focus on a specific area that changed?"
+
+Wait for the answer. Then proceed to Step 1.
 
 ---
 

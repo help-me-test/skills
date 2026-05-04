@@ -11,6 +11,18 @@ helpmetest_search_artifacts({ type: "Tasks" })
 
 If a Tasks artifact is in progress for this run, resume it.
 
+## Announce
+
+After orient, before reading any diff:
+
+**Files or commit specified:**
+> "After this you'll know exactly which tests your change affects and whether any of them regressed — so you know before code review does. Reading the diff now."
+
+**Nothing specified:**
+> "After this you'll know if your last commit broke anything that was previously green. I'll read `git diff HEAD~1` to find what changed. Or if you want to check a specific commit or file list, tell me now."
+
+Then proceed.
+
 ---
 
 ## Step 1 — Read the diff

@@ -39,9 +39,32 @@ helpmetest_search_artifacts({ query: "" })
 helpmetest_search_artifacts({ type: "Tasks" })
 ```
 
-- Tests already failing? → that's the priority, not creating new ones
-- Tasks artifact in progress? → resume it, don't start over
-- Feature artifacts exist? → use them, don't re-discover
+---
+
+## Announce (always — before any test is written or fixed)
+
+After orient, present the TDD landscape in user-value terms. Never start work silently.
+
+**If invoked with a specific task** (feature name, test id, file to change): skip to the relevant use case below, but still open with one sentence stating what the user will have after this work.
+
+**If invoked bare (no task given)**, present based on what orient found:
+
+**Failing tests exist:**
+> "After diagnosis you'll know whether `[test-id]` is a broken selector, a timing issue, or an actual bug in the feature — so you can either fix the test or file the bug with confidence. I'd start there; it's already written, just needs fixing. That, or is there a specific feature you want to build test-first?"
+
+**No failing tests, uncovered scenarios exist:**
+> "Suite is green but [N] scenarios have no tests — if any of those flows broke today, nothing would catch it. I'd start with `[highest-priority scenario]` in `[feature-id]`. Want to cover that, or do you have a specific feature in mind?"
+
+**Both failing tests and uncovered scenarios:**
+> "There's [N] failing test[s] and [M] uncovered scenarios. I'd fix the failing test first — it's already written — then cover the critical gaps. That order, or is there something specific you want to build?"
+
+**All green and covered:**
+> "Suite is green and covered. Tell me the feature you want to build test-first and I'll enumerate scenarios before writing a single line of code."
+
+**Rules:**
+- Always recommend an order with a reason. Never present a menu of options with no recommendation.
+- The binary choice is "my recommended path vs. redirect to something specific" — not a list of 3+ options.
+- One question, not two.
 
 ---
 
