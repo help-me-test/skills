@@ -1,8 +1,8 @@
 ---
 name: helpmetest
-description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features), fix-tests (repair failing), coverage (gap analysis), regression (change-targeted run), validate (test quality review), proxy (tunnel localhost), api-testing (API-level RF tests), ui-review (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
+description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features), fix-tests (repair failing), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api-testing (API-level RF tests), ui-review (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
 allowed-tools: mcp__helpmetest-*
-argument-hint: "[agent | tdd | discover | fix-tests | coverage | regression | validate | proxy | api-testing | ui-review | onboard | <task>]"
+argument-hint: "[agent | tdd | discover | fix-tests | coverage | regression | validate | report | proxy | api-testing | ui-review | onboard | <task>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -42,6 +42,7 @@ Parse the first remaining token:
 | `pre-push` or `push` | **pre-push** — run all priority:critical tests + annotation-covered changed files → BLOCKED or CLEAR TO PUSH |
 | `pr-review` or `pr` | **pr-review** — branch diff → map to annotations → flag unannotated files as gaps → CoverageReport artifact (no test runs) |
 | `nightly` | **nightly** — run all Feature tests, mark broken ones, discover new URLs, create stub Features |
+| `report` | **report** — read-only project health diagnosis: triage → auth → tests → stability → sync → coverage → code → bugs → artifacts → drift → tiered report → recommended next fix. Sub-phase: `report <phase>`. |
 | `continue` | **resume** — task mentions an existing Tasks artifact id; fetch it, find the first open subtask, resume (see `modes/agent.md` §Resuming an existing artifact). |
 | (empty / bare `/helpmetest`) | **full-qa** — full cycle: discover + tdd + validate |
 | anything else (e.g. looks like a task description) | **tdd** (default) with the whole input as the task |
@@ -118,4 +119,10 @@ pr-review     Branch diff → annotation map → gap report → CoverageReport (
               Bare: announces analysis-only intent, proceeds immediately.
 nightly       Run all Feature tests, mark broken, discover new URLs, create stub Features.
               Bare: announces N tests + discovery run, proceeds immediately.
+report        Read-only project health diagnosis. Layered: triage → auth → tests → stability → sync →
+              coverage → code → bugs → artifacts → drift → tiered 🔴/🟠/🟡 report → recommended next fix.
+              Stability uses last-10-runs history (catches the "last green, previous 5 red" flakiness).
+              Code phase auto-skips if not in a code dir. No tests run, no artifacts modified.
+              Bare: announces full sweep, asks "full report or just one phase?"
+              Sub-tokens: report tests, report sync, report stability, etc.
 ```
