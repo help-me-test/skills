@@ -44,12 +44,89 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
 ### What to do
 
 1. Walk the core user flows using `run_interactive_command` with `screenshot: true`
-2. Read DOM text, network responses, localStorage, and console output
-3. Collect every issue under one of three buckets:
+2. **Run the Adversarial Probe on every page you visit** (see below)
+3. Read DOM text, network responses, localStorage, and console output
+4. Collect every issue under one of three buckets:
 
    **🐛 Bugs** — wrong output, broken state, JS error, incorrect data  
    **🗃 Data quality** — placeholder text, wrong label in CMS, test data in prod, stale copy (fixable without code)  
    **🤔 UX illogicalities** — works technically but makes no sense to a user: wrong empty-state message, duplicate CTA, dead-end flow, page that doesn't adapt for logged-in state
+
+---
+
+### Adversarial Probe — run this on every site, every triage
+
+These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all four. They take < 5 interactive commands total.
+
+#### 1. 404 / blank screen
+
+Navigate to a guaranteed non-existent route:
+
+```robot
+Go To  <base-url>/does-not-exist-xyz-404-probe
+Take Screenshot
+Javascript  document.body.offsetHeight
+```
+
+**Pass:** body has content — a custom 404 page, a redirect to home, or any visible UI.  
+**Fail:** `offsetHeight === 0` or the screenshot shows a blank white screen → **React/SPA catch-all route is missing.** The app silently renders nothing for unknown URLs. Every typo, broken link, or expired URL gives users a white screen with no way back.  
+Document as a Bug: "No 404 page — unknown routes render blank white screen."
+
+#### 2. SSL cert on auth subdomains
+
+Identify every subdomain the app redirects to during auth flows (login, OAuth, token exchange). The main domain having a valid cert does **not** guarantee auth subdomains do.
+
+```robot
+# Find the auth subdomain by clicking login/CTA and reading the URL, then navigate directly:
+Go To  <auth-subdomain-url>
+Take Screenshot
+Javascript  document.title
+```
+
+**Pass:** page renders normally — no cert error text in screenshot, title is not "Privacy error" or "Your connection is not private".  
+**Fail:** screenshot shows a browser TLS error page (`NET::ERR_CERT_AUTHORITY_INVALID`, `SEC_ERROR_UNKNOWN_ISSUER`, etc.) → **Invalid SSL certificate on auth subdomain.** This blocks every authenticated user and triggers browser security warnings. It is a P0 — the entire authenticated product is inaccessible.  
+Document as a Bug: "SSL cert invalid on `<subdomain>` — all auth flows blocked."
+
+Subdomains to check: any domain that appears in a redirect during login, OAuth callback, token exchange, or `Save As` auth state setup.
+
+#### 3. Console errors on page load
+
+```robot
+Javascript  JSON.stringify((window.__consoleErrors || []).slice(0, 5))
+```
+
+If `window.__consoleErrors` is not pre-populated, inject a collector first:
+
+```robot
+Javascript  window.__errs = []; const orig = console.error; console.error = (...a) => { window.__errs.push(a.join(' ')); orig(...a); }; 'patched'
+# Then navigate and reload, then:
+Javascript  JSON.stringify(window.__errs.slice(0, 5))
+```
+
+**Pass:** empty array.  
+**Fail:** any entries → note them. Errors with `TypeError`, `ReferenceError`, or failed fetch URLs are bugs. Log noise (e.g. React DevTools hints) is not.
+
+#### 4. Broken images
+
+```robot
+Javascript  JSON.stringify([...document.images].filter(i => !i.complete || i.naturalWidth === 0).map(i => i.src).slice(0, 5))
+```
+
+**Pass:** empty array.  
+**Fail:** any URLs in the result → those images are 404ing or blocked. Document each as a Bug if the image is user-facing content (not a tracking pixel).
+
+---
+
+**Adversarial Probe verdict format** (add to the findings table alongside the three buckets):
+
+```
+### Infrastructure (adversarial probe)
+
+A. **[Short title]** *(documented in: [feature-artifact-id])*
+   - [One sentence: what is broken, what user impact is]
+```
+
+Infrastructure bugs go at the top of the findings table — they are always higher priority than UX illogicalities and often higher than individual feature bugs.
 
 4. Document every **Bug** in a Feature artifact's `bugs[]` before presenting results. A bug only in chat doesn't exist.
 
@@ -57,6 +134,11 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
 
 ```
 ## Findings — [App Name]
+
+### Infrastructure (adversarial probe) — fix these first
+
+A. **[Short title]** *(documented in: [feature-artifact-id])*
+   - [One sentence: what is broken, what user impact is]
 
 ### Bugs (broken behavior)
 
@@ -74,7 +156,7 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
    - [One sentence: what a user would expect instead]
 
 ---
-**Verdict:** Items N–N (data quality) fixable in [CMS] without code. Items N–N need code changes. Items N–N are bugs.
+**Verdict:** Items A–A are infrastructure/P0 (fix before anything else). Items N–N (data quality) fixable in [CMS] without code. Items N–N need code changes. Items N–N are bugs.
 
 Want to tackle any of these?
 ```
@@ -187,6 +269,8 @@ Go To  <base-url>
 Look at navigation, identify pages and sections.
 
 Then: **complete the primary user goal end-to-end as a new user** — don't just screenshot pages, actually try to do the thing the app exists for (buy, sign up, create, book). When you get blocked, that's a missing feature.
+
+**Run the Adversarial Probe immediately after your first page load** — before deeper exploration. This catches P0 infrastructure failures (SSL certs, blank 404s, console crashes) that would waste time if discovered later. See **Adversarial Probe** in the Triage Mode section above.
 
 ### Understand What Should Exist
 
