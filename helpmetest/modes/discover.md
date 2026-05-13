@@ -56,7 +56,7 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
 
 ### Adversarial Probe — run this on every site, every triage
 
-These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all four. They take < 5 interactive commands total.
+These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all five. They take < 8 interactive commands total.
 
 #### 1. 404 / blank screen
 
@@ -72,22 +72,25 @@ Javascript  document.body.offsetHeight
 **Fail:** `offsetHeight === 0` or the screenshot shows a blank white screen → **React/SPA catch-all route is missing.** The app silently renders nothing for unknown URLs. Every typo, broken link, or expired URL gives users a white screen with no way back.  
 Document as a Bug: "No 404 page — unknown routes render blank white screen."
 
-#### 2. SSL cert on auth subdomains
+#### 2. SSL cert check
 
-Identify every subdomain the app redirects to during auth flows (login, OAuth, token exchange). The main domain having a valid cert does **not** guarantee auth subdomains do.
+Use the `DomainChecker` library. Extract every distinct hostname the app touches (main domain + any subdomain seen in redirects during auth, API calls, or CDN loads), then check each:
 
 ```robot
-# Find the auth subdomain by clicking login/CTA and reading the URL, then navigate directly:
-Go To  <auth-subdomain-url>
-Take Screenshot
-Javascript  document.title
+SSL Is Valid          <domain>  ==  True
+Ssl Certificate Chain Valid  <domain>  ==  True
+SSL Days Remaining    <domain>  >=  30
 ```
 
-**Pass:** page renders normally — no cert error text in screenshot, title is not "Privacy error" or "Your connection is not private".  
-**Fail:** screenshot shows a browser TLS error page (`NET::ERR_CERT_AUTHORITY_INVALID`, `SEC_ERROR_UNKNOWN_ISSUER`, etc.) → **Invalid SSL certificate on auth subdomain.** This blocks every authenticated user and triggers browser security warnings. It is a P0 — the entire authenticated product is inaccessible.  
-Document as a Bug: "SSL cert invalid on `<subdomain>` — all auth flows blocked."
+A clean cert on `app.example.com` says nothing about `auth.example.com` or `api.example.com` — check them all.
 
-Subdomains to check: any domain that appears in a redirect during login, OAuth callback, token exchange, or `Save As` auth state setup.
+| Keyword | What it catches |
+|---|---|
+| `SSL Is Valid` | expired cert |
+| `Ssl Certificate Chain Valid` | self-signed, untrusted CA, broken chain |
+| `SSL Days Remaining >= 30` | cert expiring soon (user won't see it now, but will in days) |
+
+**Fail on any:** document as a Bug with the domain and which check failed. An invalid or expiring cert is always P0 on auth/API subdomains — it blocks or will soon block all users.
 
 #### 3. Console errors on page load
 
@@ -106,14 +109,44 @@ Javascript  JSON.stringify(window.__errs.slice(0, 5))
 **Pass:** empty array.  
 **Fail:** any entries → note them. Errors with `TypeError`, `ReferenceError`, or failed fetch URLs are bugs. Log noise (e.g. React DevTools hints) is not.
 
-#### 4. Broken images
+#### 4. Failed network requests
 
-```robot
-Javascript  JSON.stringify([...document.images].filter(i => !i.complete || i.naturalWidth === 0).map(i => i.src).slice(0, 5))
+The `run_interactive_command` output already contains the full network request log for the page. **Read it — don't reinvent it with JS.**
+
+After every `run_interactive_command` call, scan the `network` section of the output for requests where `status >= 400` or `status == 0` (cancelled/failed). This catches broken images, missing JS chunks, failed API calls, blocked fonts — anything, not just images.
+
+```
+# What to look for in the run_interactive_command network output:
+# status 4xx → resource not found or forbidden (broken images, missing JS/CSS, bad API endpoints)
+# status 5xx → server error on a resource load
+# status 0   → request was cancelled or net::ERR_* (DNS failure, connection refused, CORS block)
 ```
 
-**Pass:** empty array.  
-**Fail:** any URLs in the result → those images are 404ing or blocked. Document each as a Bug if the image is user-facing content (not a tracking pixel).
+**Pass:** all requests in the network log have status < 400.  
+**Fail:** any 4xx/5xx/0 entries → list them by URL and status. Triage:
+- Image URLs → broken image bug (user-visible)
+- JS/CSS chunks → may break functionality silently
+- API endpoints → data missing from the page
+- Third-party → note but deprioritise (external service down)
+
+Document as a Bug if the failing resource is user-facing or affects page functionality.
+
+#### 5. Mobile layout
+
+Walk the primary user flow on iPhone. Use:
+
+```robot
+Test On  iPhone 13  <base-url>
+Take Screenshot
+Javascript  document.documentElement.scrollWidth > document.documentElement.clientWidth
+```
+
+**Pass:** `False` — no horizontal overflow. Layout collapses correctly.  
+**Fail:** `True` — content overflows the viewport horizontally. Users on mobile must scroll sideways, which is always a bug.
+
+Also eyeball the screenshot for: nav hidden/unusable, text clipping, buttons too small to tap (< 44px), modals cut off. These are UX bugs — note them in the findings table even if overflow is clean.
+
+After the probe, close the mobile context and switch back to desktop before continuing the rest of the triage.
 
 ---
 
