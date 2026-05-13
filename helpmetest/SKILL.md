@@ -1,6 +1,6 @@
 ---
 name: helpmetest
-description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features), fix-tests (repair failing), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api-testing (API-level RF tests), ui-review (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
+description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix-tests (repair failing), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api-testing (API-level RF tests), ui-review (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
 allowed-tools: mcp__helpmetest-*
 argument-hint: "[agent | tdd | discover | fix-tests | coverage | regression | validate | report | proxy | api-testing | ui-review | onboard | <task>]"
 ---
@@ -92,7 +92,9 @@ Every mode follows the same pattern: orient → announce → act. The announce s
 agent         Tasks-artifact lifecycle only — baseline discipline, any workflow.
 tdd           Write or fix tests. Default for 'write tests', 'implement X', 'fix bug', 'refactor'.
               Bare: presents TDD landscape (failing tests + uncovered scenarios), recommends one, asks "that or something specific?"
-discover      Map a live app, PRD, or spec into Feature artifacts. Prerequisite for full-qa.
+discover      Map a live app, PRD, or spec into Feature artifacts. Also handles fast triage sweeps
+              ("find bugs", "poke around", "good test around") — outputs a three-section findings table
+              (Bugs / Data quality / UX illogicalities) and documents bugs in Feature artifacts.
               Bare/no source: asks what the source is. Bare/existing artifacts: asks "extend or focus on a specific area?"
 fix-tests     Diagnose a failing test (selector, timing, auth, backend) and repair it.
               Bare: triage mode — collects status + git state, announces findings, recommends highest-priority failing test.
@@ -117,6 +119,9 @@ pre-push      All priority:critical tests + changed-file coverage → BLOCKED or
               Bare: announces binary verdict intent, proceeds immediately — no scope ambiguity.
 pr-review     Branch diff → annotation map → gap report → CoverageReport (no test runs).
               Bare: announces analysis-only intent, proceeds immediately.
+exploratory   Fast triage sweep — walk core flows, collect bugs/data-quality/UX illogicalities,
+              present a three-section findings table, document bugs in Feature artifacts. No tests written.
+              Bare: announces intent, asks "full app or specific area?"
 nightly       Run all Feature tests, mark broken, discover new URLs, create stub Features.
               Bare: announces N tests + discovery run, proceeds immediately.
 report        Read-only project health diagnosis. Layered: triage → auth → tests → stability → sync →

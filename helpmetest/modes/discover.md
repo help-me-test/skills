@@ -22,7 +22,9 @@
 
 Maps what exists into Feature artifacts. The source can be a live app, a spec doc, API docs, tickets, a codebase — or all of the above at once.
 
-Output is always the same: Feature artifacts with Given/When/Then scenarios, ready for `/tdd`.
+Also handles fast triage sweeps ("find bugs", "poke around", "good test around", "quick sanity check") — see **Triage mode** below.
+
+Output: Feature artifacts with Given/When/Then scenarios (full mode), or a categorized findings table (triage mode).
 
 ## Orient First
 
@@ -30,6 +32,60 @@ Output is always the same: Feature artifacts with Given/When/Then scenarios, rea
 helpmetest_status()
 helpmetest_search_artifacts({ query: "" })
 ```
+
+---
+
+## Triage Mode — fast bug sweep, no test artifacts
+
+Use this when the intent is "find what's broken fast" rather than "map the app for TDD."
+
+Trigger phrases: "good test around", "find anything weird", "quick sanity check", "poke around", "see what's wrong", "any obvious issues".
+
+### What to do
+
+1. Walk the core user flows using `run_interactive_command` with `screenshot: true`
+2. Read DOM text, network responses, localStorage, and console output
+3. Collect every issue under one of three buckets:
+
+   **🐛 Bugs** — wrong output, broken state, JS error, incorrect data  
+   **🗃 Data quality** — placeholder text, wrong label in CMS, test data in prod, stale copy (fixable without code)  
+   **🤔 UX illogicalities** — works technically but makes no sense to a user: wrong empty-state message, duplicate CTA, dead-end flow, page that doesn't adapt for logged-in state
+
+4. Document every **Bug** in a Feature artifact's `bugs[]` before presenting results. A bug only in chat doesn't exist.
+
+5. Present the findings table:
+
+```
+## Findings — [App Name]
+
+### Bugs (broken behavior)
+
+1. **[Short title]** *(documented in: [feature-artifact-id])*
+   - [One sentence: what is wrong and who it affects]
+
+### Data quality (content/config, not code)
+
+2. **[Short title]**
+   - [One sentence]. Fix: [what to update in CMS/config/DB — no code needed]
+
+### UX illogicalities (not broken, but confusing)
+
+3. **[Short title]**
+   - [One sentence: what a user would expect instead]
+
+---
+**Verdict:** Items N–N (data quality) fixable in [CMS] without code. Items N–N need code changes. Items N–N are bugs.
+
+Want to tackle any of these?
+```
+
+Rules:
+- Number items globally (1, 2, 3… not per-section)
+- Bugs always cite which Feature artifact they were added to
+- Data quality always says where to make the fix
+- One sentence per item — no paragraphs
+
+After presenting, **stop**. When the user picks items: bugs → `/tdd` first then fix; data quality → make the change directly; UX → propose fix, get approval, then `/tdd`.
 
 ---
 

@@ -172,7 +172,7 @@ New feature, bug fix, or refactor. Tests come first — they define what "done" 
 
 Mark each scenario: **write immediately** (critical/high) / **write before launch** (medium) / **skip** (cosmetic, already covered, unreliable). Don't test everything — test what would hurt if it broke.
 
-**4. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec.
+**4. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec. After each test, run the red-team loop (`_shared.md §3a`) before writing the next one.
 
 **5. Implement incrementally** — pick the highest-priority failing test, make it pass, move to the next.
 
@@ -205,11 +205,13 @@ Write that answer as the `PROTECTS:` line in `[Documentation]`. This is the cont
 - Use `Create Fake Email` for any registration/email fields — never hardcode
 - `[Documentation]` must start with `PROTECTS: <what user complaint this catches>`
 
-**5. Validate** each test with `fix-tests` **before** linking it to the scenario. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
+**5. Red-team loop** — see `_shared.md §3a`. Run it after every `helpmetest_upsert_test` call. Only move to the next test when all four questions come up clean.
 
-**6. Link tests back** — add each test ID to `scenario.test_ids` in the Feature artifact **only after** it passes validation.
+**6. Validate** the finished test with `/helpmetest validate` as a formal gate. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
 
-**7. Run and fix** — see "Fix broken tests" below if a newly-written test fails.
+**7. Link tests back** — add each test ID to `scenario.test_ids` in the Feature artifact **only after** it passes the red-team loop and validation.
+
+**8. Run and fix** — see "Fix broken tests" below if a newly-written test fails.
 
 ---
 

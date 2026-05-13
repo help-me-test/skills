@@ -1,6 +1,6 @@
 # Mode: report — project health diagnosis
 
-Read-only, layered diagnosis of the current project's HelpMeTest state. Auth, tests, stability, sync, coverage, code↔test linkage, bugs, artifacts, drift. Produces a tiered 🔴/🟠/🟡 report and ends by asking the user a single binary question that walks them from "what's broken" to "the highest-leverage fix is X — start there?"
+Read-only, layered diagnosis of the current project's HelpMeTest state across 9 phases: triage, auth, tests (with 10-run history + aggregated errors), sync, coverage, code↔test linkage, bugs, artifacts, drift. Produces a tiered 🔴/🟠/🟡 report and ends by asking the user a single binary question that walks them from "what's broken" to "the highest-leverage fix is X — start there?"
 
 This is the QA analogue of an SRE health check: layered phases, stop-the-line on critical findings, narrate every step, no side effects.
 
@@ -21,7 +21,7 @@ User says "report", "health check", "is the project ok", "what's broken", "diagn
 | Invocation | Behavior |
 |------------|----------|
 | `/helpmetest report` | Run every phase in order. |
-| `/helpmetest report <phase>` | Run only that phase. Valid: `triage`, `auth`, `tests`, `stability`, `sync`, `coverage`, `code`, `bugs`, `artifacts`, `drift`. |
+| `/helpmetest report <phase>` | Run only that phase. Valid: `triage`, `auth`, `tests`, `sync`, `coverage`, `code`, `bugs`, `artifacts`, `drift`. |
 
 Synonyms in user text: "linkage" → `sync`, "flaky" → `stability`, "annotations" → `code`, "hygiene" → `artifacts`.
 
@@ -29,17 +29,17 @@ Synonyms in user text: "linkage" → `sync`, "flaky" → `stability`, "annotatio
 
 Bare `/helpmetest report`:
 
-> "After this you'll know the health of your HelpMeTest project end to end — auth states, test stability over the last 10 runs (not just the last result), Feature↔test sync, code annotation freshness, open bugs, artifact hygiene. I'll surface anything critical immediately, then walk through 9 phases. Read-only — nothing gets modified, no tests run.
+> "After this you'll know the health of your HelpMeTest project end to end — auth states, test stability over the last 10 runs with aggregated error analysis, Feature↔test sync, code annotation freshness, open bugs, artifact hygiene. I'll surface anything critical immediately, then walk through 9 phases. Read-only — nothing gets modified, no tests run.
 >
-> Full sweep, or just one phase (triage / auth / tests / stability / sync / coverage / code / bugs / artifacts / drift)?"
+> Full sweep, or just one phase (triage / auth / tests / sync / coverage / code / bugs / artifacts / drift)?"
 
 Single phase: state what that phase will tell them, then proceed without asking.
 
 ---
 
-## Phases — order matters
+## Phases — order matters (9 total)
 
-Each phase: gather → classify findings into 🔴/🟠/🟡 → record into the in-memory rollup. Narrate before each phase ("running auth — checking saved states") and after ("auth: 2 states, both Helpmetest passing recently, GeekleUser stale 47 days").
+Each phase: gather → classify findings into 🔴/🟠/🟡 → record into the in-memory rollup. Narrate before each phase ("running tests — analyzing last 10 runs with error aggregation") and after ("tests: 74 passing · 2 failing (both chronically broken) · flaky: 3 tests with mixed pass/fail pattern").
 
 ### Phase 1 — triage (always first, ≤30s)
 
@@ -80,55 +80,59 @@ Findings:
 - 🟠 state last used >14 days ago → stale, may rot
 - 🟡 orphan state (no tests use it) or unused state
 
-### Phase 3 — tests (status breakdown)
+### Phase 3 — tests (status + stability + error analysis)
+
+**Single-step comprehensive test report** combining current status, historical stability (last 10 runs), and aggregated error analysis.
 
 ```
-helpmetest_status({ testsOnly: true })
+helpmetest_status(testsOnly=true, history=10, showLastError=true)
 ```
 
-Group:
-- ✅ passing on last run
-- ❌ failing on last run
-- ⚠️ never-run
-- 💤 stale (last run >14 days ago)
+For each test, extract:
+- **Status**: passing, failing, never-run, stale (>14 days)
+- **Pass rate**: from last 10 runs (e.g., "7/10" = 70%)
+- **Error messages**: all 10 run errors grouped by type:
+  - Timeout: "TimeoutError: locator.evaluate: Timeout exceeded"
+  - Assertion: "Should Contain: X does not contain Y"
+  - Selector: "locator.evaluate: Error: element not found"
+  - Backend: "500 Server Error", network timeouts
+  - Auth: "401 Unauthorized", redirect to login
+  - Logic: "Javascript: Error", variable undefined, etc.
 
-For each failing test, classify the failure category from the latest run's error pattern:
-- selector / element-not-found
-- timing / wait-timeout
-- auth / login-required, 401, redirect to login
-- backend / 500, network error
-- app bug / assertion mismatch on real user-visible behavior
+**Group tests by stability class:**
 
-Don't deep-dive each failure here (that's `fix-tests`). Just tag the category so the report can group.
+- **🔴 Chronically Broken** (pass rate <30%): Tests failing majority of time
+  - Evidence: Error patterns, error count per type, min/max timestamps across runs
+- **🟠 Flaky** (pass rate 30-70%): Unreliable signal, unpredictable behavior
+  - Evidence: Mixed pass/fail pattern, error types vary per run
+- **🟠 Recently Recovered** (last 1-2 pass, 3+ before failed): Dishonest green
+  - Evidence: Last N runs show recent success but pattern shows prior failures
+- **🟡 Stale** (last run >14 days ago): Test not exercised recently
+  - Evidence: Timestamp of last run, current status
+- **✅ Stable** (pass rate ≥90%): Reliable, green
+  - Evidence: Consistent passing trend, no failure streaks
+
+**Per failing test, summarize errors:**
+```
+❌ Test Name [2/10 pass — FLAKY]
+  - Timeout (4 runs): "TimeoutError: locator.evaluate: Timeout 10000ms exceeded"
+  - Assertion (3 runs): "Should Contain: expected 'visible' found 'hidden'"
+  - Selector (1 run): "locator.evaluate: Error: no matching selector"
+  - Backend (1 run): "500 Server Error"
+  - Other (1 run): "Javascript: locator.evaluate: Error: paused=false"
+```
 
 Findings:
+- 🔴 chronically broken test on `priority:critical`
 - 🔴 failing test on `priority:critical`
-- 🟠 failing test (any priority), or never-run test on `priority:critical`
-- 🟡 stale test, never-run on lower priority
+- 🟠 chronically broken test (any priority)
+- 🟠 flaky test (any priority)
+- 🟠 recently recovered (test with recent success but prior failures)
+- 🟠 failing test on lower priority
+- 🟠 never-run test on `priority:critical`
+- 🟡 stale test (>14 days), never-run on lower priority
 
-### Phase 4 — stability (the "last green doesn't mean healthy" check)
-
-This is the phase that catches the user's classic case: *"the last 1 run is green but the previous 5 were red — that's flaky, not healthy."*
-
-For each test, fetch run history (last 10 runs). Use `helpmetest_list_agent_runs` / `helpmetest_get_agent_run` or whichever MCP surface exposes per-test history. If the run history isn't available via MCP, note it explicitly in the report rather than skipping silently.
-
-Compute per test:
-- pass rate over last 10
-- longest failing streak
-- last 3 results (consecutive)
-
-Classify:
-- **flaky** — pass rate 30–90%
-- **recently recovered** — last 1–2 pass but the 3+ before that failed (this is the "looks fine, isn't" pattern)
-- **chronically broken** — pass rate <30% over the window
-- **stable green** — pass rate ≥90% AND no recent failure streak
-
-Findings:
-- 🔴 chronically broken
-- 🟠 flaky OR recently recovered (both are dishonest signals)
-- 🟡 nothing — stability is binary; if it's stable, no finding
-
-### Phase 5 — sync (test ↔ Feature linkage)
+### Phase 4 — sync (test ↔ Feature linkage)
 
 Every Feature has at least one scenario with at least one populated `test_ids[]`?
 Every test referenced in `scenario.test_ids[]` actually exists in `helpmetest_status`?
@@ -151,7 +155,7 @@ Findings:
 - 🟠 Feature with zero coverage, broken ref on any scenario
 - 🟡 orphan test, scenario with no test on lower priority
 
-### Phase 6 — coverage
+### Phase 5 — coverage
 
 Per Feature, list scenarios without tests, ranked by priority. Cross-reference with Phase 5 to avoid duplicate findings.
 
@@ -161,7 +165,7 @@ Findings:
 - 🟠 Feature with zero coverage and any `priority:critical` scenario
 - 🟡 individual uncovered scenarios on lower priority
 
-### Phase 7 — code (gated on code access)
+### Phase 6 — code (gated on code access)
 
 **First, detect code access:**
 
@@ -191,7 +195,7 @@ Findings:
 - 🟠 annotation references a chronically failing test (the comment promises coverage that doesn't exist)
 - 🟡 heuristic gap — file probably needs annotations
 
-### Phase 8 — bugs (Feature artifact `bugs[]` audit)
+### Phase 7 — bugs (Feature artifact `bugs[]` audit)
 
 ```
 helpmetest_search_artifacts({ type: "Feature" })
@@ -209,7 +213,7 @@ Findings:
 - 🟠 critical unresolved bug, any major bug >7 days old
 - 🟡 minor bugs >30 days old, bugs without `repro_steps`
 
-### Phase 9 — artifacts (hygiene)
+### Phase 8 — artifacts (hygiene)
 
 - Memory artifact present? Last updated within 30 days?
 - ProjectOverview present?
@@ -220,7 +224,7 @@ Findings:
 - 🟠 ProjectOverview missing
 - 🟡 Memory artifact missing or >30 days stale, no Persona, abandoned Tasks
 
-### Phase 10 — drift (style/discipline)
+### Phase 9 — drift (style/discipline)
 
 Read every test's body (sample if there are >100 tests). Flag:
 - Tests that re-authenticate inside the body instead of using `As <State>`
@@ -322,7 +326,7 @@ The question MUST be a single binary choice. Not a menu of all findings — that
 - [ ] Master Tasks artifact created at start; one subtask per phase you chose to run
 - [ ] Each phase narrated before/after; findings classified into 🔴/🟠/🟡
 - [ ] Stop-the-line check fired (or explicitly noted as clean) before continuing past triage
-- [ ] Run history actually consulted in the stability phase (not just last result)
+- [ ] Run history (last 10) actually analyzed in the tests phase with error aggregation (not just last result)
 - [ ] Code phase ran iff `git rev-parse --show-toplevel` succeeded; skip noted in the report otherwise
 - [ ] Final tiered report printed
 - [ ] Report (or fallback Tasks) artifact persisted with `links[]` populated
@@ -332,6 +336,6 @@ The question MUST be a single binary choice. Not a menu of all findings — that
 
 - **Do not run tests.** Read-only.
 - **Do not modify Features, tests, auth states, or annotations.** This mode reports; it doesn't repair.
-- **Do not skip the stability phase even if everything's green on last run.** That's the whole point.
+- **Do not skip history analysis in the tests phase even if everything's green on last run.** Stability over last 10 runs is the whole point — catches flaky tests and recently recovered false-greens.
 - **Do not exit silently.** The closing remediation question is mandatory.
 - **Do not list every drift finding individually in chat.** Aggregate counts in the snapshot; the artifact has the full list.

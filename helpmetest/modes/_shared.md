@@ -67,6 +67,26 @@ Silence means the user has no idea what you did or why. That is not acceptable.
 
 A test that just checks an element is visible is not a test. Tests must **perform an action and assert the result** — minimum 5 meaningful steps. See `tdd` mode for structure, documentation, and selector rules.
 
+## 3a. Red-team loop — mandatory after every test is written
+
+This runs after every `helpmetest_upsert_test` call, before moving to the next test. It is not a review — it is adversarial interrogation of the test you just wrote.
+
+Ask these four questions. Write the answers in plain text. Do not summarize or skip.
+
+> **Q1. What user complaint slips through?**
+> If this test passes but the feature is actually broken, what would a real user report? Name the exact complaint. If you can't name one, the test is protecting nothing — rewrite it.
+
+> **Q2. What can a developer delete without this test failing?**
+> Imagine removing the key behavior — the state change, the validation, the persistence. Does the test still pass? If yes, the assertion is wrong. Fix it.
+
+> **Q3. Is a state change asserted, or just element presence?**
+> If the test's final assertion is "element is visible" or "page contains text," rewrite it to assert what actually changed (value, count, URL, stored data).
+
+> **Q4. What boundary or edge is untested?**
+> Empty state, off-by-one, concurrent action, missing precondition. Name the one most likely to silently break in production. If the risk is real, add it to this test or open a follow-up scenario.
+
+**If any answer reveals a gap** → patch the test, then re-run all four questions on the patched version. Repeat until the adversary runs dry — all four answers are "nothing slips through." Only then move to the next test.
+
 ## 4. Auth state before anything
 
 Establish auth state with `Save As <StateName>` **once**. All subsequent tests reuse it with `As <StateName>` — never re-authenticate inside tests. See `tdd` mode for full auth pattern.
