@@ -55,7 +55,8 @@ I will run 8 adversarial probe checks + walk these flows:
 
 Adversarial probe covers: 404 blank screen, SSL certs, console errors,
 failed network requests, mobile layout, performance thresholds,
-keyboard navigation, broken links.
+keyboard navigation, broken links, empty state, persistence after reload,
+back/forward navigation, copy quality scan.
 
 Expected time: ~N minutes. Ready to start?
 ```
@@ -78,11 +79,11 @@ The user may add flows, remove checks, or change the target URL. Update your pla
 ### Adversarial Probe — run this on every site, every triage
 
 **Before running the probe, announce it:**
-> "Running adversarial probe — 8 checks: 404 blank screen, SSL certs on all hostnames, console errors, failed network requests, mobile layout (iPhone 13), performance thresholds, keyboard navigation, broken links. Starting now."
+> "Running adversarial probe — 12 checks: 404 blank screen, SSL certs, console errors, failed network requests, mobile layout (iPhone 13), performance thresholds, keyboard navigation, broken links, empty state, persistence after reload, back/forward navigation, copy quality scan. Starting now."
 
 Then run them in order. After all 8, report the full verdict in one block (see verdict format below) — do not drip-feed individual results.
 
-These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all eight. Checks 1–5 take < 8 interactive commands; checks 6–8 read existing session data or run a single keyword.
+These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all twelve. Checks 1–5 take < 8 interactive commands; checks 6–8 read existing session data or run a single keyword; checks 9–12 are single JS evals or one navigation step.
 
 #### 1. 404 / blank screen
 
@@ -223,6 +224,67 @@ This keyword crawls all same-domain links up to `maxPages`, issues HEAD requests
 **Fail:** any entries → document as a Bug listing affected URLs grouped by status code. 404s on navigation items or CTAs are P1 — they break user journeys silently.
 
 Set `maxPages=50` for most sites. For large sites (> 200 pages) use `maxPages=20` to keep the probe fast. Broken Links only follows same-domain hrefs — external links are not checked.
+
+#### 9. Empty state
+
+Visit the app before any data exists (clear localStorage if needed, or use a fresh session) and screenshot the core content area:
+
+```robot
+Javascript  localStorage.clear()
+Go To  <base-url>
+Take Screenshot
+Javascript  document.body.innerText.trim().length
+```
+
+**Pass:** the empty area has a message explaining what belongs there, plus a CTA or instruction to create the first item.  
+**Fail:** blank area, just a background, or only a spinner with no content → document as a UX illogicality: "Empty state missing — first-time users see no guidance."  
+**Fail:** `innerText.length === 0` or near-zero → the whole page is blank, not just the list area → escalate to Bug.
+
+Also check: search results with a query that returns nothing, filtered views with no matching items, and dashboards with no activity yet. Each is a separate empty state.
+
+#### 10. Persistence after reload
+
+Create or update data, reload the page, verify the data is still there:
+
+```robot
+# After creating data:
+Go To  <base-url>
+Take Screenshot
+Javascript  JSON.stringify(localStorage)
+```
+
+**Pass:** data survives a full page reload — either from localStorage, cookies, or the backend.  
+**Fail:** data disappears on reload → the app stores state only in memory (React useState, in-memory variable). Document as a Bug: "Data not persisted — lost on page reload." This is a silent failure — the app looks functional but any reload wipes user work.
+
+#### 11. Back/forward navigation
+
+Navigate into a flow, then go back, and verify the app state is correct:
+
+```robot
+Go To  <base-url>
+# Navigate forward (click into a detail, form, or sub-page)
+Click  <link-or-cta>
+Go Back
+Take Screenshot
+Javascript  document.body.offsetHeight
+```
+
+**Pass:** back navigation lands on the previous state with correct content rendered.  
+**Fail:** blank screen, crash, redirect loop, or wrong page after `Go Back` → SPA history is broken. Document as a Bug: "Browser Back renders [blank/wrong state] — back navigation broken."  
+**Fail:** `offsetHeight === 0` after going back → page is empty, same class of error as the 404 blank screen.
+
+Also try `Go Forward` after going back — SPA routers frequently handle one direction but break the other.
+
+#### 12. Copy quality scan
+
+After every page load, scan the visible text for dev artifacts that leaked into production:
+
+```robot
+Javascript  (()=>{const t=document.body.innerText;const hits=[];['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'].forEach(p=>{if(t.toLowerCase().includes(p.toLowerCase()))hits.push(p);});return hits.length?JSON.stringify(hits):'clean';})()
+```
+
+**Pass:** `"clean"` — no dev artifacts in visible text.  
+**Fail:** any match → document as Data quality with the matched term and the element containing it. These appear in prod more often than anyone expects: unrendered template variables (`{{name}}`), unformatted JS objects (`[object Object]`), unfilled placeholder copy (`lorem ipsum`), unhandled null values shown raw (`null`, `undefined`).
 
 ---
 
