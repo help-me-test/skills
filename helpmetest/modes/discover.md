@@ -41,6 +41,27 @@ Use this when the intent is "find what's broken fast" rather than "map the app f
 
 Trigger phrases: "good test around", "find anything weird", "quick sanity check", "poke around", "see what's wrong", "any obvious issues".
 
+### Pre-flight — announce before you start
+
+Before touching the browser, present your plan in this format and wait for a go/no-go:
+
+```
+## Triage plan — <site>
+
+I will run 8 adversarial probe checks + walk these flows:
+1. <primary flow — e.g. homepage → sign up → dashboard>
+2. <secondary flow — e.g. logged-in: core feature>
+3. <edge — e.g. empty state, error state>
+
+Adversarial probe covers: 404 blank screen, SSL certs, console errors,
+failed network requests, mobile layout, performance thresholds,
+keyboard navigation, broken links.
+
+Expected time: ~N minutes. Ready to start?
+```
+
+The user may add flows, remove checks, or change the target URL. Update your plan accordingly before proceeding.
+
 ### What to do
 
 1. Walk the core user flows using `run_interactive_command` with `screenshot: true`
@@ -55,6 +76,11 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
 ---
 
 ### Adversarial Probe — run this on every site, every triage
+
+**Before running the probe, announce it:**
+> "Running adversarial probe — 8 checks: 404 blank screen, SSL certs on all hostnames, console errors, failed network requests, mobile layout (iPhone 13), performance thresholds, keyboard navigation, broken links. Starting now."
+
+Then run them in order. After all 8, report the full verdict in one block (see verdict format below) — do not drip-feed individual results.
 
 These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all eight. Checks 1–5 take < 8 interactive commands; checks 6–8 read existing session data or run a single keyword.
 
