@@ -16,15 +16,33 @@ The user must tell you **which files changed** (you don't have shell access, so 
 
 ## Announce
 
-After orient:
+After orient, present the plan:
+
+**No files provided — ask first:**
+> "Which files changed? Give me a list of paths, paste the diff, or name the feature area (e.g. 'auth flow'). I'll find the affected tests from there."
+
+Wait for the answer.
 
 **Files or feature area provided:**
-> "After this you'll know if your change broke anything that was previously green — before you push. I'll run only the [N] tests that cover the files you changed, not the full suite. Starting now."
 
-**No files provided:**
-> "After this you'll know what's safe to ship. I need to know what changed — which files or feature area? (Or paste the diff and I'll figure it out.)"
+```
+## Regression plan
 
-Wait for their answer if files weren't provided. Then run.
+Changed: [file list or feature area]
+
+I will:
+1. Grep each changed file for @helpmetest annotations → affected test IDs (method a)
+2. Check Feature artifacts for relevant_files matches → additional test IDs (method b)
+3. Deduplicate → run the set, priority:critical first
+4. Classify each result: green / regressed / pre-existing / flaky
+5. Report via Tasks artifact — run URLs included for every test
+
+Estimated: [N] tests. Any suspected regressions will be called out prominently.
+
+Ready to start?
+```
+
+Wait for confirmation, then proceed.
 
 ## Workflow
 

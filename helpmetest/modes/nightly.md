@@ -19,11 +19,24 @@ You need a valid auth state (`As <StateName>`) for the discovery sub-flow. If no
 
 ## Announce
 
-After orient, before running any tests:
+After orient, present the plan before running anything:
 
-> "After this you'll know the health of every Feature and whether any new pages appeared since last run — broken features will be marked, stubs created for new URLs. Running [N] Feature tests now."
+```
+## Nightly audit plan
 
-Then proceed immediately — nightly has no scope ambiguity.
+Features to check: [N] Feature artifacts, [M] tests total
+Auth state: [StateName available | none — Step 3 will be skipped]
+
+I will:
+1. Run every test linked to a Feature artifact → classify healthy / partial / broken
+2. Update degraded Feature statuses in-place
+3. Discover new URLs in test tags with no Feature coverage → create stub Features
+4. Produce a Tasks artifact as the run receipt
+
+Starting now.
+```
+
+Nightly has no scope ambiguity — proceed immediately after presenting the plan.
 
 ---
 

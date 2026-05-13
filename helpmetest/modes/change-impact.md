@@ -13,15 +13,31 @@ If a Tasks artifact is in progress for this run, resume it.
 
 ## Announce
 
-After orient, before reading any diff:
+After orient, present the plan before reading any diff:
 
-**Files or commit specified:**
-> "After this you'll know exactly which tests your change affects and whether any of them regressed — so you know before code review does. Reading the diff now."
+**Nothing specified (no files or commit given):**
+> "What changed? Give me a commit hash, a file list, or say 'last commit' and I'll run `git diff HEAD~1`."
 
-**Nothing specified:**
-> "After this you'll know if your last commit broke anything that was previously green. I'll read `git diff HEAD~1` to find what changed. Or if you want to check a specific commit or file list, tell me now."
+Wait for the answer.
 
-Then proceed.
+**Files or commit specified — present the plan:**
+
+```
+## Change-impact plan
+
+Source: [git diff HEAD~1 | files: X, Y, Z | commit: abc123]
+
+I will:
+1. Read the diff and collect changed files
+2. Grep each file for @helpmetest annotations → find affected test IDs
+3. Run each affected test and classify: green / regressed / pre-existing
+4. Produce a RegressionRun artifact with verdict
+5. List any changed files with no annotation as coverage gaps
+
+Estimated: [N annotation tests + critical tests if any]. Ready to start?
+```
+
+Wait for confirmation, then proceed.
 
 ---
 

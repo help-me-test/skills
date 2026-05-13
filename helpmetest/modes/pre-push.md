@@ -12,11 +12,26 @@ Snapshot the current state of critical tests before running anything.
 
 ## Announce
 
-After orient, before running anything:
+After orient, present the plan before running anything:
 
-> "After this you'll get a binary verdict — BLOCKED or CLEAR TO PUSH — based on all priority:critical tests plus tests covering your changed files. Takes [N critical tests + M annotation-covered] runs. Starting now."
+```
+## Pre-push plan
 
-Then proceed immediately — this mode has no scope ambiguity.
+Critical tests: [N] (tagged priority:critical)
+Changed files: [reading git diff — annotation-covered tests TBD]
+Total runs: ~[N + M] tests
+
+I will:
+1. Collect all priority:critical tests (Set A)
+2. Grep changed files for @helpmetest annotations → collect covered test IDs (Set B)
+3. Run the union of A ∪ B
+4. Produce a RegressionRun artifact
+5. Output BLOCKED or CLEAR TO PUSH
+
+Starting now.
+```
+
+Pre-push has no scope ambiguity — proceed immediately after presenting the plan.
 
 ---
 

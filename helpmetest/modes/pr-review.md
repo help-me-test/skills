@@ -11,11 +11,25 @@ helpmetest_search_artifacts({ query: "" })
 
 ## Announce
 
-After orient, before reading any diff:
+After orient, present the plan before reading any diff:
 
-> "After this you'll know which files in this branch have test coverage and which don't — so you can decide whether it's ready to merge. No tests will be run; this is analysis only. Reading the diff now."
+```
+## PR review plan
 
-Then proceed immediately.
+Branch: [current branch vs main]
+
+I will:
+1. Read the diff (git diff main...HEAD --name-only)
+2. For each changed file: grep for @helpmetest annotations → map to test IDs + status
+3. Files with no annotation → flagged as coverage gaps with severity (high/medium/low by path)
+4. Produce a CoverageReport artifact with gaps and next actions
+
+No tests will be run — this is analysis only.
+
+Ready to start?
+```
+
+Wait for confirmation, then proceed.
 
 ---
 

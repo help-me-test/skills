@@ -17,15 +17,46 @@ If the user's task names a feature or priority, filter to that. Otherwise scan e
 
 ## Announce
 
-After orient, before scanning:
+After orient, present the plan before scanning:
 
 **No filter given:**
-> "After this you'll know exactly which user flows could silently break with nothing catching it — ranked by how much it would hurt. I'd start with critical and high priority gaps; that's where the real risk is. Full scope across all [N] Feature artifacts, or critical/high first?"
+
+```
+## Coverage plan
+
+Scope: all [N] Feature artifacts, [M] tests total
+
+I will:
+1. Build a scenario → test map across all features
+2. Classify each scenario: Covered / Gap / Dead link / Under-covered
+3. Find orphan tests (tests not linked to any scenario)
+4. Produce a CoverageReport artifact with critical_gaps[] ranked by priority
+
+Recommended: start with priority:critical and priority:high gaps — those are
+the flows that hurt most when they break silently.
+
+Full scope, or critical/high only?
+```
+
+Wait for scope answer.
 
 **Filter given (feature area or priority):**
-> "After this you'll know the coverage state of [scope] — which scenarios are protected and which aren't. Scanning [N] artifacts matching your filter. Starting now."
 
-Wait for scope answer if bare. Then run.
+```
+## Coverage plan
+
+Scope: [filter — e.g. priority:critical | feature-auth | project:checkout]
+Artifacts in scope: [N] features, [M] tests
+
+I will:
+1. Map scenarios → tests for the filtered set
+2. Classify: Covered / Gap / Dead link / Under-covered
+3. Produce a CoverageReport for the scoped area
+
+Ready to start?
+```
+
+Wait for confirmation, then proceed.
 
 ## Workflow
 

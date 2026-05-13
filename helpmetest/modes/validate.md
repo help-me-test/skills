@@ -14,15 +14,44 @@
 
 ## Announce
 
-After orient, before scoring:
+After orient, present the plan before scoring:
 
 **No filter given:**
-> "After this you'll know which tests would pass even if the feature was broken — the ones lying to you. I'd start with priority:critical tests; if those are weak, everything else is moot. Critical first, or full suite?"
+
+```
+## Validate plan
+
+Scope: [N] tests total in the project
+
+I will score each test against 10 quality rules (R1–R10):
+  R1 asserts outcome  R2 5+ steps     R3 PM-readable docs
+  R4 FakeMail         R5 As <State>   R6 no blocked patterns
+  R7 stable selectors R8 complete tags R9 good name  R10 linked to Feature
+
+Each test gets a grade A–F. D/F grades get a concrete rewrite suggestion.
+Output: Tasks artifact with one subtask per test, grade + failed rules + fix.
+
+Recommended: start with priority:critical — if those are weak, everything else is moot.
+
+Critical tests first, or full suite?
+```
+
+Wait for scope answer.
 
 **Specific test or filter given:**
-> "After this you'll know exactly what's wrong with [test-id / these N tests] and what to rewrite. Starting now."
 
-Wait for scope answer if bare. Then run.
+```
+## Validate plan
+
+Scope: [test-id | filter] — [N] tests
+
+Scoring against R1–R10. Each FAIL gets a specific rewrite suggestion.
+Output: Tasks artifact with grade + evidence per test.
+
+Ready to start?
+```
+
+Wait for confirmation, then proceed.
 
 ## Workflow
 
