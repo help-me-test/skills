@@ -56,7 +56,7 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
 
 ### Adversarial Probe — run this on every site, every triage
 
-These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all five. They take < 8 interactive commands total.
+These are fast deterministic checks. Each one catches a class of critical bug that normal flow-walking misses. Run all eight. Checks 1–5 take < 8 interactive commands; checks 6–8 read existing session data or run a single keyword.
 
 #### 1. 404 / blank screen
 
@@ -147,6 +147,56 @@ Javascript  document.documentElement.scrollWidth > document.documentElement.clie
 Also eyeball the screenshot for: nav hidden/unusable, text clipping, buttons too small to tap (< 44px), modals cut off. These are UX bugs — note them in the findings table even if overflow is clean.
 
 After the probe, close the mobile context and switch back to desktop before continuing the rest of the triage.
+
+#### 6. Performance thresholds
+
+`run_interactive_command` sessions already capture Web Vitals — check `Analyze Web Vitals` output from the session. No extra commands needed.
+
+Read the output and apply these thresholds:
+
+| Metric | Good | Needs improvement | Bug |
+|---|---|---|---|
+| First Contentful Paint (FCP) | < 1800ms | < 3000ms | ≥ 3000ms |
+| Load complete | < 3000ms | < 5000ms | ≥ 5000ms |
+| DOM interactive | < 400ms | < 1000ms | ≥ 1000ms |
+
+The 400ms DOM interactive threshold is the [Doherty Threshold](https://lawsofux.com/doherty-threshold/) — below it the app feels instant, above it users perceive lag.
+
+**Pass:** all three metrics in the "Good" column.  
+**Fail (Bug):** any metric in the "Bug" column → document as a Bug with the measured value. A 3s+ FCP on a marketing page loses conversions; a 1s+ DOM interactive on a dashboard is a UX defect.  
+**Warn:** "Needs improvement" values are UX illogicalities — note in findings but don't block.
+
+#### 7. Keyboard navigation
+
+Tab through the primary interactive area and verify every element is reachable and shows a visible focus ring:
+
+```robot
+Javascript  document.activeElement?.tagName
+Press Keys  body  TAB
+Javascript  JSON.stringify({tag:document.activeElement?.tagName, text:document.activeElement?.textContent?.trim().slice(0,40), hasFocus:(()=>{const s=window.getComputedStyle(document.activeElement);return s.outlineStyle!=='none'||s.boxShadow!=='none';})()})
+# Repeat Press Keys + eval 5-8 times to walk the main form/nav
+```
+
+**Pass:** every element is reachable in logical order and `hasFocus` is `true` (visible outline or box-shadow).  
+**Fail:** any element where `hasFocus === false` → focus ring stripped. Document as a Bug: "Keyboard focus indicator missing on `<element>` — inaccessible to keyboard-only users."  
+**Fail:** tab order skips or loops before reaching key actions → document as UX illogicality.
+
+Stop after 8 tabs. If the page has a form, prioritize tabbing through all its inputs.
+
+#### 8. Broken links
+
+Crawl the site and find all dead links in one command:
+
+```robot
+Broken Links  <base-url>  maxPages=50
+```
+
+This keyword crawls all same-domain links up to `maxPages`, issues HEAD requests, and returns a map grouped by HTTP status code (`{404: [...], 500: [...], ...}`).
+
+**Pass:** empty map — no dead links.  
+**Fail:** any entries → document as a Bug listing affected URLs grouped by status code. 404s on navigation items or CTAs are P1 — they break user journeys silently.
+
+Set `maxPages=50` for most sites. For large sites (> 200 pages) use `maxPages=20` to keep the probe fast. Broken Links only follows same-domain hrefs — external links are not checked.
 
 ---
 
