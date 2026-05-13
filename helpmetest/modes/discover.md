@@ -96,9 +96,9 @@ Navigate to a guaranteed non-existent route:
 
 ```robot
 Go To  <base-url>/does-not-exist-xyz-404-probe
-Take Screenshot
 Javascript  document.body.offsetHeight
 ```
+Request a screenshot via `run_interactive_command` with `screenshot: true` to visually confirm the page state.
 
 **Pass:** body has content — a custom 404 page, a redirect to home, or any visible UI.  
 **Fail:** `offsetHeight === 0` or the screenshot shows a blank white screen → **React/SPA catch-all route is missing.** The app silently renders nothing for unknown URLs. Every typo, broken link, or expired URL gives users a white screen with no way back.  
@@ -169,9 +169,9 @@ Walk the primary user flow on iPhone. Use:
 
 ```robot
 Test On  iPhone 13  <base-url>
-Take Screenshot
 Javascript  document.documentElement.scrollWidth > document.documentElement.clientWidth
 ```
+Request a screenshot via `run_interactive_command` with `screenshot: true` to eyeball nav, text clipping, and tap target sizes.
 
 **Pass:** `False` — no horizontal overflow. Layout collapses correctly.  
 **Fail:** `True` — content overflows the viewport horizontally. Users on mobile must scroll sideways, which is always a bug.
@@ -237,9 +237,9 @@ Visit the app before any data exists (clear localStorage if needed, or use a fre
 ```robot
 Javascript  localStorage.clear()
 Go To  <base-url>
-Take Screenshot
 Javascript  document.body.innerText.trim().length
 ```
+Request a screenshot via `run_interactive_command` with `screenshot: true` to confirm the empty state visually.
 
 **Pass:** the empty area has a message explaining what belongs there, plus a CTA or instruction to create the first item.  
 **Fail:** blank area, just a background, or only a spinner with no content → document as a UX illogicality: "Empty state missing — first-time users see no guidance."  
@@ -254,9 +254,9 @@ Create or update data, reload the page, verify the data is still there:
 ```robot
 # After creating data:
 Go To  <base-url>
-Take Screenshot
 Javascript  JSON.stringify(localStorage)
 ```
+Request a screenshot via `run_interactive_command` with `screenshot: true` to confirm data is still visible after reload.
 
 **Pass:** data survives a full page reload — either from localStorage, cookies, or the backend.  
 **Fail:** data disappears on reload → the app stores state only in memory (React useState, in-memory variable). Document as a Bug: "Data not persisted — lost on page reload." This is a silent failure — the app looks functional but any reload wipes user work.
@@ -270,9 +270,9 @@ Go To  <base-url>
 # Navigate forward (click into a detail, form, or sub-page)
 Click  <link-or-cta>
 Go Back
-Take Screenshot
 Javascript  document.body.offsetHeight
 ```
+Request a screenshot via `run_interactive_command` with `screenshot: true` to confirm the previous page rendered correctly.
 
 **Pass:** back navigation lands on the previous state with correct content rendered.  
 **Fail:** blank screen, crash, redirect loop, or wrong page after `Go Back` → SPA history is broken. Document as a Bug: "Browser Back renders [blank/wrong state] — back navigation broken."  
