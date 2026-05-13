@@ -26,7 +26,7 @@ Also handles fast triage sweeps ("find bugs", "poke around", "good test around",
 
 **Reference files — load on demand:**
 - `references/adversarial-patterns.md` — attack patterns for probe checks (forms, modals, keyboard, persistence, copy scan)
-- `references/rf-recipes.md` — deterministic checks: axe-core, console errors, broken images, performance, SSL
+- `references/rf-recipes.md` — deterministic checks: axe-core, console errors, broken images, performance, web vitals, broken links, SSL
 - `references/ux-heuristics.md` — heuristics for evaluating screenshots and reporting findings
 
 Output: Feature artifacts with Given/When/Then scenarios (full mode), or a categorized findings table (triage mode).
@@ -163,6 +163,15 @@ After every `run_interactive_command` call, scan the `network` section of the ou
 
 Document as a Bug if the failing resource is user-facing or affects page functionality.
 
+For deeper resource timing (slow JS bundles, large images, blocking fonts), use `Analyze Resources` after the page has loaded:
+
+```robot
+${resources}=    Analyze Resources
+Log    ${resources}
+```
+
+Returns a breakdown of all loaded assets with transfer size and duration. Useful for finding the heaviest resource causing slow FCP — cross-reference with check 6 when vitals are poor.
+
 #### 5. Mobile layout
 
 Walk the primary user flow on iPhone. Use:
@@ -182,21 +191,37 @@ After the probe, close the mobile context and switch back to desktop before cont
 
 #### 6. Performance thresholds
 
-Use `Analyze Web Vitals` (requires OpenReplay recording to be active) for Core Web Vitals with Lighthouse-style ratings. Fall back to the Performance API recipe from `references/rf-recipes.md` (Performance Metrics section) if OpenReplay isn't active.
+```robot
+# Primary: Core Web Vitals via OpenReplay (recording starts automatically on Go To)
+Scroll By    0    300    # trigger INP/CLS measurements
+Sleep    2s
+${vitals}=    Analyze Web Vitals
+Log    ${vitals}
+```
 
-Read the output and apply these thresholds:
+If `${vitals}` is not `None`, apply Lighthouse thresholds from the result:
 
 | Metric | Good | Needs improvement | Bug |
 |---|---|---|---|
-| First Contentful Paint (FCP) | < 1800ms | < 3000ms | ≥ 3000ms |
-| Load complete | < 3000ms | < 5000ms | ≥ 5000ms |
-| DOM interactive | < 400ms | < 1000ms | ≥ 1000ms |
+| LCP | < 2500ms | < 4000ms | ≥ 4000ms |
+| FCP | < 1800ms | < 3000ms | ≥ 3000ms |
+| CLS | < 0.1 | < 0.25 | ≥ 0.25 |
+| INP | < 200ms | < 500ms | ≥ 500ms |
 
-The 400ms DOM interactive threshold is the [Doherty Threshold](https://lawsofux.com/doherty-threshold/) — below it the app feels instant, above it users perceive lag.
+Ratings are in `${vitals}[ratings]` — values are `good`, `needs-improvement`, or `poor`. Assert:
 
-**Pass:** all three metrics in the "Good" column.  
-**Fail (Bug):** any metric in the "Bug" column → document as a Bug with the measured value. A 3s+ FCP on a marketing page loses conversions; a 1s+ DOM interactive on a dashboard is a UX defect.  
-**Warn:** "Needs improvement" values are UX illogicalities — note in findings but don't block.
+```robot
+Run Keyword If    '${vitals}' != 'None'    Run Keywords
+...    Should Not Be Equal    ${vitals}[ratings][lcp]    poor    msg=LCP poor: ${vitals}[vitals][lcp]ms
+...    AND    Should Not Be Equal    ${vitals}[ratings][fcp]    poor    msg=FCP poor: ${vitals}[vitals][fcp]ms
+...    AND    Should Not Be Equal    ${vitals}[ratings][cls]    poor    msg=CLS poor: ${vitals}[vitals][cls]
+```
+
+If `${vitals}` is `None` (no recording data), fall back to the Performance API recipe in `references/rf-recipes.md` (Performance Metrics section).
+
+**Pass:** all ratings `good` or `needs-improvement`.  
+**Fail (Bug):** any rating `poor` → document as a Bug with the raw value. LCP ≥ 4s loses conversions; CLS ≥ 0.25 means content jumps while users are clicking.  
+**Warn:** `needs-improvement` → UX illogicality, note in findings.
 
 #### 7. Keyboard navigation
 
@@ -282,14 +307,20 @@ Also try `Go Forward` after going back — SPA routers frequently handle one dir
 
 #### 12. Copy quality scan
 
-After every page load, scan the visible text for dev artifacts that leaked into production:
+Extract the page as Markdown — cleaner text than `innerText` for scanning copy artifacts:
 
 ```robot
-Javascript  (()=>{const t=document.body.innerText;const hits=[];['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'].forEach(p=>{if(t.toLowerCase().includes(p.toLowerCase()))hits.push(p);});return hits.length?JSON.stringify(hits):'clean';})()
+${md}=    Markdown
+Log    ${md}
+# Then scan the Markdown string for dev artifacts:
+${hits}=    Evaluate    (lambda t: [p for p in ['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'] if p.lower() in t.lower()])("${md}")
+Should Be Empty    ${hits}    msg=Copy artifacts found: ${hits}
 ```
 
-**Pass:** `"clean"` — no dev artifacts in visible text.  
-**Fail:** any match → document as Data quality with the matched term and the element containing it. These appear in prod more often than anyone expects: unrendered template variables (`{{name}}`), unformatted JS objects (`[object Object]`), unfilled placeholder copy (`lorem ipsum`), unhandled null values shown raw (`null`, `undefined`).
+`Markdown` strips nav/chrome and gives you the readable content. Scanning it catches leaked template variables, raw `[object Object]` renders, unfilled placeholder copy, and unhandled nulls in the actual content — not in boilerplate.
+
+**Pass:** `${hits}` is empty.  
+**Fail:** any match → document as Data quality with the matched term. These appear in prod more often than anyone expects: unrendered template variables (`{{name}}`), unformatted JS objects (`[object Object]`), unfilled placeholder copy (`lorem ipsum`), unhandled null values shown raw (`null`, `undefined`).
 
 ---
 
@@ -442,7 +473,19 @@ As  <StateName>
 Go To  <base-url>
 ```
 
-Look at navigation, identify pages and sections.
+Immediately map the app structure — two fast calls before any manual exploration:
+
+```robot
+# Discover all navigation elements (tabs, sidebar links, menus, CTAs)
+${nav}=    Probe Navigation Elements
+Log    ${nav}
+
+# Crawl and collect all reachable URLs — gives you the full page inventory
+${pages}=    Generate Sitemap    <base-url>    maxPages=30
+Log    ${pages}
+```
+
+`Probe Navigation Elements` returns the nav structure with labels and URLs — use this as your exploration checklist. `Generate Sitemap` finds pages that aren't in the nav (admin routes, deep-link pages, settings sub-pages).
 
 Then: **complete the primary user goal end-to-end as a new user** — don't just screenshot pages, actually try to do the thing the app exists for (buy, sign up, create, book). When you get blocked, that's a missing feature.
 
