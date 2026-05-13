@@ -182,7 +182,7 @@ After the probe, close the mobile context and switch back to desktop before cont
 
 #### 6. Performance thresholds
 
-Use the Performance API recipe from `references/rf-recipes.md` (Performance Metrics section) to capture FCP, DOM interactive, and load time via `Evaluate`.
+Use `Analyze Web Vitals` (requires OpenReplay recording to be active) for Core Web Vitals with Lighthouse-style ratings. Fall back to the Performance API recipe from `references/rf-recipes.md` (Performance Metrics section) if OpenReplay isn't active.
 
 Read the output and apply these thresholds:
 
@@ -217,20 +217,15 @@ Stop after 8 tabs. If the page has a form, prioritize tabbing through all its in
 
 #### 8. Broken links
 
-Crawl the site using the Browser `Crawl Site` keyword:
+Use `Broken Links` to crawl the site and find 4xx/5xx responses:
 
 ```robot
-${result}=    Crawl Site    <base-url>    max_depth=3
+${broken}=    Broken Links    <base-url>    maxPages=50
+Log    ${broken}
+Should Be Empty    ${broken}    msg=Broken links: ${broken}
 ```
 
-Or extract all links on the current page and check them via JS:
-
-```robot
-Go To    <base-url>
-Wait For Load State    networkidle
-${links}=    Evaluate    JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>({href:a.href,text:a.textContent?.trim().slice(0,50)})).filter(l=>l.href.startsWith(location.origin)))
-Log    ${links}
-```
+`Broken Links` crawls same-origin pages up to `maxPages`, visits external links to check status but doesn't recurse into them. Returns a dict of `{ url: { status, referrer } }` for every broken link found.
 
 **Pass:** no links returning 404/500.  
 **Fail:** dead links found → document as a Bug listing affected URLs. 404s on navigation items or CTAs are P1 — they break user journeys silently.

@@ -3,7 +3,7 @@
 Copy-paste keyword sequences for checks that produce structured data, not judgment calls.
 Use these as the strongest form of assertion — they pass or fail on numbers, not screenshots.
 
-Load this file when you need: axe-core, console errors, broken images, form labels, performance, responsive sweep, link audit.
+Load this file when you need: axe-core, console errors, broken images, form labels, performance, web vitals, responsive sweep, link audit, broken links.
 
 ---
 
@@ -49,6 +49,36 @@ ${m}=    Evaluate    json.loads("""${metrics}""")    json
 Run Keyword If    ${m}[fcp] > 3000    Log    WARN: FCP ${m}[fcp]ms exceeds 3s threshold    WARN
 Run Keyword If    ${m}[domInteractive] > 400    Log    WARN: DOM interactive ${m}[domInteractive]ms exceeds 400ms    WARN
 ```
+
+---
+
+## Core Web Vitals (Analyze Web Vitals)
+
+Requires OpenReplay recording to be active (started before navigation). Returns LCP, FCP, INP, CLS, TTFB with Lighthouse-style ratings.
+
+```robot
+# Start recording before navigating — Analyze Web Vitals reads OpenReplay events
+Go To    ${URL}
+Wait For Load State    networkidle
+
+# Interact with the page to trigger INP/CLS measurements
+Scroll By    0    500
+Sleep    2s    # let vitals accumulate
+
+${vitals}=    Analyze Web Vitals
+Log    ${vitals}
+
+# ASSERT: Core Web Vitals are in "good" range (Lighthouse thresholds)
+# LCP < 2500ms = good, FCP < 1800ms = good, CLS < 0.1 = good
+# Returns None if no OpenReplay data captured yet
+Run Keyword If    '${vitals}' != 'None'    Run Keywords
+...    Should Not Be Equal    ${vitals}[ratings][lcp]    poor    msg=LCP is poor: ${vitals}[vitals][lcp]ms
+...    AND    Should Not Be Equal    ${vitals}[ratings][fcp]    poor    msg=FCP is poor: ${vitals}[vitals][fcp]ms
+...    AND    Should Not Be Equal    ${vitals}[ratings][cls]    poor    msg=CLS is poor: ${vitals}[vitals][cls]
+```
+
+Returns: `{ vitals: {lcp, fcp, inp, cls, ttfb}, ratings: {lcp, fcp, inp, cls, ttfb}, lcp_element, load_timing, render_timing }`
+Ratings: `good` | `needs-improvement` | `poor`
 
 ---
 
@@ -160,13 +190,28 @@ Test On iPhone 13    ${URL}
 Go To    ${URL}
 Wait For Load State    networkidle
 
-# Extract all links on the page
+# Extract all links visible on the current page (no crawl)
 ${links}=    Evaluate    JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>({href:a.href,text:a.textContent?.trim().slice(0,50),external:!a.href.startsWith(location.origin),newTab:a.target==='_blank'})))
 Log    ${links}
-
-# Crawl and find broken links (Browser library):
-${result}=    Crawl Site    ${URL}    max_depth=2
 ```
+
+---
+
+## Broken Links (site crawl)
+
+Crawls the site starting from a URL, visits all internal pages, and returns links that returned 4xx/5xx or failed to load.
+
+```robot
+# Crawl entire site for broken links — visits up to maxPages pages
+${broken}=    Broken Links    ${BASE_URL}    maxPages=50
+Log    ${broken}
+# ${broken} is a dict: { url: { status, referrer } } for every broken link found
+# ASSERT: no broken links
+Should Be Empty    ${broken}    msg=Broken links found: ${broken}
+```
+
+The keyword crawls same-origin links only. External links are visited but not recursed into.
+`maxPages` defaults to 100 — use a lower value for large sites during development.
 
 ---
 
