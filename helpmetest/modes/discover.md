@@ -182,7 +182,7 @@ After the probe, close the mobile context and switch back to desktop before cont
 
 #### 6. Performance thresholds
 
-`run_interactive_command` sessions already capture Web Vitals — check `Analyze Web Vitals` output from the session. No extra commands needed.
+Use the Performance API recipe from `references/rf-recipes.md` (Performance Metrics section) to capture FCP, DOM interactive, and load time via `Evaluate`.
 
 Read the output and apply these thresholds:
 
@@ -217,18 +217,23 @@ Stop after 8 tabs. If the page has a form, prioritize tabbing through all its in
 
 #### 8. Broken links
 
-Crawl the site and find all dead links in one command:
+Crawl the site using the Browser `Crawl Site` keyword:
 
 ```robot
-Broken Links  <base-url>  maxPages=50
+${result}=    Crawl Site    <base-url>    max_depth=3
 ```
 
-This keyword crawls all same-domain links up to `maxPages`, issues HEAD requests, and returns a map grouped by HTTP status code (`{404: [...], 500: [...], ...}`).
+Or extract all links on the current page and check them via JS:
 
-**Pass:** empty map — no dead links.  
-**Fail:** any entries → document as a Bug listing affected URLs grouped by status code. 404s on navigation items or CTAs are P1 — they break user journeys silently.
+```robot
+Go To    <base-url>
+Wait For Load State    networkidle
+${links}=    Evaluate    JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>({href:a.href,text:a.textContent?.trim().slice(0,50)})).filter(l=>l.href.startsWith(location.origin)))
+Log    ${links}
+```
 
-Set `maxPages=50` for most sites. For large sites (> 200 pages) use `maxPages=20` to keep the probe fast. Broken Links only follows same-domain hrefs — external links are not checked.
+**Pass:** no links returning 404/500.  
+**Fail:** dead links found → document as a Bug listing affected URLs. 404s on navigation items or CTAs are P1 — they break user journeys silently.
 
 #### 9. Empty state
 

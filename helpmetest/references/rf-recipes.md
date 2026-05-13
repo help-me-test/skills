@@ -160,10 +160,12 @@ Test On iPhone 13    ${URL}
 Go To    ${URL}
 Wait For Load State    networkidle
 
+# Extract all links on the page
 ${links}=    Evaluate    JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>({href:a.href,text:a.textContent?.trim().slice(0,50),external:!a.href.startsWith(location.origin),newTab:a.target==='_blank'})))
 Log    ${links}
-# Then use Broken Links keyword for automated check:
-Broken Links    ${URL}
+
+# Crawl and find broken links (Browser library):
+${result}=    Crawl Site    ${URL}    max_depth=2
 ```
 
 ---
@@ -191,14 +193,3 @@ SSL Days Remaining    ${DOMAIN}    30    # fail if expiring within 30 days
 # Ssl Certificate Chain Valid    ${DOMAIN}
 ```
 
----
-
-## Web Vitals (via Analyze Web Vitals keyword)
-
-```robot
-Go To    ${URL}
-Wait For Load State    networkidle
-${vitals}=    Analyze Web Vitals
-Log    ${vitals}
-# Check FCP, LCP, CLS, TBT against thresholds in the result
-```
