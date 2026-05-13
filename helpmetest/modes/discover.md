@@ -104,25 +104,49 @@ Request a screenshot via `run_interactive_command` with `screenshot: true` to vi
 **Fail:** `offsetHeight === 0` or the screenshot shows a blank white screen → **React/SPA catch-all route is missing.** The app silently renders nothing for unknown URLs. Every typo, broken link, or expired URL gives users a white screen with no way back.  
 Document as a Bug: "No 404 page — unknown routes render blank white screen."
 
-#### 2. SSL cert check
+#### 2. SSL / TLS / security headers check
 
-Use the `DomainChecker` library. Extract every distinct hostname the app touches (main domain + any subdomain seen in redirects during auth, API calls, or CDN loads), then check each:
+Use the `DomainChecker` library. Extract every distinct hostname the app touches (main domain + any subdomain seen in redirects during auth, API calls, or CDN loads), then run the full suite on each:
 
 ```robot
-SSL Is Valid          <domain>  ==  True
-Ssl Certificate Chain Valid  <domain>  ==  True
-SSL Days Remaining    <domain>  >=  30
+# --- Certificate health ---
+SSL Is Valid                      <domain>    ==    True
+SSL Certificate Chain Valid       <domain>    ==    True
+SSL Days Remaining                <domain>    >=    30
+SSL Certificate Key Strength      <domain>    >=    2048
+SSL Certificate Transparency Logged  <domain>  ==  True
+
+# --- Protocol hygiene ---
+TLS Version                       <domain>    matches    TLSv1\\.[23]
+SSL 3 Supported                   <domain>    ==    False
+TLS Compression Enabled           <domain>    ==    False
+
+# --- Security headers ---
+HTTP HSTS Enabled                 <domain>    ==    True
+HTTP HSTS Max Age                 <domain>    >=    31536000
+HTTP X Frame Options              <domain>    !=    ${EMPTY}
+HTTP X Content Type Options       <domain>    ==    nosniff
 ```
 
 A clean cert on `app.example.com` says nothing about `auth.example.com` or `api.example.com` — check them all.
 
-| Keyword | What it catches |
-|---|---|
-| `SSL Is Valid` | expired cert |
-| `Ssl Certificate Chain Valid` | self-signed, untrusted CA, broken chain |
-| `SSL Days Remaining >= 30` | cert expiring soon (user won't see it now, but will in days) |
+| Keyword | What it catches | Severity |
+|---|---|---|
+| `SSL Is Valid` | expired cert | P0 — blocks all users |
+| `SSL Certificate Chain Valid` | self-signed, untrusted CA, broken chain | P0 |
+| `SSL Days Remaining >= 30` | cert expiring soon | P1 — will block users in days |
+| `SSL Certificate Key Strength >= 2048` | weak RSA key (< 2048 bits) | P1 |
+| `SSL Certificate Transparency Logged` | cert not in public CT log (suspicious issuance) | P1 |
+| `TLS Version matches TLSv1.[23]` | TLS 1.0/1.1 active — deprecated, browser warnings | P1 |
+| `SSL 3 Supported == False` | POODLE attack vector | P1 |
+| `TLS Compression Enabled == False` | CRIME attack vector | P1 |
+| `HTTP HSTS Enabled` | missing HSTS — HTTP downgrade possible | P2 |
+| `HTTP HSTS Max Age >= 31536000` | HSTS max-age too short (< 1 year) | P2 |
+| `HTTP X Frame Options` | missing clickjacking protection | P2 |
+| `HTTP X Content Type Options == nosniff` | MIME-sniffing vulnerability | P2 |
 
-**Fail on any:** document as a Bug with the domain and which check failed. An invalid or expiring cert is always P0 on auth/API subdomains — it blocks or will soon block all users.
+**Fail on P0:** document as a Bug immediately — it blocks or will soon block all users.
+**Fail on P1/P2:** document as a Bug with severity. Security headers are table stakes for any production app.
 
 #### 3. Console errors on page load
 
