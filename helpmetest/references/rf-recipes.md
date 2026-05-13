@@ -125,6 +125,8 @@ Should Be True    ${f}[hasFocusRing]    msg=No focus ring on ${f}[tag] "${f}[tex
 
 ## Responsive Screenshot Sweep
 
+Screenshots are requested via `run_interactive_command` with `screenshot: true` — not via a keyword.
+
 ```robot
 Go To    ${URL}
 Wait For Load State    networkidle
@@ -132,25 +134,20 @@ Wait For Load State    networkidle
 # Mobile — iPhone 13 (390×844)
 Set Viewport Size    390    844
 Sleep    500ms
-Take Screenshot    mobile-${name}.png
+# request screenshot via MCP/CLI — check: no horizontal overflow, touch targets visible
 
 # Tablet — iPad (768×1024)
 Set Viewport Size    768    1024
 Sleep    500ms
-Take Screenshot    tablet-${name}.png
+# request screenshot — check: layout adapts, sidebar collapses correctly
 
 # Desktop
 Set Viewport Size    1440    900
 Sleep    500ms
-Take Screenshot    desktop-${name}.png
-
-# After screenshots, read each with Read tool and check:
-# Mobile: hamburger menu present? No horizontal overflow?
-# Tablet: layout adapts? Sidebar collapses?
-# Desktop: content not stretched edge-to-edge?
+# request screenshot — check: content not stretched edge-to-edge
 ```
 
-Or use the built-in keyword:
+Or use the built-in keyword (runs the check end-to-end):
 ```robot
 Test On iPhone 13    ${URL}
 ```
@@ -177,11 +174,10 @@ Broken Links    ${URL}
 # Navigate to a section with no data
 Go To    ${URL}/items    # e.g. list page when account is fresh
 Wait For Load State    networkidle
-Take Screenshot    empty-state.png
 
 ${body}=    Get Text    css=main
 Should Not Be Empty    ${body}    msg=Empty state shows blank page — needs message + CTA
-# Manually verify screenshot has: message, illustration/icon, CTA button
+# request screenshot via MCP/CLI — verify it has: message, illustration/icon, CTA button
 ```
 
 ---
