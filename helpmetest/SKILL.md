@@ -1,8 +1,8 @@
 ---
 name: helpmetest
-description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix-tests (repair failing), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api-testing (API-level RF tests), ui-review (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
+description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
 allowed-tools: mcp__helpmetest-*
-argument-hint: "[agent | tdd | discover | fix-tests | coverage | regression | validate | report | proxy | api-testing | ui-review | onboard | <task>]"
+argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | report | proxy | api | ui | onboard | <task>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -57,7 +57,7 @@ Load these files in this order, always:
 2. `modes/agent.md` — Tasks-artifact lifecycle (the accountability contract — read every time, not optional)
 3. `modes/<mode>.md` — the mode-specific workflow
 
-For `full-qa`: load `modes/discover.md`, then `modes/tdd.md`, then `modes/fix-tests.md` — run them end to end.
+For `full-qa`: load `modes/discover.md`, then `modes/tdd.md`, then `modes/fix.md` — run them end to end.
 
 These files live next to this SKILL.md. Use the `Read` tool with relative paths:
 
@@ -96,7 +96,7 @@ discover      Map a live app, PRD, or spec into Feature artifacts. Also handles 
               ("find bugs", "poke around", "good test around") — outputs a three-section findings table
               (Bugs / Data quality / UX illogicalities) and documents bugs in Feature artifacts.
               Bare/no source: asks what the source is. Bare/existing artifacts: asks "extend or focus on a specific area?"
-fix-tests     Diagnose a failing test (selector, timing, auth, backend) and repair it.
+fix           Diagnose a failing test (selector, timing, auth, backend) and repair it.
               Bare: triage mode — collects status + git state, announces findings, recommends highest-priority failing test.
 coverage      Read-only gap analysis — which scenarios lack tests, which tests are orphans.
               Bare: announces what user will know after, asks "full scope or critical/high first?"
@@ -106,13 +106,13 @@ validate      Score existing tests against /tdd quality rules; produce a rewrite
               Bare: announces what user will find, asks "full suite or critical first?"
 proxy         Set up localhost tunneling before testing dev servers.
               Bare/no port: asks "what port?" — then sets up + verifies before any tests are written.
-api-testing   REST/GraphQL API tests in Robot Framework via the HTTP library.
+api           REST/GraphQL API tests in Robot Framework via the HTTP library.
               Bare/no endpoint: asks "specific endpoint, feature area, or explore from Feature artifacts?"
-ui-review     Screenshot-driven visual walkthrough across viewports.
+ui            Screenshot-driven visual walkthrough across viewports.
               Bare: announces full audit (N pages × 3 viewports), asks "full audit or specific page?"
 onboard       New project setup: create HELPMETEST.md + ProjectOverview + initial artifacts.
               Bare: runs the structured 3-question interview (source of truth, stage, goal).
-full-qa       End-to-end: discover → tdd → fix-tests — ran by default on bare /helpmetest.
+full-qa       End-to-end: discover → tdd → fix — ran by default on bare /helpmetest.
 change-impact git diff → @helpmetest annotations → run affected tests → RegressionRun verdict.
               Bare/no commit: announces intent, defaults to HEAD~1 diff, offers to use specific commit.
 pre-push      All priority:critical tests + changed-file coverage → BLOCKED or CLEAR TO PUSH.
