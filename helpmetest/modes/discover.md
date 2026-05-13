@@ -24,6 +24,11 @@ Maps what exists into Feature artifacts. The source can be a live app, a spec do
 
 Also handles fast triage sweeps ("find bugs", "poke around", "good test around", "quick sanity check") — see **Triage mode** below.
 
+**Reference files — load on demand:**
+- `references/adversarial-patterns.md` — attack patterns for probe checks (forms, modals, keyboard, persistence, copy scan)
+- `references/rf-recipes.md` — deterministic checks: axe-core, console errors, broken images, performance, SSL
+- `references/ux-heuristics.md` — heuristics for evaluating screenshots and reporting findings
+
 Output: Feature artifacts with Given/When/Then scenarios (full mode), or a categorized findings table (triage mode).
 
 ## Orient First

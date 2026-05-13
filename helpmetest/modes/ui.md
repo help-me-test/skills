@@ -19,6 +19,11 @@ Systematic visual walkthrough of every page in the app. You navigate, screenshot
 
 This is NOT a formal test run. It is a design and UX audit through a real browser.
 
+**Reference files — load on demand:**
+- `references/ux-heuristics.md` — Laws of UX, Nielsen's 10, data display, visual checks, a11y — load when evaluating screenshots or writing findings
+- `references/adversarial-patterns.md` — attack patterns for forms, modals, keyboard nav — load when doing interactive QA
+- `references/rf-recipes.md` — axe-core, console errors, broken images, performance, responsive sweep — load when running deterministic checks
+
 ## Quick Check vs Full Audit
 
 **Quick Check** — a focused visual question about one page or element.
