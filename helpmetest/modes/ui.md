@@ -42,7 +42,7 @@ The skill auto-detects which mode based on the scope of the request. In both cas
 **NOT for:**
 - Creating automated tests (use `/tdd`)
 - Finding functional bugs (use `/helpmetest`)
-- Debugging a specific broken test (use `/fix-tests`)
+- Debugging a specific broken test (use `/fix`)
 
 ---
 

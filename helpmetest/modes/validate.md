@@ -181,11 +181,11 @@ Rewrite docs first two lines:
 
 ## What NOT to do
 
-- **Do not rewrite the tests.** That's `fix-tests` or `tdd`. This mode critiques.
+- **Do not rewrite the tests.** That's `fix` or `tdd`. This mode critiques.
 - **Do not run the tests.** A test can be quality-bad AND currently green — both are true independently. You're judging the test content, not the outcome.
 - **Do not score overly harshly.** If a rule is N/A (no email, no auth), don't count it against the test.
 - **Do not skip the rewrite recommendation.** A failing rule without a concrete fix is useless. Every FAIL gets a "change X to Y" suggestion.
 
 ## Handoff
 
-End the report with: *"N tests reviewed. The D/F grades are the queue for rewrite — run `/helpmetest tdd` or `/helpmetest fix-tests` on them. B and C are smaller fixes the author can apply directly."*
+End the report with: *"N tests reviewed. The D/F grades are the queue for rewrite — run `/helpmetest tdd` or `/helpmetest fix` on them. B and C are smaller fixes the author can apply directly."*

@@ -122,14 +122,14 @@ Every test that ran → its run URL must appear in the notes. Don't summarize "a
 ## What NOT to do
 
 - **Do not re-run everything.** If you run the full suite, you missed the point of this mode. Limit the set based on annotations + feature links.
-- **Do not fix red tests.** If one fails, **do not route to `fix-tests`** unless the user said so. Regression's job is to report, not repair.
+- **Do not fix red tests.** If one fails, **do not route to `fix`** unless the user said so. Regression's job is to report, not repair.
 - **Do not create new tests for uncovered code.** That's `tdd` or `coverage`.
 
 ## Handoff
 
 End with a specific next action depending on results:
 
-- Any red-suspected-regression: *"N tests regressed after your change — run `/helpmetest fix-tests` on them, or inspect manually."*
+- Any red-suspected-regression: *"N tests regressed after your change — run `/helpmetest fix` on them, or inspect manually."*
 - All green: *"All N affected tests passed. Change is safe to ship from a test perspective."*
 - Mostly pre-existing failures: *"Your change didn't break new tests. N tests were already red — unrelated to this work."*
 

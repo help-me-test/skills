@@ -12,7 +12,7 @@ User says "report", "health check", "is the project ok", "what's broken", "diagn
 
 - **No fixes.** Never deletes a test, modifies a Feature, re-auths a state, or runs a test.
 - **No discovery.** If the project has no Features, this mode reports that — it doesn't try to fill the gap.
-- **Output is recommendations only.** Fixes belong to `tdd` / `fix-tests` / `discover` / etc.
+- **Output is recommendations only.** Fixes belong to `tdd` / `fix` / `discover` / etc.
 
 ---
 
@@ -303,8 +303,8 @@ After printing the report, **do not exit**. The user must leave with a clear nex
 
 Compute the recommendation:
 1. If any 🔴 → pick the highest-impact critical finding. Recommend the mode that owns it:
-   - Failing critical test → `/helpmetest fix-tests <test-id>`
-   - Broken auth → `/helpmetest fix-tests setup-auth-<State>` (or re-create the state)
+   - Failing critical test → `/helpmetest fix <test-id>`
+   - Broken auth → `/helpmetest fix setup-auth-<State>` (or re-create the state)
    - Broken code annotation → `/helpmetest tdd` to update the annotation
    - Critical false-green bug → `/helpmetest tdd` to write the test that should have failed
 2. Else if any 🟠 → pick the highest-impact warning, same logic.

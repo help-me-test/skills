@@ -128,7 +128,7 @@ This is the deliverable. Create it with `helpmetest_upsert_artifact` using `type
         "suggestion": "link to <feature>.<scenario> | remove | rewrite" }
     ],
     "next_actions": [
-      { "mode": "fix-tests|tdd|discover|manual|other",
+      { "mode": "fix|tdd|discover|manual|other",
         "description": "<what to do, scoped to which items>" }
     ]
   }

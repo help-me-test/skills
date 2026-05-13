@@ -45,9 +45,9 @@ After orient, before any tool call, present to the user. This is not optional na
 | "I'll score tests against 10 rules" | "You'll know which tests are lying to you" |
 | "I'll run the affected tests" | "You'll know if your change is safe to push" |
 
-**Self-directing modes** (coverage, validate, ui-review): present → scope choice → act on their answer.
+**Self-directing modes** (coverage, validate, ui): present → scope choice → act on their answer.
 
-**Target-requiring modes** (tdd, discover, regression, proxy, api-testing): present orient findings → ask the mode-specific scope question. Never ask "what do you want to do?" — ask a question that only makes sense in this mode.
+**Target-requiring modes** (tdd, discover, regression, proxy, api): present orient findings → ask the mode-specific scope question. Never ask "what do you want to do?" — ask a question that only makes sense in this mode.
 
 The user must feel like they directed the work. Not like they watched it happen.
 
@@ -121,13 +121,13 @@ Modes are not just prose workflows — they produce structured, typed artifacts 
 | Mode | Output artifact type(s) |
 |---|---|
 | `tdd` | Tests (via `helpmetest_upsert_test`) + updates to `Feature.scenarios[].test_ids` |
-| `fix-tests` | `SelfHealing` + updates to `Feature.bugs[]` if a bug is found |
+| `fix` | `SelfHealing` + updates to `Feature.bugs[]` if a bug is found |
 | `discover` | `Feature[]` + `Persona[]` + `ProjectOverview` + (optional) `Memory` |
 | `coverage` | `CoverageReport` |
 | `regression` | (TBD — `RegressionRun` artifact type, not yet built) |
 | `validate` | (TBD — `TestValidation` artifact type, not yet built) |
-| `api-testing` | Tests (API-style) |
-| `ui-review` | `UIReview` |
+| `api` | Tests (API-style) |
+| `ui` | `UIReview` |
 | `onboard` | `ProjectOverview` + `Feature[]` + `Persona[]` + initial `Tasks` |
 | `proxy` | (no artifact — setup command) |
 

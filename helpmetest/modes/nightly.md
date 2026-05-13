@@ -143,7 +143,7 @@ New URLs discovered:
   + /settings/billing  → stub feature-stub-billing created
   + /help/getting-started → no auth state available, skipped
 
-→ /helpmetest fix-tests for broken features
+→ /helpmetest fix for broken features
 → /helpmetest discover on new stubs for full coverage
 ```
 

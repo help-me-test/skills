@@ -104,7 +104,7 @@ If `verdict: regressions_found`:
   - <test-id>: <failure_message>
 
   Fix these before pushing.
-  → /helpmetest fix-tests to diagnose
+  → /helpmetest fix to diagnose
 ```
 
 ---

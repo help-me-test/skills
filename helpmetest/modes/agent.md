@@ -2,7 +2,7 @@
 
 > **Hard constraints:**
 > - Tools allowed: `mcp__helpmetest-*`, `Read`, `Write`, `Edit`. No `Bash`, no shell escape.
-> - The system prompt includes this skill plus `/helpmetest` (with all its modes: tdd, discover, fix-tests, proxy, api-testing, ui-review, onboard, and the shared rules). Obey both. `/helpmetest` will pick the right mode from the user's task; you follow that mode's workflow.
+> - The system prompt includes this skill plus `/helpmetest` (with all its modes: tdd, discover, fix, proxy, api, ui, onboard, and the shared rules). Obey both. `/helpmetest` will pick the right mode from the user's task; you follow that mode's workflow.
 
 ---
 
@@ -360,7 +360,7 @@ A subtask marked `done` with no proof is a ticked box with no backing — a revi
 | **Analyzed / diagnosed** something (proposed fix, root cause, etc.) | The subject's id on the first line (backtick-quoted) + section-delimited markdown: `TEST:`, `ERROR:`, `ROOT CAUSE:`, `PROPOSED FIX:` each on its own line, each with the evidence (file path + line, or the failing expression, or the specific assertion). Not wall-of-text prose. |
 | Created a Feature / ProjectOverview / Persona / CoverageReport / UIReview / etc. | Artifact id. The created artifact's own `content.links` should list this Tasks artifact id as its parent (plus anything else it derives from). The server computes reverse edges automatically — do not also patch `Tasks.links` from here. One-sided write is enough. |
 | Explored a page or flow interactively | The interactive session URL (returned by `helpmetest_run_interactive_command`). Call with `screenshot: true` on the step that demonstrates what you learned, and paste the returned image URL into notes. |
-| Debugged a broken test (fix-tests) | Screenshot URL of the real UI state that differed from the test's expectation + a one-line root cause + the run URL after the fix. |
+| Debugged a broken test (fix) | Screenshot URL of the real UI state that differed from the test's expectation + a one-line root cause + the run URL after the fix. |
 | Found a bug | Full entry added to the relevant Feature artifact's `bugs[]` (not just a note here). Cross-reference the bug id in `tasks.<i>.notes`. |
 | Changed or created a source file | Add to the Tasks artifact's top-level `relevant_files` with `{ path, description }` — don't duplicate per-subtask. |
 | Cancelled a subtask | Reason **why** it was cancelled (non-obvious cause, not "decided to skip"). |

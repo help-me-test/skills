@@ -431,7 +431,7 @@ Verify it works before writing any tests. See the `proxy` skill for details.
 - ✅ All tests passing
 - ✅ All `priority:critical` scenarios have `test_ids`
 - ✅ Every test has `Given:`, `When:`, `Then:`, `Risk:` lines in `[Documentation]`
-- ✅ Every test passed `/fix-tests` before being linked
+- ✅ Every test passed `/fix` before being linked
 - ✅ Bugs documented in `feature.bugs[]`
 - ✅ Feature.status updated (`working` / `broken` / `partial`)
 - ✅ Tasks artifact all done
