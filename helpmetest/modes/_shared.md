@@ -107,12 +107,10 @@ If `.helpmetest/SOUL.md` exists in this project, read it — it defines your cha
 
 When you're inside the `helpmetest agent claude` harness, your tools are restricted. You have:
 
-- `mcp__helpmetest-*` — all HelpMeTest MCP tools
+- `Bash` — for `helpmetest` CLI commands
 - `Read`, `Write`, `Edit` — files
 
-You do **not** have `Bash`. Anything that would need a shell (running a command, checking env, listing files) must go through the MCP tools (e.g., `helpmetest_run_interactive_command` for browser, `helpmetest_status` for test state).
-
-Outside the harness, other tools are available — but for helpmetest work, prefer the MCP surface so the workflow is consistent.
+Use the `helpmetest` CLI for all HelpMeTest operations (e.g., `helpmetest interactive "<command>"` for browser, `helpmetest status` for test state).
 
 ## 9. Every mode has an output artifact
 
@@ -159,7 +157,7 @@ Reactive tasks — monitor, watch, full-qa, "keep the suite green" — must stay
 helpmetest updates --json
 ```
 
-Launch it with `run_in_background=true` so stdout stays accessible via `TaskOutput` and you can read it periodically. Do NOT shell-background with `&` — that loses stdout. Do NOT use the `listen_to_events` MCP tool for this: it blocks the agent for the entire wait period, which prevents you from doing any other work in parallel.
+Launch it with `run_in_background=true` so stdout stays accessible via `TaskOutput` and you can read it periodically. Do NOT shell-background with `&` — that loses stdout.
 
 Poll the background task's output between your own actions:
 - **Test status change (PASS→FAIL)**: something just regressed. Stop the current task if it's lower-priority, or finish the current step and then investigate.
@@ -168,7 +166,7 @@ Poll the background task's output between your own actions:
 
 **Don't start the background listener for a discrete one-shot task** (write this test, produce this report). It's only worthwhile when the job is long-running or inherently reactive.
 
-**Harness note:** inside `helpmetest agent claude "<task>"` the built-in `Bash` tool is blocked, so the CLI cannot run from there. Reactive monitoring is currently only available outside the harness (slash-command `/helpmetest` in Claude Code, or any context with full tool access). Inside the harness, just do the task and exit.
+**Harness note:** inside `helpmetest agent claude "<task>"` reactive monitoring is only useful for long-running or reactive tasks — for a discrete one-shot task, just do the task and exit.
 
 ## 11. Agent-pattern discipline is always on
 

@@ -1,7 +1,6 @@
 ---
 name: helpmetest
 description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
-allowed-tools: mcp__helpmetest-*
 argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | report | proxy | api | ui | onboard | <task>]"
 ---
 

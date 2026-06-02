@@ -293,7 +293,7 @@ Now that all artifacts exist, update the Artifacts and Personas sections in HELP
 
 ## Phase 6 — Write Agent Instruction Files
 
-After HELPMETEST.md is written, inject the TDD contract into the agent's instruction files so it persists across sessions even without MCP.
+After HELPMETEST.md is written, inject the TDD contract into the agent's instruction files so it persists across sessions.
 
 Write to whichever files exist or are appropriate for this environment. Use HTML comment markers for idempotent updates — do not duplicate content on re-runs.
 

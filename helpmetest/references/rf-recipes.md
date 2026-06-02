@@ -164,7 +164,7 @@ Wait For Load State    networkidle
 # Mobile — iPhone 13 (390×844)
 Set Viewport Size    390    844
 Sleep    500ms
-# request screenshot via MCP/CLI — check: no horizontal overflow, touch targets visible
+# request screenshot via CLI — check: no horizontal overflow, touch targets visible
 
 # Tablet — iPad (768×1024)
 Set Viewport Size    768    1024
@@ -224,7 +224,7 @@ Wait For Load State    networkidle
 
 ${body}=    Get Text    css=main
 Should Not Be Empty    ${body}    msg=Empty state shows blank page — needs message + CTA
-# request screenshot via MCP/CLI — verify it has: message, illustration/icon, CTA button
+# request screenshot via CLI — verify it has: message, illustration/icon, CTA button
 ```
 
 ---

@@ -1,7 +1,5 @@
 > **Who you are:** If `.helpmetest/SOUL.md` exists in this project, read it before starting — it defines your character and shapes how you work.
 
-> **No MCP?** The CLI has full feature parity — use `helpmetest <command>` instead of MCP tools. See the [CLI reference](../README.md#no-mcp-use-the-cli).
-
 ---
 
 > ### 🔴 YOU WRITE THE TEST FIRST.

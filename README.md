@@ -57,26 +57,26 @@ These skills follow the [Agent Skills open standard](https://github.com/vercel-l
 - GitHub Copilot
 - And 30+ other AI coding agents
 
-## No MCP? Use the CLI
+## CLI Reference
 
-If your AI agent doesn't support MCP, the HelpMeTest CLI has **full feature parity** with all MCP tools:
+The HelpMeTest CLI is the primary interface:
 
-| MCP tool | CLI equivalent |
-|----------|----------------|
-| `helpmetest_status` | `helpmetest status` |
-| `helpmetest_run_test` | `helpmetest test run <id>` |
-| `helpmetest_upsert_test` | `helpmetest test create` / `helpmetest test update <id>` |
-| `helpmetest_run_interactive_command` | `helpmetest interactive "<command>"` |
-| `helpmetest_keywords` | `helpmetest keywords [search]` |
-| `how_to` | `helpmetest how-to [type]` |
-| `helpmetest_proxy` | `helpmetest proxy start/stop/list` |
-| `helpmetest_upsert_artifact` | `helpmetest artifact upsert` |
-| `helpmetest_get_artifact` | `helpmetest artifact get <id>` |
-| `helpmetest_search_artifacts` | `helpmetest artifact list` |
-| `helpmetest_deploy` | `helpmetest deploy` |
-| `helpmetest_open` | `helpmetest open <id>` |
-| `helpmetest_delete_test` | `helpmetest delete test <id>` |
-| `helpmetest_undo_update` | `helpmetest undo` |
+| Command | What it does |
+|---------|--------------|
+| `helpmetest status` | Show tests and their current state |
+| `helpmetest test run <id>` | Run a test |
+| `helpmetest test create` / `helpmetest test update <id>` | Create or update a test |
+| `helpmetest interactive "<command>"` | Run an interactive browser command |
+| `helpmetest keywords [search]` | List available keywords |
+| `helpmetest how-to [type]` | Show how-to guides |
+| `helpmetest proxy start/stop/list` | Manage localhost tunnels |
+| `helpmetest artifact upsert` | Create or update an artifact |
+| `helpmetest artifact get <id>` | Fetch an artifact |
+| `helpmetest artifact list` | List artifacts |
+| `helpmetest deploy` | Deploy |
+| `helpmetest open <id>` | Open a resource |
+| `helpmetest delete test <id>` | Delete a test |
+| `helpmetest undo` | Undo last update |
 
 ## License
 

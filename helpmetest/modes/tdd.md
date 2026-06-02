@@ -1,7 +1,5 @@
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
-> **No MCP?** Use `helpmetest <command>` instead of MCP tools.
-
 ---
 
 > ### 🔴 YOU WRITE THE TEST FIRST.

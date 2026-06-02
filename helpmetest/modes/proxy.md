@@ -1,7 +1,3 @@
-> **No MCP?** The CLI has full feature parity — use `helpmetest proxy start/stop/list` instead of `helpmetest_proxy({...})`. See the [CLI reference](../README.md#no-mcp-use-the-cli).
-
----
-
 ## Announce (bare invocation — no port given)
 
 If the user invoked `/helpmetest proxy` without specifying a port or domain:
@@ -32,7 +28,7 @@ Sets up proxy tunnels to test local development servers through HelpMeTest.
 
 HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:3000) is not reachable from there. The proxy creates a TCP tunnel:
 
-1. You start a proxy via the MCP tool — it registers a tunnel with the proxy server and spawns an frpc process (frpc is **bundled with the CLI** — no separate installation needed)
+1. You start a proxy via the CLI — it registers a tunnel with the proxy server and spawns an frpc process (frpc is **bundled with the CLI** — no separate installation needed)
 2. The tunnel maps a domain (e.g. `dev.local`) to your local port
 3. HelpMeTest's test runner routes traffic for that domain through the tunnel back to your machine
 4. Your local server responds as if accessed directly
@@ -197,11 +193,7 @@ If starting a proxy fails with "proxy already exists":
 - A previous frpc process may still be running with the same name
 - Stop the proxy first: `helpmetest_proxy({ action: "stop", domain: "dev.local" })`
 - Or stop all: `helpmetest_proxy({ action: "stop_all" })`
-- If MCP-managed stop doesn't work, check for orphaned frpc processes: `ps aux | grep frpc`
-
-### MCP tool shows old output format
-
-If the proxy tool output looks different from what's documented here, the MCP server may be running old code. Restart the MCP server with `/mcp`.
+- If stop doesn't work, check for orphaned frpc processes: `ps aux | grep frpc`
 
 ### Custom hostname not resolving
 

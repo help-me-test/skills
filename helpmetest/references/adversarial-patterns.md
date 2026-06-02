@@ -13,7 +13,7 @@ Use `Get Text`, `Get Url`, `Evaluate`, and `Should *` for assertions.
 ```robot
 # Empty submission
 Click    css=button[type="submit"]
-# request screenshot via MCP/CLI to inspect error state
+# request screenshot via CLI to inspect error state
 # ASSERT: error messages appeared, form not submitted
 
 # Long input (500+ chars)
