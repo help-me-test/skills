@@ -26,9 +26,9 @@ Silence means the user has no idea what you did or why.
 
 Check if onboarding has already happened:
 
-```
-helpmetest_search_artifacts({ query: "ProjectOverview" })
-helpmetest_search_artifacts({ query: "OnboardingTasks" })
+```bash
+helpmetest search ProjectOverview
+helpmetest search OnboardingTasks
 ```
 
 If a ProjectOverview exists and HELPMETEST.md exists — onboarding is done. Ask the user what they want to do instead.
@@ -130,9 +130,9 @@ When asked to build anything:
 
 ## Session Start Checklist
 1. Read this file ✓
-2. `helpmetest_status()` — what tests exist and their state
-3. `helpmetest_search_artifacts({ query: "" })` — orient on existing work
-4. `helpmetest_get_artifact({ id: "tasks-onboarding" })` — what's next
+2. `helpmetest status` — what tests exist and their state
+3. `helpmetest artifact list` — orient on existing work
+4. `helpmetest artifact get tasks-onboarding` — what's next
 5. Present to user: current state + recommended next action
 ```
 
@@ -338,7 +338,57 @@ I don't say "this should work." I run the test and show you the result.
 
 ---
 
-## Phase 7 — Present, confirm, hand off
+---
+
+## Phase 7 — Set Up Test Infrastructure (for greenfield projects)
+
+If this is a greenfield project (no existing tests), set up the test framework after onboarding artifacts are done. For legacy/active projects with existing tests, skip this phase.
+
+**Detect the stack and create infrastructure:**
+
+**TypeScript / React** (check for `package.json`, `tsconfig.json`, `src/`):
+```bash
+npm install --save-dev vitest @vitest/coverage-v8 @testing-library/react @testing-library/user-event
+```
+Create `vitest.config.ts`:
+```typescript
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    coverage: {
+      provider: 'v8',
+      thresholds: { lines: 80, functions: 80, branches: 80 }
+    }
+  }
+})
+```
+
+**Python** (check for `requirements.txt`, `pyproject.toml`, `setup.py`):
+```bash
+pip install pytest pytest-cov pytest-asyncio
+```
+Create `pytest.ini`:
+```ini
+[pytest]
+testpaths = tests
+addopts = --cov=. --cov-report=term-missing --cov-fail-under=80
+```
+
+**.NET** (check for `*.csproj`, `Program.cs`):
+```bash
+dotnet new xunit -n <ProjectName>.Tests -o tests
+dotnet add tests/<ProjectName>.Tests.csproj reference <ProjectName>.csproj
+dotnet add tests/<ProjectName>.Tests.csproj package Moq
+dotnet add tests/<ProjectName>.Tests.csproj package FluentAssertions
+```
+
+**Verification:** After setup, run the test suite to confirm it works.
+
+---
+
+## Phase 8 — Present, confirm, hand off
 
 Present what you created and ask for corrections:
 

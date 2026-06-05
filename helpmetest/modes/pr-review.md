@@ -4,9 +4,9 @@ Gap analysis for a branch before merge. Reads the diff, maps changed files to te
 
 ## Orient First
 
-```
-helpmetest_status()
-helpmetest_search_artifacts({ query: "" })
+```bash
+helpmetest status
+helpmetest artifact list
 ```
 
 ## Announce
@@ -52,7 +52,7 @@ For each changed file:
 
 **Has `@helpmetest` annotation:**
 1. Parse the annotation to get `feature:<id>` and `tests:<ids>`
-2. Call `helpmetest_status({ id: "<test-id>" })` for each test to get current status
+2. Call `helpmetest status --id <test-id>` for each test to get current status
 3. Record: file → annotation → test IDs → current status (passing/failing/never run)
 
 **No `@helpmetest` annotation:**
@@ -67,8 +67,8 @@ For each changed file:
 ## Step 3 — Produce CoverageReport artifact
 
 Fetch the schema first:
-```
-helpmetest_get_artifact_schema({ type: "CoverageReport" })
+```bash
+helpmetest artifact schema CoverageReport
 ```
 
 Create a `CoverageReport` artifact:

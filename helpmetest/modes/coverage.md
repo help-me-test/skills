@@ -4,7 +4,7 @@
 
 **When to use:** user says "what's not tested", "coverage gaps", "missing tests", "audit coverage", "which priority:critical scenarios have no tests".
 
-**Output artifact:** this mode produces a `CoverageReport` artifact — that is the deliverable. The enclosing Tasks artifact (from modes/agent.md lifecycle) is the lifecycle receipt; the CoverageReport is the substantive result. Both get created per run. Get the authoritative schema with `helpmetest_get_artifact_schema({ type: "CoverageReport" })` before building.
+**Output artifact:** this mode produces a `CoverageReport` artifact — that is the deliverable. The enclosing Tasks artifact (from modes/agent.md lifecycle) is the lifecycle receipt; the CoverageReport is the substantive result. Both get created per run. Get the authoritative schema with `helpmetest artifact schema CoverageReport` before building.
 
 ---
 
@@ -62,24 +62,72 @@ Wait for confirmation, then proceed.
 
 ### 1. Orient
 
-```
-helpmetest_search_artifacts({ type: "Feature" })
-helpmetest_status({ testsOnly: true })
+```bash
+helpmetest artifact list --type Feature
+helpmetest status
 ```
 
 Count what you're working with: N features, M tests. Narrate the numbers before you dig in.
 
-### 2. Build the scenario → test map
+### 2. Score each Gap by Usefulness
+
+For every gap found (scenarios with empty `test_ids`), calculate the Usefulness Score:
+
+**Usefulness Score = Business Impact × Failure Probability**
+
+| Business Impact | Score | Examples |
+|-----------------|-------|----------|
+| Critical | 5 | Money loss, security breach, data corruption |
+| High | 4 | Core flow breaks (checkout, login) |
+| Medium | 3 | Feature partially broken, degraded UX |
+| Low | 2 | Minor UX issue, cosmetic bug |
+| Trivial | 1 | Cosmetic, no user impact |
+
+| Failure Probability | Score | Indicators |
+|---------------------|-------|------------|
+| Very High | 5 | Complex algorithm, new tech, many deps |
+| High | 4 | Multiple deps, concurrency, edge cases |
+| Medium | 3 | Standard CRUD, framework defaults |
+| Low | 2 | Simple logic, well-established library |
+| Very Low | 1 | Trivial assignment, can't break |
+
+**Decision thresholds:**
+- **≥15:** Write test immediately — high business risk AND likely to break
+- **10-14:** Review — is this already covered by an existing E2E test?
+- **<10:** Skip — not worth the maintenance cost
+
+**Rank gaps by Usefulness Score** — cover highest scores first.
+
+---
+
+### 3. Classify by Risk Category
+
+Prioritize gaps by what they protect:
+
+| Risk Category | Priority | Examples |
+|--------------|----------|----------|
+| **Money flows** | 25 | Payment, refund, discount, tax, currency |
+| **Security flows** | 25 | Login, auth, password reset, token refresh |
+| **Data export** | 20 | Reports, CSV generation, data migration |
+| **Data integrity** | 15 | CRUD, transactions, validation, constraints |
+| **Core user journeys** | 15-19 | Registration → login, checkout flow |
+
+**Rule:** Missing test for Priority 20+ (Money, Security) = CRITICAL gap. Flag in `critical_gaps[]` regardless of Usefulness Score.
+
+---
+
+### 4. Build the scenario → test map
 
 For each Feature artifact, fetch full content:
-```
-helpmetest_get_artifact({ id: "<feature-id>" })
+```bash
+helpmetest artifact get <feature-id>
 ```
 
 Extract each scenario (`content.functional[]`, `content.edge_cases[]`) — capture:
 - Scenario `name`
-- Scenario `tags` (especially `priority:<level>`)
+- Scenario `tags` (especially `priority:<level>` and `risk_category:<type>`)
 - Scenario `test_ids` (the link back to tests)
+- Usefulness Score (calculated above)
 
 For each entry, classify:
 - **Covered** — `test_ids` is non-empty AND every id in it corresponds to an existing test (check against the test list from step 1).
@@ -87,13 +135,15 @@ For each entry, classify:
 - **Dead link** — `test_ids` contains an id that doesn't exist as a test.
 - **Under-covered** — scenario has 1 test but you'd expect 2+ (e.g. `priority:critical` scenario with only a happy-path test, no error path).
 
-### 3. Find orphan tests
+---
+
+### 5. Find orphan tests
 
 Cross-check the test list against all `scenario.test_ids` references. Any test id not referenced by any scenario is an orphan.
 
 ### 4. Produce the CoverageReport artifact
 
-This is the deliverable. Create it with `helpmetest_upsert_artifact` using `type: "CoverageReport"`. Required fields per the schema (fetch with `helpmetest_get_artifact_schema({ type: "CoverageReport" })`):
+This is the deliverable. Create it with `helpmetest artifact upsert --type CoverageReport`. Required fields per the schema (fetch with `helpmetest artifact schema CoverageReport`):
 
 ```json
 {
@@ -117,7 +167,9 @@ This is the deliverable. Create it with `helpmetest_upsert_artifact` using `type
     ],
     "critical_gaps": [
       { "feature_id": "...", "scenario_name": "...", "priority": "critical|high|medium|low",
-        "user_impact": "<one sentence of what gets missed if this silently breaks>" }
+        "user_impact": "<one sentence of what gets missed if this silently breaks>",
+        "usefulness_score": <int 1-25>,
+        "risk_category": "<money|security|data_export|data_integrity|core_journey|null>" }
     ],
     "dead_links": [
       { "feature_id": "...", "scenario_name": "...", "missing_test_id": "..." }
@@ -125,6 +177,7 @@ This is the deliverable. Create it with `helpmetest_upsert_artifact` using `type
     "orphan_tests": [
       { "test_id": "...", "name": "...", "tagged_feature": "feature-id-or-null",
         "status": "PASS|FAIL|UNKNOWN",
+        "usefulness_score": <int 1-25>|null,
         "suggestion": "link to <feature>.<scenario> | remove | rewrite" }
     ],
     "next_actions": [

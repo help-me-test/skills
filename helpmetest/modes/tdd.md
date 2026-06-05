@@ -8,11 +8,68 @@
 > The test is the spec. The test is done when it's green.
 > **No test = not done.**
 
-> ### 🔴 AFTER EVERY TEST UPSERT — TWO MORE STEPS ARE MANDATORY.
-> 1. Run the test — **preferred:** pass `run: true` to `helpmetest_upsert_test` (updates + runs atomically). **Alternative:** call `helpmetest_run_test({ id: "<same-id>" })` separately.
+> ### 🔴 AFTER EVERY TEST CREATE/UPDATE — TWO MORE STEPS ARE MANDATORY.
+> 1. Run the test — call `helpmetest test run <test-id>` after creating or updating.
 >    Run it even if you think the app server is down or not yet built. A FAIL result is valid — it documents current state. Never skip because you "expect it to fail."
 > 2. Update the Feature artifact to include this test ID in the matching scenario's `test_ids` array.
-> Upsert-only is **incomplete**. Both steps are required. No exceptions.
+> Create-only is **incomplete**. Both steps are required. No exceptions.
+
+---
+
+---
+
+## The Iron Law
+
+> **NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.**
+
+If you write code before the test → delete it, start over. Don't keep it as "reference", don't "adapt" it while writing tests, don't look at it. Implement fresh from tests. Period.
+
+**Exceptions:** Throwaway prototypes, generated code, configuration files. Ask your human partner.
+
+---
+
+## Red-Green-Refactor Verification Steps
+
+Every TDD cycle follows these three phases. Each has a mandatory gate.
+
+### RED — Write Failing Test
+
+1. Write the test
+2. Run it — it **MUST** fail for the expected reason
+3. If it passes → you're testing existing behavior, fix the test so it fails on the intended behavior
+4. If it errors → fix the error, re-run until it fails correctly
+
+**Gate:** Test fails with the right error message before proceeding.
+
+### GREEN — Minimal Code
+
+1. Write the simplest code to pass the test
+2. Run the test — it **MUST** pass
+3. If it fails → fix the code, not the test
+4. Don't add features, don't refactor beyond what the test requires
+
+**Gate:** Test passes. No other tests break.
+
+### REFACTOR — Clean Up
+
+1. After green, remove duplication, improve names, extract helpers
+2. Keep tests green — don't add behavior in refactor
+3. Re-run tests after refactor
+
+**Gate:** All tests pass, code is cleaner than before.
+
+---
+
+## Common Rationalizations — Stop These
+
+| Excuse | Reality |
+|--------|---------|
+| "I'll test after" | Tests passing immediately prove nothing |
+| "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
+| "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt |
+| "This is different because..." | It's not. Delete and start over. |
+| "The test is too hard to write" | The test is telling you the design is wrong |
+| "I know this works" | You don't. Prove it. |
 
 ---
 
@@ -31,10 +88,10 @@ Silence means the user has no idea what you did or why.
 
 Before doing anything, check what already exists:
 
-```
-helpmetest_status()
-helpmetest_search_artifacts({ query: "" })
-helpmetest_search_artifacts({ type: "Tasks" })
+```bash
+helpmetest status
+helpmetest artifact list
+helpmetest artifact list --type Tasks
 ```
 
 ---
@@ -77,10 +134,10 @@ Before touching any file, do this in full:
 **Step 1: Find the blast radius**
 ```bash
 grep -rn "@helpmetest" <files-to-change>
-helpmetest_status()
+helpmetest status
 git diff --stat HEAD
 ```
-If no annotations exist: still check `helpmetest_status()`. Tests may exist without annotations — treat them as if they were annotated. If no tests exist at all, tell the user before coding: "No tests cover this code. Should I write them first?"
+If no annotations exist: still check `helpmetest status`. Tests may exist without annotations — treat them as if they were annotated. If no tests exist at all, tell the user before coding: "No tests cover this code. Should I write them first?"
 
 **Step 2: Classify each affected test**
 
@@ -107,6 +164,8 @@ I'm about to change [what]. Here's the test impact:
   will cover: [new behavior being added]
 
 Approve this plan before I write any code?
+
+**Mutation Resistance check (R11):** For each NEEDS UPDATE test, also verify: if the behavior changes, does this test still verify the correct outcome? If the test would still pass after the code change, it needs updating too.
 ```
 
 **Step 4: After approval — update the tests first**
@@ -182,9 +241,9 @@ Mark each scenario: **write immediately** (critical/high) / **write before launc
 
 Feature exists (or was just built by someone else). Your job is tests only.
 
-**1. Read the Feature artifact** — `helpmetest_get_artifact({ id: "feature-X" })`. If none exists, create one first based on what you know.
+**1. Read the Feature artifact** — `helpmetest artifact get feature-X`. If none exists, create one first based on what you know.
 
-**2. Explore interactively before writing** — run the scenario step by step using `helpmetest_run_interactive_command`. A test written after seeing real behavior uses real selectors and reflects actual timing. A test written from a description is a guess.
+**2. Explore interactively before writing** — run the scenario step by step using `helpmetest interactive "<keyword>"`. A test written after seeing real behavior uses real selectors and reflects actual timing. A test written from a description is a guess.
 
 ```
 As  <persona>
@@ -195,15 +254,18 @@ Go To  <url>
 **3. Before writing each test, answer this out loud:**
 > "If this test passes but the feature is actually broken, what user complaint would we miss until a customer reports it?"
 
-Write that answer as the `PROTECTS:` line in `[Documentation]`. This is the contract the test makes with the user — not optional boilerplate. If you can't answer it in one sentence, the scenario needs more thought, not a test.
+
 
 **4. Write tests** for `priority:critical` scenarios first, then high, then medium. For each:
 - 5+ meaningful steps
 - Verify business outcomes (data saved, state changed) — not just that an element is visible
 - Use `Create Fake Email` for any registration/email fields — never hardcode
-- `[Documentation]` must start with `PROTECTS: <what user complaint this catches>`
+- Test name must answer: `<Feature> — <user-facing action>` or `User can <action>`. No implementation details, no "test" in name.
+- Description must answer: Given/When/Then + Risk in plain English — a product manager must be able to read it. No CSS selectors, no DOM paths, no RF keywords.
+- Tags must include: `priority:<level>`, `feature:<name>`. Use `--tags` flag, not `[Tags]` in content.
+- Every description MUST start with `Scenario: <id>` (e.g. `Scenario: s1-add`) to link to its CASE.md scenario.
 
-**5. Red-team loop** — see `_shared.md §3a`. Run it after every `helpmetest_upsert_test` call. Only move to the next test when all four questions come up clean.
+**5. Red-team loop** — see `_shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
 
 **6. Validate** the finished test with `/helpmetest validate` as a formal gate. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
 
@@ -227,7 +289,7 @@ Map changed files to likely causes:
 - `auth/`, `session/` → auth state issues
 - `api/`, `routes/` → backend errors or changed response shapes
 
-Then get test history: `helpmetest_status({ id: "test-id", testRunLimit: 10 })`
+Then get test history: `helpmetest status --id <test-id> --history 10`
 
 **Classify:**
 - Consistent failure after a code change → selector/behavior changed
@@ -266,7 +328,7 @@ Don't shotgun-fix by guessing — one wrong fix creates two broken tests.
 
 **Tests are out of date after a refactor?**
 
-1. Get test list: `helpmetest_status()`
+1. Get test list: `helpmetest status`
 2. For each failing test, check whether the Feature artifact scenario still matches intended behavior
 3. If the code is the source of truth → update the test
 4. If the test was right and the refactor broke behavior → document the regression
@@ -295,25 +357,23 @@ Reload
 <re-assert that state survived>
 ```
 
-### Documentation format
+### Description format
 
-Every test must have `[Documentation]` with four explicit lines:
+Every test must have a `--description` with four explicit lines (use CLI `--description`, not `[Documentation]` Robot syntax):
 
-```robot
-[Documentation]
-...    Given: <precondition — what state the system is in before the action>
-...    When: <action — what the user/system does>
-...    Then: <outcome — what is asserted, specifically>
-...    Risk: <what silent failure this catches — user complaint if this test were deleted>
+```
+Given: <precondition — what state the system is in before the action>
+When: <action — what the user/system does>
+Then: <outcome — what is asserted, specifically>
+Risk: <what silent failure this catches — user complaint if this test were deleted>
 ```
 
-**Full example:**
-```robot
-[Documentation]
-...    Given: registered user with valid account
-...    When: submits login form with wrong password
-...    Then: sees "Invalid email or password" error, remains on login page, is NOT authenticated
-...    Risk: silent login failure — attacker gets in, or user is confused with no feedback
+Example (via CLI):
+```bash
+helpmetest test update "login" --description "Given: registered user with valid account
+When: submits login form with wrong password
+Then: sees 'Invalid email or password' error, remains on login page, is NOT authenticated
+Risk: silent login failure — attacker gets in, or user is confused with no feedback" --no-run
 ```
 
 **Given/When/Then — what makes them good:**
@@ -409,8 +469,8 @@ ${code}=   Get Email Verification Code  ${email}
 ### Localhost
 
 If testing a local server, set up the proxy first:
-```
-helpmetest_proxy({ action: "start", domain: "dev.local", sourcePort: 3000 })
+```bash
+helpmetest proxy start localhost:3000
 ```
 Verify it works before writing any tests. See the `proxy` skill for details.
 
@@ -428,7 +488,7 @@ Verify it works before writing any tests. See the `proxy` skill for details.
 
 - ✅ All tests passing
 - ✅ All `priority:critical` scenarios have `test_ids`
-- ✅ Every test has `Given:`, `When:`, `Then:`, `Risk:` lines in `[Documentation]`
+- Every test has Given/When/Then/Risk in `--description` (not `[Documentation]`) and test name follows `User can <action>` or `<Feature> — <behavior>` pattern
 - ✅ Every test passed `/fix` before being linked
 - ✅ Bugs documented in `feature.bugs[]`
 - ✅ Feature.status updated (`working` / `broken` / `partial`)

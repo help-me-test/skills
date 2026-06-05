@@ -57,21 +57,21 @@ Wait for confirmation, then proceed.
 
 ### 1. Orient
 
-```
-helpmetest_status({ testsOnly: true })
+```bash
+helpmetest status
 ```
 
 Know the scope. Narrate how many tests you'll review before starting.
 
 ### 2. For each test in scope — fetch its content
 
-```
-helpmetest_status({ id: "<test-id>" })  // includes the test body in `content`
+```bash
+helpmetest status --id <test-id>    # includes the test body in content
 ```
 
 Read:
 - `content` — the RF keywords
-- `description` — the [Documentation] Given/When/Then/Risk
+- `description` — the `--description` Given/When/Then/Risk
 - `tags` — project, feature, persona, priority, url
 - Name
 
@@ -88,8 +88,8 @@ For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Do
 - Count non-trivial keyword lines. `Go To`, `Fill Text`, `Click`, `Get Title`, assertions all count. `Sleep`, `Log`, comments don't.
 - FAIL if <5 meaningful steps — the test is too shallow.
 
-**R3 — Documentation has Given/When/Then/Risk, PM-readable.**
-- FAIL if any of the four lines is missing from `[Documentation]`.
+**R3 — Description has Given/When/Then/Risk, PM-readable.**
+- FAIL if any of the four lines is missing from `--description`.
 - FAIL if any line contains CSS selectors (`.btn`, `#id`), DOM attribute paths (`div[data-id]`), JS internals (`window.*`, variable names), or RF keyword names. The description must read for a product manager, not a developer.
 - FAIL if Given is vague (*"user is logged in"* without stating precondition detail) — no better than no description.
 - PASS when each line is concrete and the Risk names a specific user complaint.
@@ -122,24 +122,88 @@ For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Do
 - FAIL if any required tag is missing.
 - FAIL if the feature tag references a non-existent Feature artifact (it should match a real artifact id).
 
-**R9 — Name follows the pattern.**
+**R9 — Name follows the pattern — no vague/abd names.**
 - Pattern: `<Feature> — <user-facing action>` or `User can <action>`.
 - FAIL if name includes `test` in it (*"test login flow"*).
 - FAIL if name is about implementation (*"clicks login-btn and checks div.dashboard"*).
+- FAIL if name is vague/abd — does not say what the test actually verifies. A name like "login flow" or "checkout" or "user settings" tells nothing. The name must answer: "What specific user-facing behavior does this test verify?"
+- Naming is the first line of defense against bad tests. A vague name means vague thinking = vague test.
 
-**R10 — Linked to a Feature.scenario.**
-- FAIL if the test is an orphan (no scenario references its id in `test_ids`).
-- Note: this is coverage-side; the test itself doesn't know about its scenarios. Cross-check against Feature artifacts.
+**R10 — Has required tags.**
+- FAIL if `priority:` or `feature:` tags missing.
+- Tags come from metadata (parsed from `--tags` flag), not content.
+
+---
+
+## R11 — Mutation Resistance
+
+**FAIL if the test could pass even when the code under test is broken.**
+
+Ask: "If a developer introduced a realistic bug — removed the save handler, broke the validation, inverted the if condition — would this test fail?"
+
+**Check:** Identify the specific behavior this test protects. Imagine removing or corrupting it. Would the test assertions still pass?
+
+**Patterns that fail R11:**
+- Test asserts element is visible but not that it works
+- Test clicks submit but checks no data change
+- Test reads from an input but doesn't verify the input was accepted
+- Test checks "no error" instead of checking the positive outcome
+- Test validates framework/library behavior, not our business logic
+
+**Evidence:** "What specific bug would this miss if the code changed?"
+
+---
+
+## R12 — Tests Our Business Logic, Not Framework Behavior
+
+**FAIL if the test validates:**
+- Framework behavior (Express, Fastify, Koa route handlers)
+- ORM/DB library behavior (Prisma findMany, Mongoose save)
+- Crypto library behavior (bcrypt hash, JWT sign)
+- HTTP client behavior (axios GET, fetch POST)
+- React hook behavior (useState, useEffect — unless testing custom hook)
+
+**Detection patterns (look for these in test keywords):**
+- `(prisma|mongoose|sequelize).(find|create|update|delete)`
+- `(bcrypt|argon2).(hash|compare)`
+- `(jwt|jsonwebtoken).(sign|verify)`
+- `(axios|fetch|got).(get|post|put|delete)`
+
+**PASS if:** Test validates custom business logic that wraps or uses these libraries.
+
+**Evidence:** "What line shows this tests OUR code vs the library?"
+
+---
+
+## R13 — Minimal Mocking
+
+**FAIL if:**
+- >3-4 mocks per test
+- Mocking pure functions or business logic
+- Complex mock setup that tests how mocks behave, not how code works
+
+**PASS if:** Mocks only external I/O (APIs, databases, filesystem). Business logic uses real implementations.
+
+**Evidence:** "What is mocked? Is it external I/O or internal logic?"
+
+---
 
 ### 4. Grade each test
 
-Score the PASSes out of applicable rules (exclude N/A).
+Score PASSes out of applicable rules (exclude N/A).
 
-- **A (9-10 of applicable rules PASS):** ship it.
-- **B (7-8):** solid, minor rewrites suggested.
-- **C (5-6):** needs real work.
-- **D (3-4):** probably better to rewrite than patch.
-- **F (<3):** delete or start over.
+**R1-R10 (10 rules):**
+- **A (9-10 PASS):** ship it
+- **B (7-8):** solid, minor rewrites suggested
+- **C (5-6):** needs real work
+- **D (3-4):** probably better to rewrite than patch
+- **F (<3):** delete or start over
+
+**R11-R13 (3 rules — always applicable for functional tests):**
+- Each FAIL on R11-R13 lowers the final grade by one tier (A→B, B→C, etc.)
+- **Exception:** tests validating framework behavior (R12 FAIL) that aren't testing our code at all → automatic F regardless of R1-R10 score
+
+**Evidence must cite:** the specific line or specific absence that triggered each FAIL.
 
 ### 5. Produce the report via Tasks artifact
 

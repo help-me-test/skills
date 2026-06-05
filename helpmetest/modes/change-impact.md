@@ -4,9 +4,9 @@ Maps a git diff to the tests that cover the changed code. Runs only those tests.
 
 ## Orient First
 
-```
-helpmetest_status()
-helpmetest_search_artifacts({ type: "Tasks" })
+```bash
+helpmetest status
+helpmetest artifact list --type Tasks
 ```
 
 If a Tasks artifact is in progress for this run, resume it.
@@ -65,7 +65,7 @@ For each changed file:
 
 ## Step 3 — Run affected tests
 
-For each test ID collected in Step 2, call `helpmetest_run_test({ id: "<test-id>" })`.
+For each test ID collected in Step 2, call `helpmetest test run <test-id>`.
 
 Run them one at a time — **not in parallel** — so results are readable.
 
@@ -74,15 +74,15 @@ After each run, classify the result:
 - `regressed` — failed now, was passing before the change
 - `pre_existing_fail` — failed before AND after (not caused by this change)
 
-Check "was passing before" by looking at `last_run` status from `helpmetest_status` **before** you ran the test in this session.
+Check "was passing before" by looking at `last_run` status from `helpmetest status` **before** you ran the test in this session.
 
 ---
 
 ## Step 4 — Produce output artifact
 
 Fetch the schema first:
-```
-helpmetest_get_artifact_schema({ type: "RegressionRun" })
+```bash
+helpmetest artifact schema RegressionRun
 ```
 
 Create a `RegressionRun` artifact:

@@ -45,10 +45,9 @@ Each phase: gather → classify findings into 🔴/🟠/🟡 → record into the
 
 Cheap checks that catch the worst states:
 
-```
-helpmetest_status()                                        // any tests in FAIL right now?
-helpmetest_search_artifacts({ type: "Feature" })           // any Feature with bugs[].severity=critical, unresolved?
-how_to({ type: "authentication_state_management" })        // any state flagged broken?
+```bash
+helpmetest status                        # any tests in FAIL right now?
+helpmetest artifact list --type Feature  # any Feature with bugs[].severity=critical, unresolved?
 ```
 
 **Stop-the-line:** if any of these are true, surface to the user *immediately* — one line, then offer to bail out:
@@ -84,8 +83,8 @@ Findings:
 
 **Single-step comprehensive test report** combining current status, historical stability (last 10 runs), and aggregated error analysis.
 
-```
-helpmetest_status(testsOnly=true, history=10, showLastError=true)
+```bash
+helpmetest status --history 10
 ```
 
 For each test, extract:
@@ -103,6 +102,44 @@ For each test, extract:
 
 - **🔴 Chronically Broken** (pass rate <30%): Tests failing majority of time
   - Evidence: Error patterns, error count per type, min/max timestamps across runs
+
+---
+
+### Flakiness Score (quantitative)
+
+For each test with ≥5 runs of history, compute:
+
+**Flakiness Score = (Failure Count × Failure Weight) / Total Runs**
+
+| Failure Type | Weight | Reason |
+|-------------|--------|--------|
+| Timeout | 1.5 | Usually environment, sometimes code |
+| Assertion | 2.0 | Likely test logic or real regression |
+| Selector/Element | 1.0 | UI change, usually fixable |
+| Network | 0.5 | Transient, not test's fault |
+| Server Error | 1.5 | Could be app bug or test dependency |
+| Auth | 2.0 | Broken state, cascading failures |
+
+**Flakiness thresholds:**
+- **0.0-0.2:** 🟢 Stable (occasional transient failure)
+- **0.2-0.5:** 🟡 Suspicious (watch, investigate)
+- **0.5-0.8:** 🟠 Flaky (unreliable, fix or quarantine)
+- **0.8-1.0:** 🔴 Critical (nearly always fails, likely test infrastructure issue)
+
+**Action:**
+- Score ≥0.5 on `priority:critical` → immediate fix required
+- Score ≥0.8 any priority → quarantine or delete (not worth maintaining)
+- Score 0.2-0.5 → document root cause, schedule fix
+
+- **🟡 Flaky** (pass rate 30-70%): Unreliable signal, unpredictable behavior
+  - Evidence: Mixed pass/fail pattern, error types vary per run
+- **🟡 Recently Recovered** (last 1-2 pass, 3+ before failed): Dishonest green
+  - Evidence: Last N runs show recent success but pattern shows prior failures
+- **⚪ Stale** (last run >14 days ago): Test not exercised recently
+  - Evidence: Timestamp of last run, current status
+- **🟢 Stable** (pass rate ≥90%): Reliable, green
+  - Evidence: Consistent passing trend, no failure streaks (pass rate <30%): Tests failing majority of time
+  - Evidence: Error patterns, error count per type, min/max timestamps across runs
 - **🟠 Flaky** (pass rate 30-70%): Unreliable signal, unpredictable behavior
   - Evidence: Mixed pass/fail pattern, error types vary per run
 - **🟠 Recently Recovered** (last 1-2 pass, 3+ before failed): Dishonest green
@@ -112,14 +149,15 @@ For each test, extract:
 - **✅ Stable** (pass rate ≥90%): Reliable, green
   - Evidence: Consistent passing trend, no failure streaks
 
-**Per failing test, summarize errors:**
+**Per failing test, summarize errors with flakiness score:**
 ```
-❌ Test Name [2/10 pass — FLAKY]
-  - Timeout (4 runs): "TimeoutError: locator.evaluate: Timeout 10000ms exceeded"
-  - Assertion (3 runs): "Should Contain: expected 'visible' found 'hidden'"
-  - Selector (1 run): "locator.evaluate: Error: no matching selector"
-  - Backend (1 run): "500 Server Error"
-  - Other (1 run): "Javascript: locator.evaluate: Error: paused=false"
+❌ Test Name [flakiness: 0.67 — 🟠 FLAKY | 2/10 pass]
+  - Timeout (4 runs): "TimeoutError: locator.evaluate: Timeout 10000ms exceeded" [weight 1.5]
+  - Assertion (3 runs): "Should Contain: expected 'visible' found 'hidden'" [weight 2.0]
+  - Selector (1 run): "locator.evaluate: Error: no matching selector" [weight 1.0]
+  - Backend (1 run): "500 Server Error" [weight 1.5]
+  - Other (1 run): "Javascript: locator.evaluate: Error: paused=false" [weight 1.0]
+  - Score: weighted failures / total runs
 ```
 
 Findings:
@@ -135,13 +173,13 @@ Findings:
 ### Phase 4 — sync (test ↔ Feature linkage)
 
 Every Feature has at least one scenario with at least one populated `test_ids[]`?
-Every test referenced in `scenario.test_ids[]` actually exists in `helpmetest_status`?
-Every test in `helpmetest_status` is referenced by at least one Feature scenario?
+Every test referenced in `scenario.test_ids[]` actually exists in `helpmetest status`?
+Every test in `helpmetest status` is referenced by at least one Feature scenario?
 
-```
-helpmetest_search_artifacts({ type: "Feature" })           // every feature
-helpmetest_status({ testsOnly: true })                     // every test
-// for each feature → helpmetest_get_artifact to read scenarios
+```bash
+helpmetest artifact list --type Feature   # every feature
+helpmetest status                          # every test
+# for each feature → helpmetest artifact get <id> to read scenarios
 ```
 
 Build 4 lists:
@@ -197,9 +235,9 @@ Findings:
 
 ### Phase 7 — bugs (Feature artifact `bugs[]` audit)
 
-```
-helpmetest_search_artifacts({ type: "Feature" })
-// for each → read content.bugs[]
+```bash
+helpmetest artifact list --type Feature
+# for each → helpmetest artifact get <id> to read content.bugs[]
 ```
 
 Aggregate every bug across all Features. For each bug:
@@ -276,11 +314,11 @@ Persist a `ProjectHealthReport` artifact per run. This is the substantive delive
 
 **First, fetch the schema** (always — required fields can change):
 
-```
-helpmetest_get_artifact_schema({ type: "ProjectHealthReport" })
+```bash
+helpmetest artifact schema ProjectHealthReport
 ```
 
-Then create with `helpmetest_upsert_artifact`:
+Then create with `helpmetest artifact upsert`:
 
 - `id: "report-<ISO-date>-<short-hash>"` — new id per run, never overwrite
 - `type: "ProjectHealthReport"`

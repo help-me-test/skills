@@ -32,7 +32,7 @@ Parse the first remaining token:
 | `fix-tests` or `fix` | **fix-tests** — diagnose and repair broken tests |
 | `coverage` | **coverage** — gap analysis: what scenarios have no tests |
 | `regression` | **regression** — run tests affected by a named set of changed files |
-| `validate` | **validate** — score existing tests against quality rules |
+| `validate` | **validate** — score existing tests against R1-R13 quality rules. Outputs `ValidationReport` artifact with grade distribution (A/B/C/D/F), R11-R13 failures, and action queue (ship/rewrite/delete).
 | `proxy` | **proxy** — tunnel localhost |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui-review** — visual walkthrough |
@@ -130,3 +130,48 @@ report        Read-only project health diagnosis. Layered: triage → auth → t
               Bare: announces full sweep, asks "full report or just one phase?"
               Sub-tokens: report tests, report sync, report stability, etc.
 ```
+
+### Output Artifacts
+
+#### ValidationReport
+
+Created by `validate` mode after reviewing one or more tests.
+
+```json
+{
+  "type": "ValidationReport",
+  "id": "validation-[timestamp]",
+  "name": "ValidationReport: [N] tests reviewed",
+  "content": {
+    "overview": "Reviewed [N] tests. [X] passed (A/B grade), [Y] failed (C/D/F grade).",
+    "summary": {
+      "total": <int>,
+      "grade_distribution": { "A": <int>, "B": <int>, "C": <int>, "D": <int>, "F": <int> },
+      "r11_mutagen_failures": [<test_ids>],
+      "r12_framework_tests": [<test_ids>],
+      "r13_overmocking": [<test_ids>],
+      "bullshit_score_avg": <float>|null
+    },
+    "tests": [
+      { "test_id": "...", "name": "...",
+        "grade": "A|B|C|D|F",
+        "r_scores": { "r1": "PASS|FAIL", "r2": "PASS|FAIL", ... },
+        "r11_mutation_resistance": "PASS|FAIL",
+        "r12_business_logic": "PASS|FAIL",
+        "r13_minimal_mocking": "PASS|FAIL",
+        "fail_reasons": ["R11: ...", "R12: ..."],
+        "recommendation": "ship|rewrite|delete",
+        "fix_notes": "<what to fix if rewrite>" }
+    ],
+    "actions": { "ship": [<ids>], "rewrite": [<ids>], "delete": [<ids>] }
+  }
+}
+```
+
+#### RegressionRun
+
+Created by `change-impact` mode. See `modes/regression.md` for full schema.
+
+#### CoverageReport
+
+Created by `coverage` and `pr-review` modes. See `modes/coverage.md` for full schema.

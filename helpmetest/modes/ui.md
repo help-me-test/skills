@@ -69,9 +69,8 @@ Then stop. Don't launch a full audit unless the user asks for one.
 
 **Always do this first. Never skip.**
 
-```
-helpmetest_status()
-how_to({ type: "authentication_state_management" })
+```bash
+helpmetest status
 ```
 
 After orient, announce before navigating anywhere:
@@ -94,7 +93,7 @@ A saved state goes stale if the session expired or if `Save As` was never run ag
 
 **If stale → refresh it first:**
 - Find the maintaining test (usually named "Setup Auth <Name>" or similar)
-- Run it: `helpmetest_run_test({ id: "<test-id>" })`
+- Run it: `helpmetest test run <test-id>`
 - It performs login and calls `Save As <Name>` — now the state is fresh
 - Only proceed to the walkthrough after that test passes
 
@@ -128,10 +127,10 @@ List all pages you will visit. This becomes your review checklist.
 
 `run_interactive_command` with `screenshot: true` returns the screenshot as an image directly in the response. That image IS the screenshot. Use it.
 
-To upload a screenshot to storage, pass the base64 from the image response directly to `helpmetest_upload`:
+To upload a screenshot to storage:
 
-```
-helpmetest_upload({ base64: <base64 from screenshot response>, filename: "page-name-desktop.png" })
+```bash
+helpmetest upload page-name-desktop.png
 ```
 
 The base64 is in the image content block returned by `run_interactive_command`. Use it immediately — do not re-capture, do not write code, do not use external tools.
@@ -211,9 +210,36 @@ Tablet-specific things to check:
 
 ---
 
-## Phase 5: Create the UIReview Artifact
+## Phase 5: Accessibility Audit (axe-core + screen reader)
 
-After all screenshots, create a `UIReview` artifact using `helpmetest_upsert_artifact`.
+Run automated accessibility checks on each page. Inject via browser console:
+
+```javascript
+javascript:(function(){var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.9.0/axe.min.js';document.head.appendChild(s);s.onload=function(){axe.run(function(results){console.log(JSON.stringify(results,null,2));});};})();
+```
+
+**For each page, capture:**
+- Violation count by impact: critical / serious / moderate / minor
+- Rule IDs: e.g. ["color-contrast", "button-name", "image-alt"]
+
+**Severity thresholds:**
+- **Critical** (blocks users — missing alt, unlabeled button) → fix immediately
+- **Serious** (major barriers — contrast, missing form labels) → current sprint
+- **Moderate** (annoyances — redundant alt) → backlog
+- **Minor** (technically violations, no practical impact) → document only
+
+**Screen reader flow check** on 2-3 key pages (home, main feature, form):
+- Tab through → all focusable elements reachable in logical order?
+- Check: button names announced, form labels read, image descriptions given
+- Look for: missing `aria-label`, `role` conflicts, focus traps
+
+Add accessibility findings to `actions` with `category: accessibility`.
+
+---
+
+## Phase 6: Create the UIReview Artifact
+
+After all screenshots, create a `UIReview` artifact using `helpmetest artifact upsert --type UIReview`.
 
 **Artifact structure:**
 
@@ -361,23 +387,25 @@ Set Viewport Size  768  1024
 Go To  https://app.example.com/dashboard
 # screenshot + notes
 
+# Phase 5: Accessibility Audit + Write the pitch
+
 # ... repeat for all pages ...
 
-# Phase 5: Write the pitch
+# Phase 5: Accessibility Audit (axe-core + screen reader)
 ```
 
 ---
 
-## Phase 6: Fix Loop (when the user asks you to fix an action)
+## Phase 7: Fix Loop (when the user asks you to fix an action)
 
 When the user picks an action and says "fix this" or "can you fix #N":
 
 1. **Fix the code** — make the change in the source file
 2. **Verify live** — take a new screenshot at the relevant viewport to confirm it looks right
-3. **Upload the new screenshot** — `helpmetest_upload({ file_path: "<path>" })`
+3. **Upload the new screenshot** — `helpmetest upload <path>`
 4. **Update the artifact** — two partial updates:
-   - Mark the action done: `helpmetest_upsert_artifact({ id, content: { "actions.<N>.status": "done" } })`
-   - Replace the screenshot: `helpmetest_upsert_artifact({ id, content: { "pages.<P>.screenshots.<V>.url": "<new-url>" } })`
+   - Mark the action done: `helpmetest artifact upsert --id <id> --content '{"actions.<N>.status": "done"}'`
+   - Replace the screenshot: `helpmetest artifact upsert --id <id> --content '{"pages.<P>.screenshots.<V>.url": "<new-url>"}'`
 
    Where `<N>` is the action index (0-based), `<P>` is the page index, `<V>` is the screenshot index for the viewport that changed.
 
@@ -392,7 +420,7 @@ When the user picks an action and says "fix this" or "can you fix #N":
 
 ## Checklist Before Creating the Artifact
 
-- [ ] Visited every page at desktop (1440x900)
+- [ ] Accessibility check run at each viewport (axe-core violations captured)
 - [ ] Visited every page at mobile (375x667)
 - [ ] Visited every page at tablet (768x1024)
 - [ ] Scrolled long pages at each viewport
@@ -407,6 +435,6 @@ When the user picks an action and says "fix this" or "can you fix #N":
 
 - [ ] Code change made in source file
 - [ ] New screenshot taken at the affected viewport showing the fix
-- [ ] New screenshot uploaded via `helpmetest_upload`
+- [ ] New screenshot uploaded via `helpmetest upload`
 - [ ] Action `status` updated to `"done"` via partial artifact update
 - [ ] Screenshot URL in artifact updated to the new post-fix screenshot

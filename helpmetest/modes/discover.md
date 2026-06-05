@@ -8,11 +8,11 @@
 > The test is the spec. The test is done when it's green.
 > **No test = not done.**
 
-> ### 🔴 AFTER EVERY TEST UPSERT — TWO MORE STEPS ARE MANDATORY.
-> 1. Run the test — **preferred:** pass `run: true` to `helpmetest_upsert_test` (updates + runs atomically). **Alternative:** call `helpmetest_run_test({ id: "<same-id>" })` separately.
+> ### 🔴 AFTER EVERY TEST CREATE/UPDATE — TWO MORE STEPS ARE MANDATORY.
+> 1. Run the test — call `helpmetest test run <test-id>` after creating or updating.
 >    Run it even if you think the app server is down or not yet built. A FAIL result is valid — it documents current state. Never skip because you "expect it to fail."
 > 2. Update the Feature artifact to include this test ID in the matching scenario's `test_ids` array.
-> Upsert-only is **incomplete**. Both steps are required. No exceptions.
+> Create-only is **incomplete**. Both steps are required. No exceptions.
 
 ---
 
@@ -31,9 +31,9 @@ Output: Feature artifacts with Given/When/Then scenarios (full mode), or a categ
 
 ## Orient First
 
-```
-helpmetest_status()
-helpmetest_search_artifacts({ query: "" })
+```bash
+helpmetest status
+helpmetest artifact list
 ```
 
 ---
@@ -68,7 +68,7 @@ The user may add flows, remove checks, or change the target URL. Update your pla
 
 ### What to do
 
-1. Walk the core user flows using `run_interactive_command` with `screenshot: true`
+1. Walk the core user flows using `helpmetest interactive "<keyword>"` with screenshot flag
 2. **Run the Adversarial Probe on every page you visit** (see below)
 3. Read DOM text, network responses, localStorage, and console output
 4. Collect every issue under one of three buckets:
@@ -96,7 +96,7 @@ Navigate to a guaranteed non-existent route:
 Go To  <base-url>/does-not-exist-xyz-404-probe
 Javascript  document.body.offsetHeight
 ```
-Request a screenshot via `run_interactive_command` with `screenshot: true` to visually confirm the page state.
+Request a screenshot via `helpmetest interactive` with screenshot flag to visually confirm the page state.
 
 **Pass:** body has content — a custom 404 page, a redirect to home, or any visible UI.  
 **Fail:** `offsetHeight === 0` or the screenshot shows a blank white screen → **React/SPA catch-all route is missing.** The app silently renders nothing for unknown URLs. Every typo, broken link, or expired URL gives users a white screen with no way back.  
@@ -165,9 +165,9 @@ Javascript  JSON.stringify(window.__errs.slice(0, 5))
 
 #### 4. Failed network requests
 
-The `run_interactive_command` output already contains the full network request log for the page. **Read it — don't reinvent it with JS.**
+The `helpmetest interactive` output already contains the full network request log for the page. **Read it — don't reinvent it with JS.**
 
-After every `run_interactive_command` call, scan the `network` section of the output for requests where `status >= 400` or `status == 0` (cancelled/failed). This catches broken images, missing JS chunks, failed API calls, blocked fonts — anything, not just images.
+After every `helpmetest interactive` call, scan the `network` section of the output for requests where `status >= 400` or `status == 0` (cancelled/failed). This catches broken images, missing JS chunks, failed API calls, blocked fonts — anything, not just images.
 
 ```
 # What to look for in the run_interactive_command network output:
@@ -202,7 +202,7 @@ Walk the primary user flow on iPhone. Use:
 Test On  iPhone 13  <base-url>
 Javascript  document.documentElement.scrollWidth > document.documentElement.clientWidth
 ```
-Request a screenshot via `run_interactive_command` with `screenshot: true` to eyeball nav, text clipping, and tap target sizes.
+Request a screenshot via `helpmetest interactive` with screenshot flag to eyeball nav, text clipping, and tap target sizes.
 
 **Pass:** `False` — no horizontal overflow. Layout collapses correctly.  
 **Fail:** `True` — content overflows the viewport horizontally. Users on mobile must scroll sideways, which is always a bug.
@@ -286,7 +286,7 @@ Javascript  localStorage.clear()
 Go To  <base-url>
 Javascript  document.body.innerText.trim().length
 ```
-Request a screenshot via `run_interactive_command` with `screenshot: true` to confirm the empty state visually.
+Request a screenshot via `helpmetest interactive` with screenshot flag to confirm the empty state visually.
 
 **Pass:** the empty area has a message explaining what belongs there, plus a CTA or instruction to create the first item.  
 **Fail:** blank area, just a background, or only a spinner with no content → document as a UX illogicality: "Empty state missing — first-time users see no guidance."  
@@ -303,7 +303,7 @@ Create or update data, reload the page, verify the data is still there:
 Go To  <base-url>
 Javascript  JSON.stringify(localStorage)
 ```
-Request a screenshot via `run_interactive_command` with `screenshot: true` to confirm data is still visible after reload.
+Request a screenshot via `helpmetest interactive` with screenshot flag to confirm data is still visible after reload.
 
 **Pass:** data survives a full page reload — either from localStorage, cookies, or the backend.  
 **Fail:** data disappears on reload → the app stores state only in memory (React useState, in-memory variable). Document as a Bug: "Data not persisted — lost on page reload." This is a silent failure — the app looks functional but any reload wipes user work.
@@ -319,7 +319,7 @@ Click  <link-or-cta>
 Go Back
 Javascript  document.body.offsetHeight
 ```
-Request a screenshot via `run_interactive_command` with `screenshot: true` to confirm the previous page rendered correctly.
+Request a screenshot via `helpmetest interactive` with screenshot flag to confirm the previous page rendered correctly.
 
 **Pass:** back navigation lands on the previous state with correct content rendered.  
 **Fail:** blank screen, crash, redirect loop, or wrong page after `Go Back` → SPA history is broken. Document as a Bug: "Browser Back renders [blank/wrong state] — back navigation broken."  

@@ -8,10 +8,9 @@
 > The test is the spec. The test is done when it's green.
 > **No test = not done.**
 
-> ### 🔴 AFTER EVERY TEST UPSERT — RUN IT IMMEDIATELY.
-> **Preferred:** Pass `run: true` to `helpmetest_upsert_test` — this updates AND runs in one atomic call.
-> **Alternative:** Follow with `helpmetest_run_test({ id: "<same-id>" })` as a separate call.
-> Upsert without run is **incomplete**. The test does not exist until it has a run record.
+> ### 🔴 AFTER EVERY TEST CREATE/UPDATE — RUN IT IMMEDIATELY.
+> Follow with `helpmetest test run <id>` as a separate call.
+> Create/update without run is **incomplete**. The test does not exist until it has a run record.
 > No exceptions. Not even "the server isn't running." A FAIL result is valid — it documents current state.
 
 ---
@@ -31,13 +30,10 @@ One skill for everything wrong with your test suite. Reads the situation, picks 
 
 ## Prerequisites — Always Do This First
 
-```
-helpmetest_status()
-helpmetest_search_artifacts({ query: "" })
-helpmetest_search_artifacts({ query: "Memory" })
-how_to({ type: "context_discovery" })
-how_to({ type: "interactive_debugging" })
-how_to({ type: "debugging_self_healing" })
+```bash
+helpmetest status
+helpmetest artifact list
+helpmetest search Memory
 ```
 
 Check git state:
@@ -79,10 +75,10 @@ After orient, classify:
 Gather fast, diagnose specifically, then switch to the right mode.
 
 Collect everything in parallel:
-```
-helpmetest_status()             // failing tests, health checks
-git log --oneline -10           // recent commits
-git diff --stat HEAD            // uncommitted changes
+```bash
+helpmetest status              # failing tests, health checks
+git log --oneline -10          # recent commits
+git diff --stat HEAD           # uncommitted changes
 ```
 
 Map what you find to a root cause:
@@ -123,14 +119,14 @@ Create before starting:
 
 ### Phase 1: Understand
 
-1. `helpmetest_open_test` + `helpmetest_status({ id, testRunLimit: 10 })`
+1. `helpmetest open test <id>` + `helpmetest status --id <id> --history 10`
 2. Read the error. Classify: selector? timing? assertion? state? API?
 3. Check recent git changes — map changed files to likely failure causes
 4. Load the Feature artifact the test belongs to
 
 ### Phase 2: Reproduce Interactively
 
-Run steps one at a time via `helpmetest_run_interactive_command`:
+Run steps one at a time via `helpmetest interactive "<keyword>"`:
 
 ```robot
 As  <auth_state>
@@ -156,8 +152,8 @@ Stop at the failing step. Investigate based on error type:
 ### Phase 4A: Fix Test
 
 1. Validate fix interactively first — run the complete corrected flow
-2. Update via `helpmetest_upsert_test`
-3. Run via `helpmetest_run_test` to confirm
+2. Update via `helpmetest test update <id> ...`
+3. Run via `helpmetest test run <id>` to confirm
 4. Update Feature artifact
 
 ### Phase 4B: Document Bug
@@ -203,7 +199,7 @@ Update Feature.status → "broken" or "partial".
 
 ### Startup: Fix All Existing Failures
 
-1. Get all failing tests from `helpmetest_status`
+1. Get all failing tests from `helpmetest status`
 2. For each failing test:
    - Classify failure type
    - **Fixable** (selector change, timing, form structure): investigate → fix → verify → document in SelfHealing artifact
@@ -273,7 +269,7 @@ When a test fails: classify → fix if fixable → document if not → resume li
 
 ### Workflow
 
-1. Run all tests: `helpmetest_status` → get IDs → run each
+1. Run all tests: `helpmetest status` → get IDs → run each
 2. For each test + each Feature artifact, check for discrepancy types above
 3. Record: type, test, Feature, what test expects vs what code does, git evidence
 
@@ -326,63 +322,114 @@ If user says "fix all selector drifts" — apply across the category without ask
 
 **If answer to #2 is YES → IMMEDIATE REJECTION**
 
-### Anti-Patterns (Auto-Reject)
+---
 
-- Only navigation + element counting
-- Click + wait for element that was already visible
-- Form field presence check without filling + submitting
-- Page load + title check only
-- UI element visible without verifying it works
+### Validation Rules (R1–R13)
 
-### Minimum Quality Requirements
+Apply all rules. Each rule is a gate.
 
-- ≥ 5 meaningful steps
-- ≥ 2 assertions (Get Text, Should Be, Wait For)
-- Verifies state change (before/after OR API response OR persistence)
-- Has `[Documentation]` with a `PROTECTS:` line naming the specific user complaint
-- Uses stable selectors
-- Tags: `priority:?` and `feature:?` required
+**R1 — Meaningful steps**
+- FAIL if < 5 meaningful steps (each step must change state, not just navigation)
+- FAIL if test is only navigation + element counting
 
-### Mutation Resistance Check
+**R2 — Behavioral assertions**
+- FAIL if < 2 assertions (Get Text, Should Be, Wait For ≠ element present)
+- FAIL if only asserts element visibility without behavior
 
-Mentally introduce a realistic bug (e.g. "save button onClick removed") and ask: does this test catch it? If not → score 7+.
+**R3 — State verification**
+- FAIL if test doesn't verify state change (before/after OR API response OR persistence)
 
-### Bullshit Score (1–10)
+**R4 — Description has Given/When/Then/Risk**
+- FAIL if `--description` missing Given/When/Then/Risk format
+- FAIL if uses `[Documentation]` Robot syntax instead of `--description` CLI flag
 
-| Score | Meaning |
-|-------|---------|
-| 1–3 | Solid — behavioral assertions, mutation-resistant |
-| 4–6 | Mediocre — some value but weak |
-| 7–9 | Mostly bullshit — navigation only, no real behavior |
-| 10 | Pure bullshit — single Go To, Sleep with no assertion |
+**R5 — Stable selectors**
+- FAIL if uses fragile selectors (index-based, dynamic text without stable anchor)
 
-**Score ≤ 4 → PASS. Score ≥ 5 → REJECT**
+**R6 — Required tags**
+- FAIL if missing `priority:?` or `feature:?`
+
+**R7 — Actionable assertions**
+- FAIL if only checks "no error" instead of positive outcome
+- FAIL if vacuous assertion (always passes)
+
+**R8 — Tags are complete and consistent**
+- FAIL if tags contradict each other or contradict test body
+
+**R9 — Auth state used correctly**
+- FAIL if test re-authenticates instead of reusing established auth state
+
+**R10 — Linked to a Feature.scenario**
+- FAIL if the test is an orphan (no scenario references its id in `test_ids`)
+
+**R11 — Mutation Resistance**
+- FAIL if the test could pass even when the code under test is broken
+- Check: remove the save handler, break the validation — would this test fail?
+- Patterns that fail R11: asserts visible but not functional, clicks but checks no data change
+
+**R12 — Tests Our Business Logic, Not Framework Behavior**
+- FAIL if test validates: Express/Fastify routes, Prisma/Mongoose ops, bcrypt/JWT sign, axios/fetch calls
+- PASS if test validates custom business logic wrapping these libraries
+
+**R13 — Minimal Mocking**
+- FAIL if >3-4 mocks per test
+- FAIL if mocking pure functions or business logic (only mock external I/O)
+
+---
+
+### Scoring
+
+Score PASSes out of applicable rules.
+
+**R1-R10:**
+- **A (9-10 PASS):** ship it
+- **B (7-8):** solid, minor rewrites suggested
+- **C (5-6):** needs real work
+- **D (3-4):** probably better to rewrite than patch
+- **F (<3):** delete or start over
+
+**R11-R13 (always applicable for functional tests):**
+- Each FAIL on R11-R13 lowers the final grade by one tier (A→B, B→C, etc.)
+- FAIL on R12 + test only validates framework behavior → automatic F
+
+---
+
+### Bullshit Score Translation
+
+| Bullshit Score | Grade | Action |
+|----------------|-------|--------|
+| 1–3 | A-B | ship it |
+| 4–6 | C | minor rewrites |
+| 7–9 | D | rewrite or delete |
+| 10 | F | delete immediately |
+
+---
 
 ### Output: Single Test
 
 ```
-[score]/10 — ✅ PASS / ❌ REJECT
+[Grade] — [PASS/REJECT] (R11-R13: X/3)
 Test ID: [id]
-Reason: [one sentence]
-[What to fix if rejected]
+Rule failures: R11, R12
+Evidence: [specific line or absence]
+[What to fix]
 ```
 
 ### Output: Batch
 
-Table grouped by tier (Solid / Mediocre / Bullshit), then action menu:
+Table grouped by grade (A / B / C / D / F), then action menu:
 
 ```
 Reply with numbers to act:
 
-1. Delete [N] score-10 tests
-2. Fix [N] misleading test names
-3. Fix [N] vacuous assertions
-4. Rewrite [N] mediocre tests
-5. Investigate [N] failing tests
+1. Delete [N] F-grade tests
+2. Fix [N] D-grade tests
+3. Rewrite [N] C-grade tests
+4. Keep [N] A/B-grade tests
 all — do everything
 ```
 
-When user replies: execute without asking further. Delete score-10 tests immediately. For rewrites, show diff then call `helpmetest_upsert_test`.
+When user replies: execute without asking further.
 
 ---
 

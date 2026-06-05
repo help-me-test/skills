@@ -4,10 +4,10 @@ Scheduled health check. Does two things: (1) runs tests for all existing Feature
 
 ## Orient First
 
-```
-helpmetest_status()
-helpmetest_search_artifacts({ query: "" })
-helpmetest_search_artifacts({ type: "Tasks" })
+```bash
+helpmetest status
+helpmetest artifact list
+helpmetest artifact list --type Tasks
 ```
 
 Check auth state before anything:
@@ -42,10 +42,10 @@ Nightly has no scope ambiguity — proceed immediately after presenting the plan
 
 ## Step 1 — Health check: run each Feature's tests
 
-1. From `helpmetest_search_artifacts({ query: "" })`, collect all Feature artifact IDs
-2. For each Feature, call `helpmetest_get_artifact({ id: "<feature-id>" })` to read its scenarios
+1. From `helpmetest artifact list --type Feature`, collect all Feature artifact IDs
+2. For each Feature, call `helpmetest artifact get <feature-id>` to read its scenarios
 3. Collect all test IDs from `scenarios[].test_ids` across all features
-4. For each test ID, call `helpmetest_run_test({ id: "<test-id>" })` to get a fresh result
+4. For each test ID, call `helpmetest test run <test-id>` to get a fresh result
 
 Classify each Feature after running its tests:
 - **All tests green** → status: `working`
@@ -58,7 +58,7 @@ Classify each Feature after running its tests:
 
 For each Feature whose status changed to `broken` or `partial`:
 
-Call `helpmetest_upsert_artifact` with the Feature's updated `status` field:
+Call `helpmetest artifact upsert` with the Feature's updated `status` field:
 ```json
 {
   "id": "<feature-id>",
@@ -76,7 +76,7 @@ Call `helpmetest_upsert_artifact` with the Feature's updated `status` field:
 
 ## Step 3 — Discover new URLs
 
-From all tests returned by `helpmetest_status()`, extract every `url:` tag value.
+From all tests returned by `helpmetest status`, extract every `url:` tag value.
 
 For each URL found:
 1. Check if any existing Feature artifact covers that URL (look at Feature `functional[].given` for the URL, or Feature tags)
@@ -111,7 +111,7 @@ For each uncovered URL:
 
 ## Step 4 — Summary
 
-Produce a `Tasks` artifact as the run receipt (use `helpmetest_get_artifact_schema({ type: "Tasks" })` first):
+Produce a `Tasks` artifact as the run receipt (use `helpmetest artifact schema Tasks` first):
 
 ```json
 {

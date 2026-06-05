@@ -487,6 +487,79 @@ Checkout flow API contract
 - **Test status codes explicitly** — `Response Status Should Be` before any field assertions
 - **Chain requests for real consumer flows** — a consumer rarely calls one endpoint in isolation
 
+---
+
+## OpenAPI Schema Validation (Contract Drift Detection)
+
+For services with an OpenAPI spec, validate responses against the schema to catch contract drift:
+
+```robot
+*** Test Cases ***
+GET /users — matches OpenAPI schema
+    As    User
+    Go To    https://app.example.com
+
+    GET    /api/users
+    Response Status Should Be    200
+
+    # Validate against OpenAPI schema types
+    # If spec says name is string → assert string type
+    # If spec says created_at is ISO8601 → assert format
+    Response JSON Schema Should Match    ${OPENAPI_SCHEMA}
+    Field Type Should Be    0.id          number
+    Field Type Should Be    0.name        string
+    Field Type Should Be    0.created_at  string    # ISO8601
+
+    # Enforce required fields from spec
+    Response Should Have Fields    id    name    email    created_at
+```
+
+**Schema drift detection workflow:**
+1. Fetch OpenAPI spec: `GET /api/openapi.json` or use local `swagger.json`
+2. For each endpoint, validate: required fields present, types match, formats correct
+3. If schema is stricter than implementation → document as `contract_gap`
+4. If implementation is stricter than schema → update the spec
+
+**Priority fields to validate:**
+- Fields marked `required` in spec
+- Fields with `format` constraints (date-time, email, uuid)
+- Enum fields (response must match enum values)
+- Fields with `pattern` constraints (regex validation)
+
+---
+
+## Pact-Style Consumer Contract (Simplified)
+
+Consumer-driven contracts: tests validate what the **consumer actually uses**, not the full API surface.
+
+```robot
+*** Test Cases ***
+Cart consumer contract — what frontend actually needs
+    As    WebApp
+    Go To    https://app.example.com
+
+    # Frontend only reads: id, items[], total, currency
+    # Backend can return anything else — doesn't matter
+    GET    /api/cart
+    Response Status Should Be    200
+
+    # Consumer contract — strict on what we use
+    ${cart}=    Get Response Body
+    Should Not Be Empty    ${cart}["id"]
+    Should Not Be Empty    ${cart}["items"]
+    Should Not Be Equal As Strings    ${cart}["currency"]    USD
+    Field Type Should Be    items    array
+
+    # Non-consumer fields — permissive (don't assert presence)
+    # We don't care about: discount_code, loyalty_points, gift_wrap
+    # If backend adds these → consumer test still passes
+    # If backend removes id → consumer test FAILS → contract break
+```
+
+**Contract rule:** Consumer tests FAIL when required fields disappear. They PASS when new optional fields appear. This is intentional — only break when the consumer breaks.
+
+---
+
 ## Common Pitfalls
 
 **Don't use Javascript fetch in tests.** The API library exists precisely so you don't have to. `Javascript    fetch(...)` bypasses auth, skips rrweb recording, and produces brittle tests.

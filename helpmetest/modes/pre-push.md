@@ -4,8 +4,8 @@ Runs the minimum set of tests needed to gate a push: all `priority:critical` tes
 
 ## Orient First
 
-```
-helpmetest_status()
+```bash
+helpmetest status
 ```
 
 Snapshot the current state of critical tests before running anything.
@@ -51,7 +51,7 @@ git diff HEAD~1 HEAD --name-only
 ## Step 2 — Collect tests to run
 
 **Set A — critical tests:**
-Call `helpmetest_status()`. Collect every test with tag `priority:critical`.
+Call `helpmetest status`. Collect every test with tag `priority:critical`.
 
 **Set B — annotation-covered tests:**
 For each file from Step 1, `grep -n "@helpmetest"` and collect referenced test IDs.
@@ -62,7 +62,7 @@ Run the **union** of Set A ∪ Set B (deduplicated).
 
 ## Step 3 — Run the tests
 
-For each test ID, call `helpmetest_run_test({ id: "<test-id>" })` one at a time.
+For each test ID, call `helpmetest test run <test-id>` one at a time.
 
 Track which tests pass and which fail. A critical test failing is a blocker regardless of cause.
 
@@ -71,8 +71,8 @@ Track which tests pass and which fail. A critical test failing is a blocker rega
 ## Step 4 — Produce output artifact
 
 Fetch the schema first:
-```
-helpmetest_get_artifact_schema({ type: "RegressionRun" })
+```bash
+helpmetest artifact schema RegressionRun
 ```
 
 Create a `RegressionRun` artifact with:

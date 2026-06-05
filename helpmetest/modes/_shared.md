@@ -6,10 +6,10 @@ These rules apply to every HelpMeTest workflow. Load this once; every mode assum
 
 Before creating any test, artifact, or running any exploration:
 
-```
-helpmetest_status()                              // what tests exist and their current state
-helpmetest_search_artifacts({ query: "" })       // what features, personas, project overviews exist
-helpmetest_search_artifacts({ type: "Tasks" })   // any in-progress work you should resume
+```bash
+helpmetest status                        # what tests exist and their current state
+helpmetest artifact list                 # what features, personas, project overviews exist
+helpmetest artifact list --type Tasks    # any in-progress work you should resume
 ```
 
 Use what you find:
@@ -21,7 +21,7 @@ Use what you find:
 
 Never assume the project is empty. Never create what already exists.
 
-**Also look for a `Memory` artifact** (`helpmetest_search_artifacts({ query: "Memory" })`) — it carries project-specific knowledge from past sessions (selectors, auth flows, timing quirks). If found, fetch and read it.
+**Also look for a `Memory` artifact** (`helpmetest search Memory`) — it carries project-specific knowledge from past sessions (selectors, auth flows, timing quirks). If found, fetch and read it with `helpmetest artifact get <id>`.
 
 ## 1b. Present before acting — mandatory, every mode, every invocation
 
@@ -69,7 +69,7 @@ A test that just checks an element is visible is not a test. Tests must **perfor
 
 ## 3a. Red-team loop — mandatory after every test is written
 
-This runs after every `helpmetest_upsert_test` call, before moving to the next test. It is not a review — it is adversarial interrogation of the test you just wrote.
+This runs after every test create/update call, before moving to the next test. It is not a review — it is adversarial interrogation of the test you just wrote.
 
 Ask these four questions. Write the answers in plain text. Do not summarize or skip.
 
@@ -110,7 +110,19 @@ When you're inside the `helpmetest agent claude` harness, your tools are restric
 - `Bash` — for `helpmetest` CLI commands
 - `Read`, `Write`, `Edit` — files
 
-Use the `helpmetest` CLI for all HelpMeTest operations (e.g., `helpmetest interactive "<command>"` for browser, `helpmetest status` for test state).
+Use the `helpmetest` CLI for all HelpMeTest operations. Key commands:
+- `helpmetest status` — test state
+- `helpmetest interactive "<Robot Framework keyword>"` — browser automation
+- `helpmetest test run <name-or-tag-or-id>` — run tests
+- `helpmetest artifact list` / `helpmetest search <query>` — find artifacts
+- `helpmetest artifact get <id>` — fetch artifact content
+- `helpmetest artifact schema <type>` — get artifact schema
+- `helpmetest artifact upsert --id <id> --type <type> --name <name> --content '<json>'` — create/update artifact
+- `helpmetest test create --name <name> --tags <tags> --content '<robot>'` — create test
+- `helpmetest test update <id> ...` — update test
+- `helpmetest proxy start <host:port>` — start proxy tunnel
+- `helpmetest upload <file>` — upload file
+- `helpmetest open test <id>` — open test in browser
 
 ## 9. Every mode has an output artifact
 
@@ -118,7 +130,7 @@ Modes are not just prose workflows — they produce structured, typed artifacts 
 
 | Mode | Output artifact type(s) |
 |---|---|
-| `tdd` | Tests (via `helpmetest_upsert_test`) + updates to `Feature.scenarios[].test_ids` |
+| `tdd` | Tests (via `helpmetest test create` / `helpmetest test update`) + updates to `Feature.scenarios[].test_ids` |
 | `fix` | `SelfHealing` + updates to `Feature.bugs[]` if a bug is found |
 | `discover` | `Feature[]` + `Persona[]` + `ProjectOverview` + (optional) `Memory` |
 | `coverage` | `CoverageReport` |
@@ -143,8 +155,8 @@ The one exception: if a long-lived artifact (Feature, ProjectOverview) genuinely
 
 Before creating any artifact:
 
-```
-helpmetest_get_artifact_schema({ type: "<TypeName>" })
+```bash
+helpmetest artifact schema <TypeName>
 ```
 
 Required fields and validation rules can change — don't memorize them. The schema is authoritative.
@@ -161,7 +173,7 @@ Launch it with `run_in_background=true` so stdout stays accessible via `TaskOutp
 
 Poll the background task's output between your own actions:
 - **Test status change (PASS→FAIL)**: something just regressed. Stop the current task if it's lower-priority, or finish the current step and then investigate.
-- **User message**: respond immediately via `send_to_ui` (or reply in the chat you're in). Silence after a message is worse than a wrong answer.
+- **User message**: respond immediately (write to stdout or reply in the chat you're in). Silence after a message is worse than a wrong answer.
 - **Quiet stream**: keep working.
 
 **Don't start the background listener for a discrete one-shot task** (write this test, produce this report). It's only worthwhile when the job is long-running or inherently reactive.

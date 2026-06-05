@@ -48,8 +48,8 @@ Wait for confirmation, then proceed.
 
 ### 1. Orient
 
-```
-helpmetest_status({ testsOnly: true })
+```bash
+helpmetest status
 ```
 
 Catalog what tests exist before digging.
@@ -65,8 +65,8 @@ Three ways a test can be relevant to a changed file — check in this order:
 Collect every test name from every annotation.
 
 **(b) Feature artifact that mentions the file in `relevant_files`.** Search artifacts:
-```
-helpmetest_search_artifacts({ type: "Feature" })
+```bash
+helpmetest artifact list --type Feature
 ```
 Fetch each feature, check its `relevant_files[].path` against the changed set. For matches, pull the `scenario.test_ids` — those tests are affected.
 
@@ -86,9 +86,9 @@ Narrate what you're running and what you're skipping.
 
 ### 4. Run
 
-For each test in the set, either in parallel (pass an array to `helpmetest_run_test`) or sequentially:
-```
-helpmetest_run_test({ id: ["test-1", "test-2", "test-3", ...] })
+For each test in the set, run sequentially or all at once:
+```bash
+helpmetest test run test-1 test-2 test-3 ...
 ```
 
 Parallel is faster for ≥3 tests. Sequential makes narration cleaner.

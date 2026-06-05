@@ -33,7 +33,7 @@ HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:
 3. HelpMeTest's test runner routes traffic for that domain through the tunnel back to your machine
 4. Your local server responds as if accessed directly
 
-**The proxied URL (e.g. http://dev.local) is NOT accessible from your local browser or curl.** It only works inside HelpMeTest test commands (`Go To`, `helpmetest_run_interactive_command`, etc.).
+**The proxied URL (e.g. http://dev.local) is NOT accessible from your local browser or curl.** It only works inside HelpMeTest test commands (`Go To`, `helpmetest interactive`, etc.).
 
 ## ❌ The #1 Mistake — Using localhost in test URLs
 
@@ -75,7 +75,7 @@ After changing the bind address, restart the server and retry the proxy.
 
 ## frpc Installation
 
-frpc is **auto-installed on first use** — no manual steps needed. When you run `helpmetest proxy start` (or `helpmetest_proxy({ action: "start", ... })`), the CLI checks for frpc at `~/.local/bin/frpc`. If missing, it downloads and installs automatically from `https://slava.helpmetest.com/install/frpc`.
+frpc is **auto-installed on first use** — no manual steps needed. When you run `helpmetest proxy start`, the CLI checks for frpc at `~/.local/bin/frpc`. If missing, it downloads and installs automatically from `https://slava.helpmetest.com/install/frpc`.
 
 If auto-install fails (e.g., network error), install manually:
 ```bash
@@ -94,23 +94,23 @@ brew install frp   # macOS
 
 **Start a proxy:**
 ```
-helpmetest_proxy({ action: "start", domain: "dev.local", sourcePort: 3000 })
+helpmetest proxy start localhost:3000
 ```
 
 **Verify it works (use HelpMeTest, NOT curl):**
-```
-helpmetest_run_interactive_command({ command: "Go To  http://dev.local" })
+```bash
+helpmetest interactive "Go To  http://dev.local"
 ```
 Should load your local app. If it doesn't, fix the proxy before writing tests.
 
 **Check active proxies:**
-```
-helpmetest_proxy({ action: "list" })
+```bash
+helpmetest proxy list
 ```
 
 **Stop a proxy:**
-```
-helpmetest_proxy({ action: "stop", domain: "dev.local" })
+```bash
+helpmetest proxy stop dev.local
 ```
 
 ## Three Proxy Strategies
@@ -120,7 +120,7 @@ helpmetest_proxy({ action: "stop", domain: "dev.local" })
 **When:** Your dev server already proxies some routes internally (e.g., Vite's `server.proxy` sends `/api` to backend port)
 
 ```
-helpmetest_proxy({ action: "start", domain: "dev.local", sourcePort: 5001 })
+helpmetest proxy start localhost:5001
 ```
 
 Tests use `http://dev.local` — both UI and API calls work through one tunnel.
@@ -132,8 +132,8 @@ Tests use `http://dev.local` — both UI and API calls work through one tunnel.
 **When:** Services need different hostnames (cookies, CORS), or no internal proxy configured.
 
 ```
-helpmetest_proxy({ action: "start", domain: "frontend.local", sourcePort: 5001 })
-helpmetest_proxy({ action: "start", domain: "backend.local", sourcePort: 3001 })
+helpmetest proxy start localhost:5001  # maps to frontend.local
+helpmetest proxy start localhost:3001  # maps to backend.local
 ```
 
 Tests use `http://frontend.local` for UI and `http://backend.local` for API.
@@ -145,7 +145,7 @@ Tests use `http://frontend.local` for UI and `http://backend.local` for API.
 **When:** You have tests running against production URLs and want to test local changes without modifying test code.
 
 ```
-helpmetest_proxy({ action: "start", domain: "my.awesome.app", sourcePort: 3000, externalPort: 80 })
+helpmetest proxy start localhost:3000  # routes my.awesome.app traffic to local port 3000
 ```
 
 Tests use `http://my.awesome.app` — routes to localhost:3000 instead of production.
@@ -166,8 +166,8 @@ If your app uses WebSocket, make sure it connects over `wss://`.
 
 **After starting a proxy, always verify using HelpMeTest interactive commands:**
 
-```
-helpmetest_run_interactive_command({ command: "Go To  http://dev.local" })
+```bash
+helpmetest interactive "Go To  http://dev.local"
 ```
 
 Expected: Your local app loads successfully. If you see `chrome-error://chromewebdata/` or a connection error, the proxy is not working — fix it before writing tests.
@@ -179,7 +179,7 @@ Expected: Your local app loads successfully. If you see `chrome-error://chromewe
 ### Tests show chrome-error or connection refused
 
 1. **Check you're using the proxy domain in test URLs** — `Go To  http://dev.local` NOT `http://localhost:3000`
-2. **Check proxy is running:** `helpmetest_proxy({ action: "list" })`
+2. **Check proxy is running:** `helpmetest proxy list`
 3. **Check local server is running:** `curl http://127.0.0.1:3000` (this works locally — if this fails, start your server)
 4. **Restart proxy if needed:** Stop and start again
 
@@ -191,8 +191,8 @@ If your server is bound to `127.0.0.1` (loopback only), restart it with `0.0.0.0
 
 If starting a proxy fails with "proxy already exists":
 - A previous frpc process may still be running with the same name
-- Stop the proxy first: `helpmetest_proxy({ action: "stop", domain: "dev.local" })`
-- Or stop all: `helpmetest_proxy({ action: "stop_all" })`
+- Stop the proxy first: `helpmetest proxy stop dev.local`
+- Or stop all: `helpmetest proxy stop --all`
 - If stop doesn't work, check for orphaned frpc processes: `ps aux | grep frpc`
 
 ### Custom hostname not resolving
@@ -206,13 +206,13 @@ Custom hostnames (like `frontend.local`) are handled entirely by the proxy — n
 
 ```
 # Local frontend on port 5001
-helpmetest_proxy({ action: "start", domain: "frontend.local", sourcePort: 5001 })
+helpmetest proxy start localhost:5001  # frontend.local
 
 # Local backend API on port 3001
-helpmetest_proxy({ action: "start", domain: "api.local", sourcePort: 3001 })
+helpmetest proxy start localhost:3001  # api.local
 
 # Production service running locally on port 8000
-helpmetest_proxy({ action: "start", domain: "prod.myapp.com", sourcePort: 8000, externalPort: 80 })
+helpmetest proxy start localhost:8000  # prod.myapp.com
 ```
 
 Tests can now use all three domains inside HelpMeTest commands.
@@ -223,6 +223,6 @@ Tests can now use all three domains inside HelpMeTest commands.
 2. **Always verify with HelpMeTest** — use interactive commands, not curl or browser
 3. **Choose simplest strategy** — if frontend already proxies backend, use Strategy 1
 4. **Use consistent domains** — if you use `frontend.local` in one test, use it in all tests for that service
-5. **Stop proxies when done** — `stop_all` cleans up everything
+5. **Stop proxies when done** — `helpmetest proxy stop --all` cleans up everything
 
 **Version:** 0.2
