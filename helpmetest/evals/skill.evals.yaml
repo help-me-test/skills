@@ -1,0 +1,212 @@
+skill: helpmetest
+mode: skill
+strip_rf_preamble: false
+description: >-
+  Evals for the /helpmetest skill router — verifies that the correct mode is
+  dispatched based on the user message and environment state. Each case provides
+  a simulated environment + user message and checks the MODE decision.
+output_constraints: |-
+  Output format — two lines, nothing else:
+    MODE: <mode-name>
+    REASON: <one sentence explaining why this mode was chosen>
+
+  Mode names are exactly: tdd, fix-tests, discover, coverage, regression,
+  validate, improve, comment, proxy, api-testing, ui-review, onboard,
+  change-impact, pre-push, pr-review, nightly, report, full-qa, agent
+
+  No prose before MODE:. No extra lines after REASON:.
+prompt_preamble: |-
+  You are the /helpmetest skill router. Given an environment state and a user
+  message, decide which mode to dispatch to.
+
+  Routing rules (in priority order):
+
+  1. Strip "/helpmetest" prefix if present, then read the first token.
+
+  2. Explicit mode tokens map directly:
+       tdd          → tdd
+       fix, fix-tests → fix-tests
+       discover     → discover
+       coverage     → coverage
+       regression   → regression
+       validate     → validate
+       improve      → improve
+       comment      → comment
+       proxy        → proxy
+       api, api-testing → api-testing
+       ui, ui-review → ui-review
+       onboard      → onboard
+       change-impact, impact → change-impact
+       pre-push, push → pre-push
+       pr-review, pr → pr-review
+       nightly      → nightly
+       report       → report
+       agent        → agent
+
+  3. Bare call (no token):
+       - Empty project (no tests, no artifacts, no HELPMETEST.md) → onboard
+       - Project exists (tests or artifacts present) → full-qa
+
+  4. No mode token but text looks like a task description — use generous matching:
+       "write tests for X", "add test for Y", "implement Z" → tdd
+       "test is failing", "X is broken", "fix the Y test" → fix-tests
+       "what does this app do", "map the site", "explore" → discover
+       "find bugs", "poke around" → discover
+
+  5. Ambiguous: pick the closest mode and note it in REASON.
+
+evals:
+  - id: 1
+    rules: [bare, empty-project]
+    violation: Bare call in an empty folder with no tests or artifacts
+    input: |
+      Environment: Empty directory. No tests. No helpmetest artifacts. No HELPMETEST.md. helpmetest status returns 0 tests.
+      User message: /helpmetest
+    must_contain:
+      - "MODE: onboard"
+    must_not_contain:
+      - "MODE: full-qa"
+      - "MODE: tdd"
+      - "MODE: discover"
+
+  - id: 2
+    rules: [bare, project-exists]
+    violation: Bare call in a project that already has tests
+    input: |
+      Environment: Project with 14 passing tests, 2 failing tests, 3 Feature artifacts. helpmetest status shows tests exist.
+      User message: /helpmetest
+    must_contain:
+      - "MODE: full-qa"
+    must_not_contain:
+      - "MODE: onboard"
+      - "MODE: tdd"
+      - "MODE: fix-tests"
+
+  - id: 3
+    rules: [explicit-mode]
+    violation: Explicit fix token with failing tests in context
+    input: |
+      Environment: Project with 12 tests, 2 currently failing (login-smoke, checkout-flow). Last run 4 minutes ago.
+      User message: /helpmetest fix
+    must_contain:
+      - "MODE: fix-tests"
+    must_not_contain:
+      - "MODE: tdd"
+      - "MODE: validate"
+      - "MODE: full-qa"
+
+  - id: 4
+    rules: [explicit-mode]
+    violation: Explicit tdd token with task description
+    input: |
+      Environment: Project with 8 tests, all passing. helpmetest status is green.
+      User message: /helpmetest tdd write login test
+    must_contain:
+      - "MODE: tdd"
+    must_not_contain:
+      - "MODE: fix-tests"
+      - "MODE: improve"
+      - "MODE: full-qa"
+
+  - id: 5
+    rules: [implicit-mode, task-description]
+    violation: No mode token — task description implies tdd
+    input: |
+      Environment: Project with 5 tests. User is working on a new feature branch.
+      User message: write a test for the password reset flow
+    must_contain:
+      - "MODE: tdd"
+    must_not_contain:
+      - "MODE: fix-tests"
+      - "MODE: discover"
+      - "MODE: full-qa"
+
+  - id: 6
+    rules: [implicit-mode, task-description]
+    violation: No mode token — "test is failing" implies fix-tests
+    input: |
+      Environment: Project with 10 tests, 1 failing (signup-validation fails on the email field assertion).
+      User message: the signup-validation test is failing
+    must_contain:
+      - "MODE: fix-tests"
+    must_not_contain:
+      - "MODE: tdd"
+      - "MODE: validate"
+      - "MODE: full-qa"
+
+  - id: 7
+    rules: [explicit-mode]
+    violation: Explicit improve token
+    input: |
+      Environment: Project with 20 tests. Many tests have no descriptions and per-line comments.
+      User message: /helpmetest improve
+    must_contain:
+      - "MODE: improve"
+    must_not_contain:
+      - "MODE: validate"
+      - "MODE: comment"
+      - "MODE: tdd"
+
+  - id: 8
+    rules: [explicit-mode]
+    violation: Explicit comment token
+    input: |
+      Environment: Project with 6 tests. Comments are noisy and per-line.
+      User message: /helpmetest comment
+    must_contain:
+      - "MODE: comment"
+    must_not_contain:
+      - "MODE: improve"
+      - "MODE: validate"
+      - "MODE: tdd"
+
+  - id: 9
+    rules: [explicit-mode]
+    violation: Explicit report token
+    input: |
+      Environment: Project with 30 tests, mixed results, last run 2 hours ago.
+      User message: /helpmetest report
+    must_contain:
+      - "MODE: report"
+    must_not_contain:
+      - "MODE: validate"
+      - "MODE: full-qa"
+      - "MODE: regression"
+
+  - id: 10
+    rules: [implicit-mode, task-description]
+    violation: No mode token — "what does this app do" implies discover
+    input: |
+      Environment: Brand new project with HELPMETEST.md just created but no Feature artifacts yet.
+      User message: what does this app do, let's map it out
+    must_contain:
+      - "MODE: discover"
+    must_not_contain:
+      - "MODE: tdd"
+      - "MODE: onboard"
+      - "MODE: full-qa"
+
+  - id: 11
+    rules: [prefix-strip]
+    violation: /helpmetest prefix present but should be stripped before reading mode token
+    input: |
+      Environment: Project with 8 tests, all passing.
+      User message: /helpmetest validate
+    must_contain:
+      - "MODE: validate"
+    must_not_contain:
+      - "MODE: tdd"
+      - "MODE: full-qa"
+
+  - id: 12
+    rules: [explicit-mode]
+    violation: change-impact alias "impact" should resolve to change-impact
+    input: |
+      Environment: On a feature branch, 3 files changed since main. Several tests have @helpmetest annotations.
+      User message: /helpmetest impact
+    must_contain:
+      - "MODE: change-impact"
+    must_not_contain:
+      - "MODE: regression"
+      - "MODE: pr-review"
+      - "MODE: tdd"

@@ -1,0 +1,843 @@
+skill: helpmetest
+mode: comment
+description: Evals for the comment mode — verifies that C1–C13 rules are correctly applied when rewriting test comments. Each
+  case provides an input test body and the expected output. must_contain / must_not_contain fields enable mechanical checking
+  without an LLM judge.
+prompt_preamble: |-
+  Rewrite EVERY comment in the test body below so all C1–C13 rules are satisfied.
+  Apply the rules to ALL sections — do not leave any comment unchanged if it violates a rule.
+
+  The output MUST have section comments. Every group of related steps starts with a `#` comment — the comment comes first, then the keywords it covers.
+  Never produce keywords before their group's comment. Never produce a flat block of keywords with no comments — that is always wrong.
+  The job is to REWRITE bad comments into good ones, not to delete all comments.
+
+  Structure:
+    # comment
+      keyword
+      keyword
+    # comment
+      keyword
+      keyword
+
+  NOT:
+      keyword
+      keyword
+    # comment
+
+  Each comment describes what the keywords BELOW IT do — not what came before, not what comes after the next comment.
+
+  Rules (apply ALL of them to EVERY section including the first):
+
+  C1  No per-line comments. Group 2–8 steps under one comment. `As <state>` must be bundled with Go To and the first wait — never isolated alone.
+  C2  No numbering. Remove ordinals even when grouping is otherwise correct.
+  C3  No decorations — no dashes, equals signs, or separator text in any comment, including the first.
+  C4  Product context, not implementation narration. "call the fetch API" / "construct the URL" are violations even on the first section.
+  C5  Never isolate a navigation keyword (Go To, Click) under its own comment. Bundle it into the action group that follows.
+  C6  Section comment names the invariant protected, not what the assertions do.
+  C7  Section > 8 steps → split with a sub-comment.
+  C8  The words "verify", "check", "assert", "validate" MUST NOT appear as the first word of any `#` comment line — even when the rest of the comment is specific. `# verify X survives Y` is still a C8 violation. Name the invariant instead: what property of the system does this section protect?
+  C9  These exact comment texts are ALWAYS violations — rewrite them with specificity: `# setup`, `# given`, `# when`, `# then`, `# action`, `# teardown`, `# verify`, `# cleanup`, `# pre-conditions`, `# expected result`, `# test step 1`, `# test step 2`, `# test step N` (any numbered test step). Example: `# pre-conditions` → `# Open the projects list as an authenticated user`.
+  C10 These patterns are ALWAYS violations — rewrite to imperative or noun phrase: any comment containing "logged in", "logged into" (any form of "log in" in past tense), "navigated to", "clicked", "opened the", "will X", "was saved", "was created". The word "logged" in a `#` comment is always past tense — replace entirely: "# logged in as X" → "# Log in as X", "# logged into the app" → "# Auth and open the app", "# navigated to Y" → "# Open Y", "# card was saved" → "# Card saved with confirmation".
+  C11 No CSS selectors, data-testid names, or JS variable names inside `#` comment lines. A comment like `# wait for css=nav` or `# click data-testid=replay-btn` leaks selectors — replace with what the user experiences: `# App is ready`, `# Open the replay`.
+  C12 Comment must match what the keywords in that section actually do. `As` + `Go To` + `Wait` = auth and navigation. A comment saying "user deletes their account" above those keywords is wrong — rewrite it to describe the actual steps.
+  C13 Error path comments name the expected failure. Bad: `# submit the form`. Good: `# Submit with required field blank`.
+
+  CRITICAL: Every `#` comment is rewritten, no exceptions. There is NO first-section exemption. The first comment in the test must be rewritten if it violates any rule — treat it identically to every other comment.
+evals:
+- id: 1
+  rules:
+  - C1
+  violation: Per-line comments — every step has its own comment
+  input: |-
+    # authenticate as the test user
+      As  Helpmetest
+
+    # open the app
+      Go To  https://helpmetest.slava.helpmetest.com/
+
+    # wait for nav to confirm auth
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # click the New Test button
+      Click  css=[data-testid="new-test-btn"]
+
+    # fill in the test name
+      Fill Text  css=[data-testid="test-name"]  my smoke test
+
+    # click save
+      Click  css=[data-testid="save-btn"]
+
+    # wait for the test to appear in the list
+      Wait For Elements State  css=[data-testid="test-list-item"]  visible  timeout=10s
+
+    # confirm the test name appears in the list
+      ${name}=  Get Text  css=[data-testid="test-list-item"]:first-child
+      Should Be Equal  ${name}  my smoke test
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Create a new test
+      Click  css=[data-testid="new-test-btn"]
+      Fill Text  css=[data-testid="test-name"]  my smoke test
+      Click  css=[data-testid="save-btn"]
+
+    # Test appears in the list with the correct name
+      Wait For Elements State  css=[data-testid="test-list-item"]  visible  timeout=10s
+      ${name}=  Get Text  css=[data-testid="test-list-item"]:first-child
+      Should Be Equal  ${name}  my smoke test
+  must_not_contain:
+  - |-
+    # authenticate as the test user
+      As  Helpmetest
+
+    # open the app
+  - |-
+    # open the app
+      Go To
+  - '# wait for nav'
+  - '# click the New Test'
+  - '# fill in the test name'
+  - '# click save'
+  - '# wait for the test to appear'
+  - '# confirm the test name'
+  must_contain:
+  - As  Helpmetest
+  - Go To
+  - Fill Text
+  - Should Be Equal  ${name}  my smoke test
+- id: 2
+  rules:
+  - C2
+  violation: Numbered comments
+  input: |-
+    # 1. Authenticate
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # 2. Open settings
+      Click  css=[data-testid="settings-link"]
+      Wait For Elements State  css=h1  visible  timeout=10s
+
+    # 3. Change display name
+      Fill Text  css=[data-testid="display-name"]  New Name
+      Click  css=[data-testid="save-settings"]
+
+    # 4. Confirm save banner appears
+      Wait For Elements State  css=[data-testid="save-success"]  visible  timeout=5s
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Update display name in settings
+      Click  css=[data-testid="settings-link"]
+      Wait For Elements State  css=h1  visible  timeout=10s
+      Fill Text  css=[data-testid="display-name"]  New Name
+      Click  css=[data-testid="save-settings"]
+
+    # Settings saved successfully
+      Wait For Elements State  css=[data-testid="save-success"]  visible  timeout=5s
+  must_not_contain:
+  - '# 1.'
+  - '# 2.'
+  - '# 3.'
+  - '# 4.'
+  - '# 1 '
+  - '# 2 '
+  - '# 3 '
+  - '# 4 '
+  must_contain:
+  - As  Helpmetest
+  - Fill Text  css=[data-testid="display-name"]  New Name
+  - Wait For Elements State  css=[data-testid="save-success"]
+- id: 3
+  rules:
+  - C3
+  violation: Decorated comments with dashes and equals signs
+  input: |-
+    # === SETUP ===
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # --- trigger the export ---
+      Click  css=[data-testid="export-btn"]
+      Wait For Elements State  css=[data-testid="export-modal"]  visible  timeout=5s
+      Click  css=[data-testid="export-csv"]
+
+    # === VERIFY ===
+      Wait For Elements State  css=[data-testid="download-ready"]  visible  timeout=15s
+      ${label}=  Get Text  css=[data-testid="download-ready"]
+      Should Contain  ${label}  ready
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Trigger CSV export
+      Click  css=[data-testid="export-btn"]
+      Wait For Elements State  css=[data-testid="export-modal"]  visible  timeout=5s
+      Click  css=[data-testid="export-csv"]
+
+    # Export completes and download becomes available
+      Wait For Elements State  css=[data-testid="download-ready"]  visible  timeout=15s
+      ${label}=  Get Text  css=[data-testid="download-ready"]
+      Should Contain  ${label}  ready
+  must_not_contain:
+  - ===
+  - '---'
+  - '# === SETUP'
+  - '# --- trigger'
+  - '# === VERIFY'
+  must_contain:
+  - Click  css=[data-testid="export-btn"]
+  - Should Contain  ${label}  ready
+- id: 4
+  rules:
+  - C4
+  violation: Implementation narration — comments describe code operations, not test/product intent
+  input: |-
+    # call the fetch API to get runs with status PASS
+      ${run_id}=  Javascript    (async ()=>{ const r=await fetch('/api/test/runs?tests=smoke&limit=1&status=PASS'); const d=await r.json(); return d.runs[0].id; })()
+
+    # assert run_id is not the string no-run
+      Should Not Be Equal  ${run_id}  no-run  no passing run found
+
+    # construct the replay URL from the run_id
+      ${url}=  Set Variable  https://helpmetest.slava.helpmetest.com/test/smoke/${run_id}
+
+    # navigate to the constructed URL
+      Go To  ${url}
+      Wait For Elements State  css=.replay-player-container  visible  timeout=20s
+
+    # read the currentSrc property of the video element
+      ${src}=  Javascript    (()=>{ const v=document.querySelector('video'); return v?v.currentSrc:'no-el'; })()
+
+    # assert src contains /api/video/
+      Should Contain  ${src}  /api/video/  video not using API URL
+  expected_output: |-
+    # Find a recent passing run to replay
+      ${run_id}=  Javascript    (async ()=>{ const r=await fetch('/api/test/runs?tests=smoke&limit=1&status=PASS'); const d=await r.json(); return d.runs[0].id; })()
+      Should Not Be Equal  ${run_id}  no-run  no passing run found
+
+    # Replay page loads for the run
+      ${url}=  Set Variable  https://helpmetest.slava.helpmetest.com/test/smoke/${run_id}
+      Go To  ${url}
+      Wait For Elements State  css=.replay-player-container  visible  timeout=20s
+
+    # Video is served from the API, not a blob or inline source
+      ${src}=  Javascript    (()=>{ const v=document.querySelector('video'); return v?v.currentSrc:'no-el'; })()
+      Should Contain  ${src}  /api/video/  video not using API URL
+  must_not_contain:
+  - '# call the fetch API'
+  - '# assert run_id'
+  - '# construct the replay URL'
+  - '# navigate to the constructed URL'
+  - '# read the currentSrc property'
+  - '# assert src contains'
+  must_contain:
+  - Should Not Be Equal  ${run_id}  no-run
+  - Should Contain  ${src}  /api/video/
+- id: 5
+  rules:
+  - C5
+  violation: Comments narrate what the keyword already says
+  input: |-
+    # navigate to the login page
+      Go To  https://helpmetest.slava.helpmetest.com/login
+
+    # wait for the email input to be visible
+      Wait For Elements State  css=[data-testid="email"]  visible  timeout=10s
+
+    # fill email into the email field
+      Fill Text  css=[data-testid="email"]  helpmetest_automation
+
+    # fill password into the password field
+      Fill Text  css=[data-testid="password"]  secret
+
+    # click the login button
+      Click  css=[data-testid="login-btn"]
+
+    # wait for the dashboard heading to be visible
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # get the text of the h1 element
+      ${heading}=  Get Text  css=h1
+
+    # assert heading equals Dashboard
+      Should Be Equal  ${heading}  Dashboard
+  expected_output: |-
+    # Log in with automation credentials
+      Go To  https://helpmetest.slava.helpmetest.com/login
+      Wait For Elements State  css=[data-testid="email"]  visible  timeout=10s
+      Fill Text  css=[data-testid="email"]  helpmetest_automation
+      Fill Text  css=[data-testid="password"]  secret
+      Click  css=[data-testid="login-btn"]
+
+    # Login succeeds and lands on the Dashboard
+      Wait For Elements State  css=h1  visible  timeout=15s
+      ${heading}=  Get Text  css=h1
+      Should Be Equal  ${heading}  Dashboard
+  must_not_contain:
+  - |
+    # navigate to the login page
+  - '# wait for the email input'
+  - '# fill email into'
+  - '# fill password into'
+  - '# click the login button'
+  - '# wait for the dashboard heading'
+  - '# get the text of'
+  - '# assert heading'
+  must_contain:
+  - Fill Text  css=[data-testid="email"]
+  - Should Be Equal  ${heading}  Dashboard
+  note: must_not_contain uses exact line endings where needed — model may extend a comment with product context (e.g. "and
+    authenticate") which is acceptable
+- id: 6
+  rules:
+  - C6
+  violation: Per-assertion comments describe the check instead of naming the invariant
+  input: |-
+    # fetch the last segment and check the ftyp box
+      ${seg}=  Javascript    (async ()=>{ const r=await fetch('/api/video/run-1/4'); const b=new Uint8Array(await r.arrayBuffer()); return String.fromCharCode(b[4],b[5],b[6],b[7]); })()
+
+    # ftyp=ftyp means the segment is a valid self-contained MP4 container
+      Should Be Equal  ${seg}  ftyp  segment box wrong: ${seg}
+
+    # get the video dimensions after metadata loads
+      ${dims}=  Javascript    (async ()=>{ const v=document.querySelector('video'); await new Promise(r=>{v.addEventListener('loadedmetadata',r,{once:true});}); return v.videoWidth+'x'+v.videoHeight; })()
+
+    # 1280x800 means the codec decoded a real desktop frame, not a black frame
+      Should Be Equal  ${dims}  1280x800  wrong dims: ${dims}
+  expected_output: |-
+    # Last segment is a valid self-contained MP4 container
+      ${seg}=  Javascript    (async ()=>{ const r=await fetch('/api/video/run-1/4'); const b=new Uint8Array(await r.arrayBuffer()); return String.fromCharCode(b[4],b[5],b[6],b[7]); })()
+      Should Be Equal  ${seg}  ftyp  segment box wrong: ${seg}
+
+    # Video decodes real desktop frames at expected resolution
+      ${dims}=  Javascript    (async ()=>{ const v=document.querySelector('video'); await new Promise(r=>{v.addEventListener('loadedmetadata',r,{once:true});}); return v.videoWidth+'x'+v.videoHeight; })()
+      Should Be Equal  ${dims}  1280x800  wrong dims: ${dims}
+  must_not_contain:
+  - '# fetch the last segment and check'
+  - '# ftyp=ftyp means'
+  - '# get the video dimensions'
+  - '# 1280x800 means'
+  must_contain:
+  - Should Be Equal  ${seg}  ftyp
+  - Should Be Equal  ${dims}  1280x800
+- id: 7
+  rules:
+  - C7
+  violation: Single section comment owns 12+ steps with no sub-comment
+  input: |-
+    # Verify the full checkout flow
+      Click  css=[data-testid="cart-icon"]
+      Wait For Elements State  css=[data-testid="cart-drawer"]  visible  timeout=5s
+      ${count}=  Get Text  css=[data-testid="cart-count"]
+      Should Be Equal  ${count}  3
+      Click  css=[data-testid="checkout-btn"]
+      Wait For Elements State  css=[data-testid="checkout-form"]  visible  timeout=10s
+      Fill Text  css=[data-testid="card-number"]  4242424242424242
+      Fill Text  css=[data-testid="card-expiry"]  12/28
+      Fill Text  css=[data-testid="card-cvc"]  123
+      Fill Text  css=[data-testid="billing-name"]  Test User
+      Click  css=[data-testid="place-order-btn"]
+      Wait For Elements State  css=[data-testid="order-confirmation"]  visible  timeout=20s
+      ${order_id}=  Get Text  css=[data-testid="order-id"]
+      Should Match Regexp  ${order_id}  ^ORD-\d+$
+  expected_output: |-
+    # Cart has the expected items
+      Click  css=[data-testid="cart-icon"]
+      Wait For Elements State  css=[data-testid="cart-drawer"]  visible  timeout=5s
+      ${count}=  Get Text  css=[data-testid="cart-count"]
+      Should Be Equal  ${count}  3
+
+    # Fill payment details and place order
+      Click  css=[data-testid="checkout-btn"]
+      Wait For Elements State  css=[data-testid="checkout-form"]  visible  timeout=10s
+      Fill Text  css=[data-testid="card-number"]  4242424242424242
+      Fill Text  css=[data-testid="card-expiry"]  12/28
+      Fill Text  css=[data-testid="card-cvc"]  123
+      Fill Text  css=[data-testid="billing-name"]  Test User
+      Click  css=[data-testid="place-order-btn"]
+
+    # Order is confirmed with a valid order ID
+      Wait For Elements State  css=[data-testid="order-confirmation"]  visible  timeout=20s
+      ${order_id}=  Get Text  css=[data-testid="order-id"]
+      Should Match Regexp  ${order_id}  ^ORD-\d+$
+  must_not_contain:
+  - '# Verify the full checkout flow'
+  must_contain:
+  - Should Be Equal  ${count}  3
+  - Should Match Regexp  ${order_id}
+- id: 8
+  rules:
+  - C1
+  - C4
+  - C5
+  - C6
+  violation: Realistic full-test case — all violations combined (modelled on desktop-replay-quality)
+  input: |-
+    # authenticate as the helpmetest test user
+      As  Helpmetest
+
+    # open the helpmetest app
+      Go To  https://helpmetest.slava.helpmetest.com/
+
+    # confirm nav is visible (auth is active)
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # get the latest passing desktop-smoke-demo run id
+      ${run_id}=  Javascript    (async ()=>{ const r=await fetch('/api/test/runs?tests=desktop-smoke-demo&limit=1&status=PASS'); const d=await r.json(); if(!d||!d.runs||!d.runs[0]) return 'no-run'; const row=d.runs[0]; return row.company+'__'+row.test+'__'+String(row.timestamp); })()
+
+    # run_id must contain the current year — confirms a real run was found
+      Should Contain  ${run_id}  2026  run_id invalid: ${run_id}
+
+    # fetch the HLS manifest and return segment count as a compact string
+      ${manifest_info}=  Javascript    (async ()=>{ const r=await fetch('/api/video/'+encodeURIComponent('${run_id}')+'/playlist.m3u8'); if(!r.ok) return 'HTTP-'+r.status; const m=await r.text(); if(!m.includes('#EXTM3U')) return 'no-EXTM3U'; const cnt=(m.match(/#EXTINF/g)||[]).length; return cnt?'ok|'+cnt:'no-EXTINF'; })()
+
+    # manifest_info must start with ok
+      Should Start With  ${manifest_info}  ok  manifest check failed: ${manifest_info}
+
+    # extract the segment count (second token after ok|)
+      ${seg_count}=  Javascript    Number('${manifest_info}'.split('|')[1])
+
+    # segment count must be positive
+      Should Be True  ${seg_count} > 0  manifest has zero segments
+
+    # compute the last segment index as seg_count minus 1
+      ${last_idx}=  Javascript    String(Number('${seg_count}')-1)
+
+    # fetch the last segment and validate ftyp box and minimum size
+      ${seg_info}=  Javascript    (async ()=>{ const r=await fetch('/api/video/'+encodeURIComponent('${run_id}')+'/${last_idx}'); if(!r.ok) return 'HTTP-'+r.status; const b=new Uint8Array(await r.arrayBuffer()); const ftyp=String.fromCharCode(b[4]||0,b[5]||0,b[6]||0,b[7]||0); return 'ftyp='+ftyp+'|size='+b.length; })()
+
+    # ftyp=ftyp confirms a valid self-contained MP4 container
+      Should Contain  ${seg_info}  ftyp=ftyp  segment not a valid MP4: ${seg_info}
+
+    # segment must be at least 1000 bytes — confirms real encoded video data
+      Should Not Contain  ${seg_info}  size=0  segment is empty: ${seg_info}
+
+    # extract the timestamp for the replay URL
+      ${ts}=  Javascript    '${run_id}'.split('__').slice(2).join('__')
+
+    # navigate to the replay page for this run
+      Go To  https://helpmetest.slava.helpmetest.com/test/desktop-smoke-demo/${ts}
+
+    # video element must appear in the player container
+      Wait For Elements State  css=.replay-player-container video  visible  timeout=20s
+
+    # check whether the welcome overlay is visible
+      ${overlay}=  Javascript    (()=>{ const el=document.querySelector('.welcome-screen'); if(!el) return 'absent'; const s=window.getComputedStyle(el); return s.display==='none'||s.visibility==='hidden'||s.opacity==='0'?'hidden':'visible'; })()
+
+    # overlay must be hidden for desktop recordings
+      Should Not Be Equal  ${overlay}  visible  welcome overlay visible for desktop recording
+
+    # wait for video metadata then read frame dimensions
+      ${dims}=  Javascript    (async ()=>{ const v=document.querySelector('.replay-player-container video'); if(!v) return 'no-el'; await new Promise(res=>{if(v.readyState>=1)return res();v.addEventListener('loadedmetadata',res,{once:true});setTimeout(res,5000);}); return v.videoWidth+'x'+v.videoHeight; })()
+
+    # 1280x800 confirms the codec decoded real frame data
+      Should Be Equal  ${dims}  1280x800  wrong dimensions (0x0=black frame): ${dims}
+
+    # click play to start playback
+      Click  css=.banner-playpause
+
+    # wait for the playing event or timeout
+      ${playback}=  Javascript    (async ()=>{ const v=document.querySelector('.replay-player-container video'); if(!v) return 'no-el'; await new Promise(res=>{if(!v.paused&&v.readyState>=2)return res();v.addEventListener('playing',res,{once:true});setTimeout(res,8000);}); return !v.paused&&v.readyState>=2?'playing':'paused readyState='+v.readyState; })()
+
+    # video must be in playing state
+      Should Be Equal  ${playback}  playing  video not playing: ${playback}
+
+    # read the video element source URL
+      ${src}=  Javascript    (()=>{ const v=document.querySelector('.replay-player-container video'); return v?v.currentSrc||v.src||'no-src':'no-el'; })()
+
+    # src must be an API URL not a base64 blob
+      Should Contain  ${src}  /api/video/  video src must be an API URL: ${src}
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Find a recent passing run to replay
+      ${run_id}=  Javascript    (async ()=>{ ... })()
+      Should Contain  ${run_id}  2026  run_id invalid: ${run_id}
+
+    # Manifest is valid and has at least one segment
+      ${manifest_info}=  Javascript    (async ()=>{ ... })()
+      Should Start With  ${manifest_info}  ok  manifest check failed: ${manifest_info}
+      ${seg_count}=  Javascript    Number('${manifest_info}'.split('|')[1])
+      Should Be True  ${seg_count} > 0  manifest has zero segments
+
+    # Last segment is a valid non-empty MP4 container
+      ${last_idx}=  Javascript    String(Number('${seg_count}')-1)
+      ${seg_info}=  Javascript    (async ()=>{ ... })()
+      Should Contain  ${seg_info}  ftyp=ftyp  segment not a valid MP4: ${seg_info}
+      Should Not Contain  ${seg_info}  size=0  segment is empty: ${seg_info}
+
+    # Replay page loads with real video
+      ${ts}=  Javascript    '${run_id}'.split('__').slice(2).join('__')
+      Go To  https://helpmetest.slava.helpmetest.com/test/desktop-smoke-demo/${ts}
+      Wait For Elements State  css=.replay-player-container video  visible  timeout=20s
+      ${overlay}=  Javascript    (()=>{ ... })()
+      Should Not Be Equal  ${overlay}  visible  welcome overlay visible for desktop recording
+
+    # Video decodes real desktop frames at expected resolution
+      ${dims}=  Javascript    (async ()=>{ ... })()
+      Should Be Equal  ${dims}  1280x800  wrong dimensions (0x0=black frame): ${dims}
+
+    # Video plays when started
+      Click  css=.banner-playpause
+      ${playback}=  Javascript    (async ()=>{ ... })()
+      Should Be Equal  ${playback}  playing  video not playing: ${playback}
+      ${src}=  Javascript    (()=>{ ... })()
+      Should Contain  ${src}  /api/video/  video src must be an API URL: ${src}
+  must_not_contain:
+  - |+
+    # authenticate as the helpmetest test user
+      As  Helpmetest
+
+  - '# open the helpmetest app'
+  - '# confirm nav is visible'
+  - '# get the latest passing'
+  - '# run_id must contain'
+  - '# fetch the HLS manifest'
+  - '# manifest_info must start'
+  - '# extract the segment count'
+  - '# segment count must be positive'
+  - '# compute the last segment index'
+  - '# fetch the last segment and validate'
+  - '# ftyp=ftyp confirms'
+  - '# segment must be at least'
+  - '# extract the timestamp'
+  - '# navigate to the replay page'
+  - '# video element must appear'
+  - '# check whether the welcome overlay'
+  - '# overlay must be hidden'
+  - '# wait for video metadata'
+  - '# 1280x800 confirms'
+  - '# click play to start'
+  - '# wait for the playing event'
+  - '# video must be in playing state'
+  - '# read the video element source'
+  - '# src must be an API URL'
+  must_contain:
+  - As  Helpmetest
+  - Should Contain  ${run_id}  2026
+  - Should Start With  ${manifest_info}  ok
+  - Should Contain  ${seg_info}  ftyp=ftyp
+  - Should Be Equal  ${dims}  1280x800
+  - Should Be Equal  ${playback}  playing
+  - Should Contain  ${src}  /api/video/
+- id: 9
+  rules: []
+  violation: none — already correct, must pass through unchanged
+  input: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Create a new test
+      Click  css=[data-testid="new-test-btn"]
+      Fill Text  css=[data-testid="test-name"]  my smoke test
+      Click  css=[data-testid="save-btn"]
+
+    # Test appears in the list with the correct name
+      Wait For Elements State  css=[data-testid="test-list-item"]  visible  timeout=10s
+      ${name}=  Get Text  css=[data-testid="test-list-item"]:first-child
+      Should Be Equal  ${name}  my smoke test
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Create a new test
+      Click  css=[data-testid="new-test-btn"]
+      Fill Text  css=[data-testid="test-name"]  my smoke test
+      Click  css=[data-testid="save-btn"]
+
+    # Test appears in the list with the correct name
+      Wait For Elements State  css=[data-testid="test-list-item"]  visible  timeout=10s
+      ${name}=  Get Text  css=[data-testid="test-list-item"]:first-child
+      Should Be Equal  ${name}  my smoke test
+  must_not_contain: []
+  must_contain:
+  - As  Helpmetest
+  - Go To  https://helpmetest.slava.helpmetest.com/
+  - Fill Text  css=[data-testid="test-name"]  my smoke test
+  - Should Be Equal  ${name}  my smoke test
+  note: Already-correct test. Only keywords must survive unchanged. Comment wording may be improved by the model.
+- id: 10
+  rules:
+  - C8
+  violation: Section comments use verify/check/assert/validate
+  input: |-
+    # verify auth is working
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # check that the form submits correctly
+      Fill Text  css=[data-testid="name"]  Jane
+      Fill Text  css=[data-testid="email"]  jane@example.com
+      Click  css=[data-testid="submit"]
+
+    # assert the confirmation message appears
+      Wait For Elements State  css=[data-testid="confirmation"]  visible  timeout=10s
+      ${msg}=  Get Text  css=[data-testid="confirmation"]
+      Should Contain  ${msg}  Thank you
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Submit contact form with valid details
+      Fill Text  css=[data-testid="name"]  Jane
+      Fill Text  css=[data-testid="email"]  jane@example.com
+      Click  css=[data-testid="submit"]
+
+    # Submission confirmed with a thank-you message
+      Wait For Elements State  css=[data-testid="confirmation"]  visible  timeout=10s
+      ${msg}=  Get Text  css=[data-testid="confirmation"]
+      Should Contain  ${msg}  Thank you
+  must_not_contain:
+  - '# verify '
+  - '# check '
+  - '# assert '
+  - '# validate '
+  must_contain:
+  - Should Contain  ${msg}  Thank you
+  - Fill Text  css=[data-testid="name"]  Jane
+- id: 11
+  rules:
+  - C9
+  violation: Generic labels — pre-conditions, test step N, expected result
+  input: |-
+    # pre-conditions
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/projects
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # test step 1
+      Click  css=[data-testid="new-project"]
+      Wait For Elements State  css=[data-testid="project-form"]  visible  timeout=5s
+
+    # test step 2
+      Fill Text  css=[data-testid="project-name"]  Alpha
+      Click  css=[data-testid="create"]
+
+    # expected result
+      Wait For Elements State  css=[data-testid="project-card"]  visible  timeout=10s
+      ${title}=  Get Text  css=[data-testid="project-card"]:first-child h2
+      Should Be Equal  ${title}  Alpha
+  expected_output: |-
+    # Open the projects list as an authenticated user
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/projects
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # Create a new project named Alpha
+      Click  css=[data-testid="new-project"]
+      Wait For Elements State  css=[data-testid="project-form"]  visible  timeout=5s
+      Fill Text  css=[data-testid="project-name"]  Alpha
+      Click  css=[data-testid="create"]
+
+    # New project appears in the list with the correct name
+      Wait For Elements State  css=[data-testid="project-card"]  visible  timeout=10s
+      ${title}=  Get Text  css=[data-testid="project-card"]:first-child h2
+      Should Be Equal  ${title}  Alpha
+  must_not_contain:
+  - '# pre-conditions'
+  - '# test step 1'
+  - '# test step 2'
+  - '# expected result'
+  must_contain:
+  - Should Be Equal  ${title}  Alpha
+  - Fill Text  css=[data-testid="project-name"]  Alpha
+- id: 12
+  rules:
+  - C10
+  violation: Past tense and future tense comments
+  input: |-
+    # logged in as automation user
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # navigated to the billing page
+      Click  css=[data-testid="billing-link"]
+      Wait For Elements State  css=h1  visible  timeout=10s
+
+    # will update the card on file
+      Click  css=[data-testid="update-card"]
+      Fill Text  css=[data-testid="card-number"]  4242424242424242
+      Click  css=[data-testid="save-card"]
+
+    # card was saved successfully
+      Wait For Elements State  css=[data-testid="card-saved"]  visible  timeout=5s
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Open billing settings
+      Click  css=[data-testid="billing-link"]
+      Wait For Elements State  css=h1  visible  timeout=10s
+
+    # Update the card on file
+      Click  css=[data-testid="update-card"]
+      Fill Text  css=[data-testid="card-number"]  4242424242424242
+      Click  css=[data-testid="save-card"]
+
+    # Card saved with confirmation
+      Wait For Elements State  css=[data-testid="card-saved"]  visible  timeout=5s
+  must_not_contain:
+  - '# logged in'
+  - '# navigated to'
+  - '# will update'
+  - '# card was saved'
+  must_contain:
+  - Fill Text  css=[data-testid="card-number"]  4242424242424242
+  - Wait For Elements State  css=[data-testid="card-saved"]
+- id: 13
+  rules:
+  - C11
+  violation: Selector and variable names leaked into comments
+  input: |-
+    # wait for css=nav to be visible after As Helpmetest
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # click data-testid=replay-btn and wait for .replay-player-container video
+      Click  css=[data-testid="replay-btn"]
+      Wait For Elements State  css=.replay-player-container video  visible  timeout=20s
+
+    # read videoWidth and videoHeight from the video element
+      ${dims}=  Javascript    (()=>{ const v=document.querySelector("video"); return v.videoWidth+"x"+v.videoHeight; })()
+      Should Be Equal  ${dims}  1280x800  wrong dims: ${dims}
+  expected_output: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/
+      Wait For Elements State  css=nav  visible  timeout=15s
+
+    # Open a replay and wait for the player to load
+      Click  css=[data-testid="replay-btn"]
+      Wait For Elements State  css=.replay-player-container video  visible  timeout=20s
+
+    # Video decodes at expected desktop resolution
+      ${dims}=  Javascript    (()=>{ const v=document.querySelector("video"); return v.videoWidth+"x"+v.videoHeight; })()
+      Should Be Equal  ${dims}  1280x800  wrong dims: ${dims}
+  must_not_contain:
+  - '# wait for css='
+  - '# wait for .replay'
+  - '# read videoWidth'
+  - '# read videoHeight'
+  - '# click data-testid'
+  must_contain:
+  - Should Be Equal  ${dims}  1280x800
+  - Wait For Elements State  css=.replay-player-container video
+  note: must_not_contain checks comment lines only — videoWidth/videoHeight in JS keyword arguments are legitimate
+- id: 14
+  rules:
+  - C12
+  violation: Section comment restates the test name instead of adding specificity
+  input: |-
+    # user deletes their account
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/settings
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # delete the account
+      Click  css=[data-testid="danger-zone"]
+      Click  css=[data-testid="delete-account"]
+      Wait For Elements State  css=[data-testid="confirm-dialog"]  visible  timeout=5s
+      Fill Text  css=[data-testid="confirm-input"]  DELETE
+      Click  css=[data-testid="confirm-delete"]
+
+    # account is deleted
+      Wait For Elements State  css=[data-testid="goodbye-screen"]  visible  timeout=10s
+      ${url}=  Get Location
+      Should Contain  ${url}  /goodbye
+  expected_output: |-
+    # Open account danger zone in settings
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/settings
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # Confirm deletion by typing DELETE in the confirmation dialog
+      Click  css=[data-testid="danger-zone"]
+      Click  css=[data-testid="delete-account"]
+      Wait For Elements State  css=[data-testid="confirm-dialog"]  visible  timeout=5s
+      Fill Text  css=[data-testid="confirm-input"]  DELETE
+      Click  css=[data-testid="confirm-delete"]
+
+    # Redirected to goodbye screen after deletion
+      Wait For Elements State  css=[data-testid="goodbye-screen"]  visible  timeout=10s
+      ${url}=  Get Location
+      Should Contain  ${url}  /goodbye
+  must_not_contain:
+  - '# user deletes their account'
+  - |
+    # delete the account
+  - |
+    # account is deleted
+  must_contain:
+  - Fill Text  css=[data-testid="confirm-input"]  DELETE
+  - Should Contain  ${url}  /goodbye
+- id: 15
+  rules:
+  - C13
+  violation: Error path comment names the action, not the expected failure
+  input: |-
+    # Auth and open the app
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/signup
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # submit the form
+      Fill Text  css=[data-testid="email"]  not-an-email
+      Fill Text  css=[data-testid="password"]  short
+      Click  css=[data-testid="signup-btn"]
+
+    # error messages appear
+      Wait For Elements State  css=[data-testid="email-error"]  visible  timeout=5s
+      ${email_err}=  Get Text  css=[data-testid="email-error"]
+      Should Contain  ${email_err}  valid email
+      ${pass_err}=  Get Text  css=[data-testid="password-error"]
+      Should Contain  ${pass_err}  8 characters
+  expected_output: |-
+    # Auth and open the signup form
+      As  Helpmetest
+      Go To  https://helpmetest.slava.helpmetest.com/signup
+      Wait For Elements State  css=h1  visible  timeout=15s
+
+    # Submit with an invalid email and a too-short password
+      Fill Text  css=[data-testid="email"]  not-an-email
+      Fill Text  css=[data-testid="password"]  short
+      Click  css=[data-testid="signup-btn"]
+
+    # Inline validation errors name the specific problem
+      Wait For Elements State  css=[data-testid="email-error"]  visible  timeout=5s
+      ${email_err}=  Get Text  css=[data-testid="email-error"]
+      Should Contain  ${email_err}  valid email
+      ${pass_err}=  Get Text  css=[data-testid="password-error"]
+      Should Contain  ${pass_err}  8 characters
+  must_not_contain:
+  - |
+    # submit the form
+  - |
+    # error messages appear
+  must_contain:
+  - Fill Text  css=[data-testid="email"]  not-an-email
+  - Should Contain  ${pass_err}  8 characters

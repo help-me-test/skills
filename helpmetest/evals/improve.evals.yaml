@@ -1,0 +1,462 @@
+skill: helpmetest
+mode: improve
+strip_rf_preamble: false
+output_constraints: |-
+  Rules for your response:
+  - Output the complete improved test in exactly this format, with all three delimiters present:
+      [DESCRIPTION]
+      <four lines: Given / When / Then / Risk>
+      [/DESCRIPTION]
+
+      [TAGS]
+      <space-separated tags>
+      [/TAGS]
+
+      [BODY]
+      <Robot Framework test body>
+      [/BODY]
+  - No prose, no markdown fences, no explanation outside the delimiters.
+  - If all criteria are already satisfied, output the definition exactly as given — unchanged.
+  - Do NOT echo or repeat the input before the output. Start immediately with [DESCRIPTION].
+description: >-
+  Evals for the improve mode — verifies that I1–I6 criteria are correctly applied
+  when auditing and rewriting test definitions. Each case provides a test definition
+  in [DESCRIPTION]/[TAGS]/[BODY] format and checks the improved output mechanically.
+prompt_preamble: |-
+  You are applying the improve mode to a test definition. Rewrite the definition so
+  all failing criteria are fixed. Apply every criterion — do not skip any.
+
+  The test is provided in this format:
+    [DESCRIPTION]
+    <description text or empty>
+    [/DESCRIPTION]
+
+    [TAGS]
+    <space-separated tags or empty>
+    [/TAGS]
+
+    [BODY]
+    <Robot Framework test body>
+    [/BODY]
+
+  Output the complete improved test in exactly the same format.
+
+  Criteria (apply ALL that are violated):
+
+  I1  Description must have exactly four lines, each starting with its label and a colon:
+        Given: <specific system state before the action — not vague like "user is logged in">
+        When: <exact user action taken in this test>
+        Then: <concrete outcome — name the values, elements, or data checked>
+        Risk: <specific user complaint if this test were deleted — must name a user, not a system>
+      Each line MUST start with exactly "Given: ", "When: ", "Then: ", "Risk: " (label + colon + space).
+      No CSS selectors, DOM paths, JS variable names, or RF keyword names in any line.
+      If the description is missing or does not have all four labelled lines, write it from scratch
+      using the test body as the source of truth.
+
+  I2  The test body must be divided into intent-based section comments following these rules:
+      - One comment covers 2–8 related steps (no per-line comments)
+      - No numbering (# 1. ...), no decorations (# === ... ===)
+      - Written in product/test context, not implementation narration
+      - `As <state>` must bundle with Go To and the first wait — never isolated
+      - Section comment names the invariant protected, not what the assertions do
+
+  I3  Inline comments are rare. Add a one-line why-comment ONLY for:
+      - A `Javascript` call whose purpose is not obvious from its shape
+      - `Wait Until Keyword Succeeds` explaining the specific race condition
+      All other steps need no individual comment. The why must be written for a
+      product manager — explains WHY, not WHAT. One line max, above the keyword.
+
+  I4  The test must contain at least one outcome assertion:
+      Should Be Equal, Should Contain, Should Not Be Equal, Should Not Contain,
+      Should Be True, Should Match Regexp, Should Start With, Should End With, etc.
+      If none exist, add one that checks a concrete state change or data value.
+
+  I5  Do not guess or invent data-testid values. When fragile selectors are found
+      (CSS class chains like .btn.primary, nth-child, deep descendant paths), output
+      a fix plan instead of replacing inline:
+        SELECTOR FIX NEEDED:
+          fragile: <the fragile selector>
+          discover: helpmetest interactive "Go To  <page-url>" --open
+          then: copy the matching selector from the Interactive section of the output
+      Do not change selectors that are already [data-testid=...], role=, or text=.
+
+  I6  Required tags: project:<name>, feature:<id>, persona:<name>, priority:<level>, url:<base-url>.
+      Add any that are missing. Infer values from the test body where possible
+      (e.g. the Go To URL gives the url: tag; the As <state> gives the persona: tag).
+
+  CRITICAL: Every `#` comment is rewritten if it violates a rule — no section is exempt.
+
+evals:
+  - id: 1
+    rules: [I1]
+    violation: No description at all — must be written from the test body
+    input: |
+      [DESCRIPTION]
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:helpmetest
+      [/TAGS]
+
+      [BODY]
+      # Auth and open the app
+        As  Helpmetest
+        Go To  https://helpmetest.slava.helpmetest.com/
+        Wait For Elements State  css=nav  visible  timeout=15s
+
+      # Create a new test
+        Click  [data-testid="new-test-btn"]
+        Fill Text  [data-testid="test-name"]  my smoke test
+        Click  [data-testid="save-btn"]
+
+      # Test appears in the list with the correct name
+        Wait For Elements State  [data-testid="test-list-item"]  visible  timeout=10s
+        ${name}=  Get Text  [data-testid="test-list-item"]:first-child
+        Should Be Equal  ${name}  my smoke test
+      [/BODY]
+    must_contain:
+      - "Given:"
+      - "When:"
+      - "Then:"
+      - "Risk:"
+      - "my smoke test"
+    must_not_contain:
+      - "[DESCRIPTION]\n[/DESCRIPTION]"
+      - "Given: css="
+      - "Given: [data-testid"
+      - "When: css="
+      - "When: [data-testid"
+      - "Then: css="
+      - "Then: [data-testid"
+
+  - id: 2
+    rules: [I1]
+    violation: Description leaks CSS selectors and RF keyword names
+    input: |
+      [DESCRIPTION]
+      Given: user is on the page
+      When: Click  [data-testid="export-btn"] and Wait For Elements State css=[data-testid="download-ready"]
+      Then: Should Contain label ready
+      Risk: export breaks
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:helpmetest
+      [/TAGS]
+
+      [BODY]
+      # Auth and open the app
+        As  Helpmetest
+        Go To  https://helpmetest.slava.helpmetest.com/exports
+        Wait For Elements State  css=h1  visible  timeout=15s
+
+      # Trigger CSV export
+        Click  [data-testid="export-btn"]
+        Wait For Elements State  [data-testid="export-modal"]  visible  timeout=5s
+        Click  [data-testid="export-csv"]
+
+      # Export completes and download becomes available
+        Wait For Elements State  [data-testid="download-ready"]  visible  timeout=15s
+        ${label}=  Get Text  [data-testid="download-ready"]
+        Should Contain  ${label}  ready
+      [/BODY]
+    must_contain:
+      - "Given:"
+      - "When:"
+      - "Then:"
+      - "Risk:"
+    must_not_contain:
+      - "Given: css="
+      - "Given: [data-testid"
+      - "When: css="
+      - "When: [data-testid"
+      - "When: Click"
+      - "Then: Should"
+      - "Then: Wait"
+
+  - id: 3
+    rules: [I2]
+    violation: Per-line comments in body — every step has its own comment
+    input: |
+      [DESCRIPTION]
+      Given: authenticated user on the billing page
+      When: user updates their saved payment card
+      Then: confirmation banner appears with "Card saved" text
+      Risk: user cannot update billing info, payment method becomes stale
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:helpmetest persona:helpmetest priority:high
+      [/TAGS]
+
+      [BODY]
+      # restore auth state
+        As  Helpmetest
+      # open the app
+        Go To  https://helpmetest.slava.helpmetest.com/
+      # wait for nav
+        Wait For Elements State  css=nav  visible  timeout=15s
+      # click billing link
+        Click  [data-testid="billing-link"]
+      # wait for billing page
+        Wait For Elements State  css=h1  visible  timeout=10s
+      # click update card
+        Click  [data-testid="update-card"]
+      # fill card number
+        Fill Text  [data-testid="card-number"]  4242424242424242
+      # save card
+        Click  [data-testid="save-card"]
+      # wait for confirmation
+        Wait For Elements State  [data-testid="card-saved"]  visible  timeout=5s
+      [/BODY]
+    must_contain:
+      - "As  Helpmetest"
+      - "Fill Text  [data-testid=\"card-number\"]  4242424242424242"
+      - "Wait For Elements State  [data-testid=\"card-saved\"]"
+    must_not_contain:
+      - "# restore auth state"
+      - "# open the app"
+      - "# wait for nav"
+      - "# click billing link"
+      - "# fill card number"
+      - "# save card"
+      - "# wait for confirmation"
+
+  - id: 4
+    rules: [I3]
+    violation: Non-obvious Javascript call with no why-comment
+    input: |
+      [DESCRIPTION]
+      Given: replay page loaded for a passing desktop run
+      When: last HLS segment is fetched and its ftyp box inspected
+      Then: ftyp box equals "ftyp" confirming a valid self-contained MP4
+      Risk: broken recording pipeline produces unplayable segments silently
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:helpmetest feature:replay persona:helpmetest priority:high
+      [/TAGS]
+
+      [BODY]
+      # Auth and open the app
+        As  Helpmetest
+        Go To  https://helpmetest.slava.helpmetest.com/
+        Wait For Elements State  css=nav  visible  timeout=15s
+
+      # Find a recent passing run to replay
+        ${run_id}=  Javascript    (async ()=>{ const r=await fetch('/api/test/runs?tests=desktop-smoke-demo&limit=1&status=PASS'); const d=await r.json(); return d.runs[0].id; })()
+        Should Contain  ${run_id}  2026  run_id invalid: ${run_id}
+
+      # Last segment is a valid self-contained MP4 container
+        ${last_idx}=  Javascript    String(Number('${seg_count}')-1)
+        ${seg}=  Javascript    (async ()=>{ const r=await fetch('/api/video/'+encodeURIComponent('${run_id}')+'/${last_idx}'); const b=new Uint8Array(await r.arrayBuffer()); return String.fromCharCode(b[4],b[5],b[6],b[7]); })()
+        Should Be Equal  ${seg}  ftyp  segment box wrong: ${seg}
+      [/BODY]
+    must_contain:
+      - "# "
+      - "Should Be Equal  ${seg}  ftyp"
+      - "String.fromCharCode"
+    must_not_contain: []
+    note: >-
+      The Javascript calls are non-obvious — the ftyp box extraction (reading bytes 4-7
+      and decoding as chars) needs a why-comment. must_contain checks only that a comment
+      exists near the JS call; exact wording varies.
+
+  - id: 5
+    rules: [I4]
+    violation: Test body has no outcome assertion — only navigation and clicks
+    input: |
+      [DESCRIPTION]
+      Given: authenticated user on the app
+      When: user opens account settings and clicks delete
+      Then: account deletion flow completes
+      Risk: delete flow is broken
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:helpmetest
+      [/TAGS]
+
+      [BODY]
+      # Auth and open account settings
+        As  Helpmetest
+        Go To  https://helpmetest.slava.helpmetest.com/settings
+        Wait For Elements State  css=h1  visible  timeout=15s
+
+      # Trigger account deletion
+        Click  [data-testid="danger-zone"]
+        Click  [data-testid="delete-account"]
+        Wait For Elements State  [data-testid="confirm-dialog"]  visible  timeout=5s
+        Fill Text  [data-testid="confirm-input"]  DELETE
+        Click  [data-testid="confirm-delete"]
+      [/BODY]
+    must_contain:
+      - "Should"
+    must_not_contain: []
+
+  - id: 6
+    rules: [I5]
+    violation: Fragile CSS class-chain selectors — model must identify and emit discover commands, not guess testids
+    input: |
+      [DESCRIPTION]
+      Given: authenticated user with items in cart
+      When: user proceeds through checkout and places order
+      Then: order confirmation page appears with a valid order ID
+      Risk: checkout flow is broken and users cannot complete purchases
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:shop feature:checkout persona:buyer priority:critical url:https://shop.example.com
+      [/TAGS]
+
+      [BODY]
+      # Auth and open the app
+        As  Buyer
+        Go To  https://shop.example.com/
+        Wait For Elements State  css=nav  visible  timeout=15s
+
+      # Open cart and proceed to checkout
+        Click  css=.nav-bar .cart-icon.active
+        Wait For Elements State  css=.drawer.cart-drawer  visible  timeout=5s
+        Click  css=.cart-drawer .btn.primary.checkout-btn
+
+      # Fill payment details and place order
+        Wait For Elements State  css=.checkout-form.step-payment  visible  timeout=10s
+        Fill Text  css=.checkout-form input.card-number-field  4242424242424242
+        Click  css=.checkout-form .btn.submit.place-order
+      [/BODY]
+    must_contain:
+      - "SELECTOR FIX NEEDED"
+      - "helpmetest interactive"
+      - "Go To  https://shop.example.com"
+      - "Interactive section"
+    must_not_contain:
+      - "[data-testid=\"cart-icon\"]"
+      - "[data-testid=\"checkout-btn\"]"
+      - "[data-testid=\"card-number\"]"
+
+  - id: 7
+    rules: [I6]
+    violation: All required tags missing
+    input: |
+      [DESCRIPTION]
+      Given: authenticated user on the projects list
+      When: user creates a new project named Alpha
+      Then: new project card appears in the list with title Alpha
+      Risk: project creation is broken and users cannot organise their tests
+      [/DESCRIPTION]
+
+      [TAGS]
+      [/TAGS]
+
+      [BODY]
+      # Open the projects list as an authenticated user
+        As  Helpmetest
+        Go To  https://helpmetest.slava.helpmetest.com/projects
+        Wait For Elements State  css=h1  visible  timeout=15s
+
+      # Create a new project named Alpha
+        Click  [data-testid="new-project"]
+        Fill Text  [data-testid="project-name"]  Alpha
+        Click  [data-testid="create"]
+
+      # New project appears in the list with the correct name
+        Wait For Elements State  [data-testid="project-card"]  visible  timeout=10s
+        ${title}=  Get Text  [data-testid="project-card"]:first-child h2
+        Should Be Equal  ${title}  Alpha
+      [/BODY]
+    must_contain:
+      - "project:"
+      - "persona:"
+      - "priority:"
+      - "url:"
+    must_not_contain:
+      - "[TAGS]\n[/TAGS]"
+
+  - id: 8
+    rules: [I1, I2, I4, I6]
+    violation: Multiple criteria failing — no description, per-line comments, no assertions, missing tags
+    input: |
+      [DESCRIPTION]
+      [/DESCRIPTION]
+
+      [TAGS]
+      [/TAGS]
+
+      [BODY]
+      # restore auth
+        As  Helpmetest
+      # go to signup
+        Go To  https://helpmetest.slava.helpmetest.com/signup
+      # wait for form
+        Wait For Elements State  css=h1  visible  timeout=15s
+      # fill email
+        Fill Text  [data-testid="email"]  newuser@example.com
+      # fill password
+        Fill Text  [data-testid="password"]  SecurePass123
+      # click submit
+        Click  [data-testid="signup-btn"]
+      # wait for dashboard
+        Wait For Elements State  css=nav  visible  timeout=20s
+      [/BODY]
+    must_contain:
+      - "Given:"
+      - "When:"
+      - "Then:"
+      - "Risk:"
+      - "project:"
+      - "url:"
+      - "Should"
+      - "As  Helpmetest"
+      - "Fill Text  [data-testid=\"email\"]  newuser@example.com"
+    must_not_contain:
+      - "# restore auth"
+      - "# go to signup"
+      - "# fill email"
+      - "# fill password"
+      - "# click submit"
+      - "# wait for dashboard"
+      - "[DESCRIPTION]\n[/DESCRIPTION]"
+
+  - id: 9
+    rules: []
+    violation: none — already correct, must pass through unchanged
+    input: |
+      [DESCRIPTION]
+      Given: authenticated user on the app home page
+      When: user creates a new test named "my smoke test" using the new test button
+      Then: the test appears in the list and its title matches "my smoke test"
+      Risk: test creation is broken and engineers cannot add tests without using the browser
+      [/DESCRIPTION]
+
+      [TAGS]
+      project:helpmetest feature:test-management persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com
+      [/TAGS]
+
+      [BODY]
+      # Auth and open the app
+        As  Helpmetest
+        Go To  https://helpmetest.slava.helpmetest.com/
+        Wait For Elements State  css=nav  visible  timeout=15s
+
+      # Create a new test
+        Click  [data-testid="new-test-btn"]
+        Fill Text  [data-testid="test-name"]  my smoke test
+        Click  [data-testid="save-btn"]
+
+      # Test appears in the list with the correct name
+        Wait For Elements State  [data-testid="test-list-item"]  visible  timeout=10s
+        ${name}=  Get Text  [data-testid="test-list-item"]
+        Should Be Equal  ${name}  my smoke test
+      [/BODY]
+    must_contain:
+      - "Given:"
+      - "When:"
+      - "Then:"
+      - "Risk:"
+      - "project:helpmetest"
+      - "my smoke test"
+      - "Should Be Equal  ${name}  my smoke test"
+    must_not_contain:
+      - "Given: css="
+      - "Given: [data-testid"
