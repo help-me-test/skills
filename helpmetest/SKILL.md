@@ -1,7 +1,7 @@
 ---
 name: helpmetest
-description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
-argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | report | proxy | api | ui | onboard | <task>]"
+description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), improve (audit + rewrite tests in place — adds descriptions, section comments, inline comments, fixes selectors and tags), comment (rewrite test comments to quality standard — grouped by intent, no per-line narration), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
+argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | improve | comment | report | proxy | api | ui | onboard | <task>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -33,6 +33,8 @@ Parse the first remaining token:
 | `coverage` | **coverage** — gap analysis: what scenarios have no tests |
 | `regression` | **regression** — run tests affected by a named set of changed files |
 | `validate` | **validate** — score existing tests against R1-R13 quality rules. Outputs `ValidationReport` artifact with grade distribution (A/B/C/D/F), R11-R13 failures, and action queue (ship/rewrite/delete).
+| `improve` | **improve** — audit every test against I1-I6 criteria (description, section comments, inline comments, assertions, selectors, tags), then rewrite and re-run each failing test in place. The only mode that both critiques and fixes.
+| `comment` | **comment** — audit and rewrite test comments only (C1–C7 rules): group per-line comments into intent-based sections, remove numbering and decorations, replace implementation narration with product-context headings, name invariants instead of describing assertions. No keywords, selectors, or assertions are changed.
 | `proxy` | **proxy** — tunnel localhost |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui-review** — visual walkthrough |
@@ -103,6 +105,15 @@ regression    Given a list of changed files, run only tests affected by those fi
               Bare/no files: asks "what changed?" in one sentence framed as "after this you'll know if it's safe to push."
 validate      Score existing tests against /tdd quality rules; produce a rewrite queue.
               Bare: announces what user will find, asks "full suite or critical first?"
+improve       Audit all tests (I1 description, I2 section comments, I3 inline comments,
+              I4 assertions, I5 selectors, I6 tags), then rewrite and re-run each failing
+              test in place. validate + fix in one pass.
+              Bare: announces N tests, asks "all or specific filter?"
+comment       Rewrite comments only — groups per-line comments into intent-based section
+              headings (C1–C7: no numbering, no decorations, product context not
+              implementation narration, invariants not assertion descriptions).
+              No keywords, selectors, or assertions changed.
+              Bare: asks which test(s) to target.
 proxy         Set up localhost tunneling before testing dev servers.
               Bare/no port: asks "what port?" — then sets up + verifies before any tests are written.
 api           REST/GraphQL API tests in Robot Framework via the HTTP library.

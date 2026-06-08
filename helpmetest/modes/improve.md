@@ -1,0 +1,268 @@
+# Mode: improve — audit and rewrite all tests to quality standard
+
+**What this mode does:** list every test in scope, run `validate` on each one to score it against R1–R13, then immediately fix every failing rule in-place. Unlike `validate` which only critiques, `improve` does the work. It also applies two additional style passes (comment structure and inline comments) that validate does not cover.
+
+**When to use:** user says "improve tests", "clean up all tests", "add comments to tests", "make tests better", "annotate tests", "bring tests up to standard".
+
+---
+
+## Inputs
+
+- No filter: improve every test in the project (all at once — no cap)
+- Tag filter: `improve project:bug-shop` — only tests matching that tag
+- Specific test: `improve bug-10-surcharge`
+
+---
+
+## Announce
+
+After orient, present the plan before touching anything:
+
+```
+## Improve plan
+
+Scope: [N] tests — [filter or "all"]
+
+Phase 1: Audit — validate each test (R1–R13) to get grade + failed rules.
+Phase 2: Rewrite — fix every FAIL, one test at a time.
+Phase 3: Style — apply comment structure (I2) and inline comment (I3) passes.
+Phase 4: Verify — re-run each rewritten test to confirm it still passes.
+
+Each failing rule gets a concrete fix applied immediately.
+
+Ready to start? (or specify a narrower scope)
+```
+
+Wait for confirmation, then proceed.
+
+---
+
+## Workflow
+
+### 1. Orient
+
+```bash
+helpmetest status
+```
+
+Collect the full test list. Note total count and any already-failing tests (run status).
+
+### 2. Audit each test using validate
+
+For each test, apply the full `validate` scoring (R1–R13) as defined in `modes/validate.md`.
+
+```bash
+helpmetest status --id <test-id>    # returns content, description, tags, name
+```
+
+Score every applicable rule. Record:
+- Which rules FAIL
+- The specific line or absence that caused each FAIL
+- The grade (A–F)
+
+Do not rewrite yet — audit the full scope first.
+
+### 3. Announce audit results
+
+Before rewriting:
+
+```
+Audit complete. [N] tests reviewed.
+  [X] already grade A/B (no changes needed)
+  [Y] need fixes:
+    - [n] R1  no outcome assertion
+    - [n] R3  description missing or contains selectors
+    - [n] R4  hardcoded email
+    - [n] R5  re-login instead of As <State>
+    - [n] R6  unjustified sleep / blocked pattern
+    - [n] R7  fragile CSS selectors
+    - [n] R8  incomplete tags
+    - [n] R9  vague or "test" name
+    - [n] R11 mutation-blind assertion
+    - [n] R12 tests framework behavior → auto-F
+    - [n] R13 excessive mocking
+
+Starting rewrites now — [Y] tests to fix.
+```
+
+### 4. Fix each failing test
+
+For each test with at least one FAIL, apply the fixes below. All fixes in one pass — don't make separate passes per rule.
+
+**R1 — Add an outcome assertion**
+
+Replace `Should Be Visible` / `Wait For Element` -only assertions with at least one data check:
+- `Should Be Equal`, `Should Contain`, `Should Match Regexp`
+- Read a value with `Get Text` or `Get Attribute` and assert the value, not just presence.
+
+**R3 — Rewrite description**
+
+Write or rewrite `--description` as four lines:
+```
+Given: <specific precondition — system state before the action>
+When: <exact user action>
+Then: <concrete assertions — name the values and elements checked>
+Risk: <specific user complaint if this test were deleted>
+```
+
+Rules:
+- No CSS selectors, no DOM paths, no JS variable names, no RF keyword names
+- Each line must be concrete enough to reconstruct the test from
+- Risk must name a user, not a system
+
+**R4 — Replace hardcoded email**
+
+```robot
+${email}=  Create Fake Email
+Fill Text  [data-testid="email"]  ${email}
+```
+
+Add `Delete Email  ${email}` in teardown or after the assertion block.
+
+**R5 — Replace re-login with As state**
+
+Remove the login form fill + click sequence. Replace with:
+```robot
+As  <StateName>
+```
+as the first meaningful line (before `Go To`).
+
+**R6 — Fix blocked patterns and unjustified sleep**
+
+- Remove `Evaluate  ...__import__(...)` and `Evaluate  lambda ...`
+- For `Sleep  Xs` without a comment: replace with `Wait For Elements State` on the condition being waited for, or add a one-line why-comment if the sleep is genuinely necessary (animation, specific timing constraint).
+
+**R7 — Replace fragile selectors**
+
+Do not guess or invent `data-testid` values. Discover them from the live page:
+
+```bash
+# 1. Navigate to the page where the fragile selector appears
+helpmetest interactive "Go To  <url-from-test>"
+
+# 2. Read the "Interactive" section in the output — it lists every
+#    interactive element with its best available selector:
+#
+#    Interactive
+#      * Click  [data-testid='checkout-btn']  —  Place order
+#      * Click  [data-testid='cart-icon']     —  Cart (3)
+#
+# 3. Copy the selector that matches the element you're targeting.
+#    Use --session <id> to continue in the same browser session.
+helpmetest interactive "Click  [data-testid='checkout-btn']" --session <id>
+```
+
+Selector priority:
+1. `[data-testid="..."]` — stable, survives styling and layout changes
+2. `role=button[name="Place order"]` — semantic, survives DOM restructuring
+3. `text=Place order` — last resort for elements with no testid or role
+
+Do not change selectors that are already stable (`[data-testid=...]`, `role=`, `text=`).
+
+**R8 / R10 — Complete tags**
+
+Add any missing required tags: `project:X`, `feature:<id>`, `persona:<name>`, `priority:<level>`, `url:<base>`.
+
+**R9 — Fix vague or "test" name**
+
+Rename to follow `<Feature> — <user-facing action>` or `User can <action>`:
+- Remove the word "test" from the name
+- Make the name answer: "What specific user-facing behavior does this verify?"
+
+**R11 — Strengthen mutation-resistant assertion**
+
+After `Click submit` or equivalent, verify the actual data change:
+```robot
+# instead of just: Wait For Elements State  [data-testid="banner"]  visible
+${name}=  Get Text  [data-testid="profile-name"]
+Should Be Equal  ${name}  New Name
+```
+
+**R12 — Rewrite to test through the UI**
+
+If the test calls ORM/crypto/HTTP client directly, rewrite it as a browser test that exercises the same behavior through the product UI. This is a full structural rewrite — flag it explicitly before touching it.
+
+**R13 — Remove excess mocks**
+
+Keep only mocks for external I/O (APIs, filesystem, third-party services). Remove mocks for business logic, pure functions, and internal services. Rewrite the test to use real implementations where mocks were covering internal code.
+
+### 5. Apply style passes (I2 and I3)
+
+After R-rule fixes, apply two additional passes that validate does not cover:
+
+**I2 — Section comments**
+
+The test body must be divided into intent-based section comments following C1–C13 (see `modes/comment.md`). Summary:
+- One comment covers 2–8 related steps (no per-line comments)
+- No numbering, no decorations
+- Written in product/test context, not implementation narration
+- `As <state>` bundles with `Go To` and the first wait — never isolated
+- Section comment names the invariant protected, not what the assertions do
+
+Typical structure:
+```robot
+# Open the form as an authenticated user
+# Fill and submit the form
+# Confirm the record was saved
+# Persistence check — reload and verify the data survives
+```
+
+For deep comment quality, run `/helpmetest comment` after improve.
+
+**I3 — Inline comments**
+
+Add a one-line why-comment only for:
+- A `Javascript` call whose purpose is not obvious from its shape
+- `Wait Until Keyword Succeeds` explaining the specific race condition
+
+One line max, written for a product manager. Explains WHY, not WHAT.
+
+### 6. Apply the fix
+
+```bash
+helpmetest test update <id> --file /tmp/<id>-improved.robot --description "<given/when/then/risk>" --no-run
+```
+
+### 7. Verify it still passes
+
+```bash
+helpmetest test run <id>
+```
+
+Wait for result. If it fails:
+- Check if the content change broke a selector or timing assumption
+- Fix and re-run — do not move on until the test is green
+
+### 8. Tasks artifact
+
+Track progress per `modes/agent.md`. One subtask per test that needed fixes:
+- `title`: `"Improve: <test-id>"`
+- `status`: `done` when test is green after rewrite
+- `notes`: which R-rules were fixed + run URL as evidence
+
+### 9. Final report
+
+```
+## Improve complete
+
+[N] tests reviewed. [X] already grade A/B. [Y] rewritten.
+
+Rules fixed:
+  R1  [n] tests   R3  [n] tests   R4  [n] tests
+  R5  [n] tests   R6  [n] tests   R7  [n] tests
+  R8  [n] tests   R9  [n] tests   R11 [n] tests
+  R12 [n] tests   R13 [n] tests
+  I2  [n] tests   I3  [n] tests
+
+All [Y] rewritten tests are green. ✅
+```
+
+---
+
+## What NOT to do
+
+- **Do not rewrite test logic** — only improve clarity, structure, and documentation (except R11/R12/R13 which require logic changes)
+- **Do not add steps** beyond what fixes the failing rule
+- **Do not skip the re-run** — "should work" is not evidence
+- **Do not batch rewrites** without verifying each one passes
+- **Do not invent selectors** — always discover via `helpmetest interactive`
