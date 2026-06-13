@@ -142,6 +142,15 @@ report        Read-only project health diagnosis. Layered: triage → auth → t
               Sub-tokens: report tests, report sync, report stability, etc.
 ```
 
+## References
+
+Load these from `references/` when relevant:
+
+- `references/cli-reference.md` — every `helpmetest` CLI command (the only interface; there is no MCP). Load whenever you need exact command syntax, options, or to confirm a command exists.
+- `references/rf-recipes.md` — deterministic Robot Framework checks (axe-core, console errors, performance, web vitals, broken links/images, SSL).
+- `references/adversarial-patterns.md` — attack patterns for forms, modals, keyboard nav, persistence.
+- `references/ux-heuristics.md` — Laws of UX, Nielsen's 10, a11y — for evaluating screenshots / writing UX findings.
+
 ### Output Artifacts
 
 #### ValidationReport
