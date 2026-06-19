@@ -1,7 +1,7 @@
 ---
 name: helpmetest
-description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), improve (audit + rewrite tests in place — adds descriptions, section comments, inline comments, fixes selectors and tags), comment (rewrite test comments to quality standard — grouped by intent, no per-line narration), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
-argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | improve | comment | report | proxy | api | ui | onboard | <task>]"
+description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), improve (audit + rewrite tests in place — adds section comments, inline comments, fixes selectors and tags), comment (rewrite test comments to quality standard — grouped by intent, no per-line narration), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), interactive (drive a real browser one command at a time — explore, debug, prototype), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
+argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | improve | comment | report | proxy | api | ui | interactive | onboard | <task>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -33,12 +33,14 @@ Parse the first remaining token:
 | `coverage` | **coverage** — gap analysis: what scenarios have no tests |
 | `regression` | **regression** — run tests affected by a named set of changed files |
 | `validate` | **validate** — score existing tests against R1-R13 quality rules. Outputs `ValidationReport` artifact with grade distribution (A/B/C/D/F), R11-R13 failures, and action queue (ship/rewrite/delete).
-| `improve` | **improve** — audit every test against I1-I6 criteria (description, section comments, inline comments, assertions, selectors, tags), then rewrite and re-run each failing test in place. The only mode that both critiques and fixes.
+| `improve` | **improve** — audit every test against I2-I6 criteria (section comments, inline comments, assertions, selectors, tags), then rewrite and re-run each failing test in place. The only mode that both critiques and fixes.
 | `comment` | **comment** — audit and rewrite test comments only (C1–C7 rules): group per-line comments into intent-based sections, remove numbering and decorations, replace implementation narration with product-context headings, name invariants instead of describing assertions. No keywords, selectors, or assertions are changed.
 | `proxy` | **proxy** — tunnel localhost |
+| `ci` | **ci** — CI integration: acquire a token, install the CLI, run tests in GitHub Actions / GitLab / CircleCI / Bitbucket. Cross-references `proxy` for private/staging URLs. |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui-review** — visual walkthrough |
 | `onboard` | **onboard** — new project bootstrap |
+| `interactive` | **interactive** — drive a real browser one command at a time: explore pages, debug selectors, prototype a flow before writing a test, or verify something ad-hoc |
 | `change-impact` or `impact` | **change-impact** — git diff → find @helpmetest annotations → run affected tests → RegressionRun artifact with verdict |
 | `pre-push` or `push` | **pre-push** — run all priority:critical tests + annotation-covered changed files → BLOCKED or CLEAR TO PUSH |
 | `pr-review` or `pr` | **pr-review** — branch diff → map to annotations → flag unannotated files as gaps → CoverageReport artifact (no test runs) |
@@ -105,7 +107,7 @@ regression    Given a list of changed files, run only tests affected by those fi
               Bare/no files: asks "what changed?" in one sentence framed as "after this you'll know if it's safe to push."
 validate      Score existing tests against /tdd quality rules; produce a rewrite queue.
               Bare: announces what user will find, asks "full suite or critical first?"
-improve       Audit all tests (I1 description, I2 section comments, I3 inline comments,
+improve       Audit all tests (I2 section comments, I3 inline comments,
               I4 assertions, I5 selectors, I6 tags), then rewrite and re-run each failing
               test in place. validate + fix in one pass.
               Bare: announces N tests, asks "all or specific filter?"
@@ -116,10 +118,17 @@ comment       Rewrite comments only — groups per-line comments into intent-bas
               Bare: asks which test(s) to target.
 proxy         Set up localhost tunneling before testing dev servers.
               Bare/no port: asks "what port?" — then sets up + verifies before any tests are written.
+ci            Set up HelpMeTest in CI: create a token, install the binary, run tests on push/PR/schedule.
+              Cross-references proxy when tests target non-public URLs (staging, localhost).
+              Covers GitHub Actions, GitLab CI, CircleCI, Bitbucket Pipelines, and plain shell.
 api           REST/GraphQL API tests in Robot Framework via the HTTP library.
               Bare/no endpoint: asks "specific endpoint, feature area, or explore from Feature artifacts?"
 ui            Screenshot-driven visual walkthrough across viewports.
               Bare: announces full audit (N pages × 3 viewports), asks "full audit or specific page?"
+interactive   Drive a real cloud browser one command at a time with Robot Framework keywords.
+              Use to explore pages, debug failing tests step by step, prototype a flow before writing a test,
+              or verify something ad-hoc without running a full suite.
+              Bare: announces intent, asks "what do you want to explore or debug?"
 onboard       New project setup: create HELPMETEST.md + ProjectOverview + initial artifacts.
               Bare: runs the structured 3-question interview (source of truth, stage, goal).
 full-qa       End-to-end: discover → tdd → fix — ran by default on bare /helpmetest.
@@ -146,7 +155,7 @@ report        Read-only project health diagnosis. Layered: triage → auth → t
 
 Load these from `references/` when relevant:
 
-- `references/cli-reference.md` — every `helpmetest` CLI command (the only interface; there is no MCP). Load whenever you need exact command syntax, options, or to confirm a command exists.
+- The `helpmetest` CLI is the only interface (there is no MCP). For exact command syntax, options, or to confirm a command exists, run `helpmetest <command> --help` — it is the source of truth.
 - `references/rf-recipes.md` — deterministic Robot Framework checks (axe-core, console errors, performance, web vitals, broken links/images, SSL).
 - `references/adversarial-patterns.md` — attack patterns for forms, modals, keyboard nav, persistence.
 - `references/ux-heuristics.md` — Laws of UX, Nielsen's 10, a11y — for evaluating screenshots / writing UX findings.
