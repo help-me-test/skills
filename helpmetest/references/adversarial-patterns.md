@@ -3,7 +3,7 @@
 Use these patterns to try to break features. Apply them to every interactive element you test.
 The goal is to find bugs, not confirm things work.
 
-Screenshots are requested via `run_interactive_command` with `screenshot: true` — not via a keyword.
+Screenshots are requested via `helpmetest interactive "<keyword>" --screenshot` — not via a keyword.
 Use `Get Text`, `Get Url`, `Evaluate`, and `Should *` for assertions.
 
 ---

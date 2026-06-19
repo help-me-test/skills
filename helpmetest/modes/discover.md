@@ -170,7 +170,7 @@ The `helpmetest interactive` output already contains the full network request lo
 After every `helpmetest interactive` call, scan the `network` section of the output for requests where `status >= 400` or `status == 0` (cancelled/failed). This catches broken images, missing JS chunks, failed API calls, blocked fonts — anything, not just images.
 
 ```
-# What to look for in the run_interactive_command network output:
+# What to look for in the `helpmetest interactive` network output:
 # status 4xx → resource not found or forbidden (broken images, missing JS/CSS, bad API endpoints)
 # status 5xx → server error on a resource load
 # status 0   → request was cancelled or net::ERR_* (DNS failure, connection refused, CORS block)
@@ -465,6 +465,8 @@ Wait for answers, then proceed to Step 3.
 ---
 
 ## Step 2B — Explore Live App
+
+**Browser tool:** all live exploration uses `helpmetest interactive`. Load `modes/interactive.md` before starting — it covers session continuity, batching, output sections, selector discovery, and keyword reference. The Interactive section of every response gives you ready-to-paste commands for everything on the current page; use it instead of guessing selectors.
 
 ### Interactive Command Recovery
 

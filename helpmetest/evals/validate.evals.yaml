@@ -5,7 +5,7 @@ output_constraints: |-
   Output format — structured report, nothing else:
 
     GRADE: <A|B|C|D|F>
-    FAILS: <comma-separated rule IDs e.g. R1, R3, R9 — or NONE>
+    FAILS: <comma-separated rule IDs e.g. R1, R9 — or NONE>
     <for each failed rule, one line: R<N>: <one-sentence evidence citing the specific line or absence>
 
   Rules:
@@ -17,7 +17,7 @@ output_constraints: |-
 
 description: >-
   Evals for the validate mode — verifies that R1–R13 rules are scored correctly
-  when reviewing a test. Each case provides a test in [NAME]/[DESCRIPTION]/[TAGS]/[BODY]
+  when reviewing a test. Each case provides a test in [NAME]/[TAGS]/[BODY]
   format and checks the grade and failed rules mechanically.
 
 prompt_preamble: |-
@@ -29,10 +29,6 @@ prompt_preamble: |-
     [NAME]
     <test name>
     [/NAME]
-
-    [DESCRIPTION]
-    <four-line Given/When/Then/Risk or empty>
-    [/DESCRIPTION]
 
     [TAGS]
     <space-separated tags>
@@ -52,11 +48,6 @@ prompt_preamble: |-
   R2 — 5+ meaningful steps.
     Count Go To, Fill Text, Click, Get Text, assertions. Sleep, Log, comments don't count.
     FAIL if fewer than 5.
-
-  R3 — Description has Given/When/Then/Risk, PM-readable.
-    FAIL if any of the four lines is missing.
-    FAIL if any line contains CSS selectors, DOM paths, JS internals, or RF keyword names.
-    FAIL if Given is vague ("user is logged in" without precondition detail).
 
   R4 — Uses FakeMail for emails.
     N/A if no email field in the test.
@@ -114,8 +105,7 @@ prompt_preamble: |-
   Each R11/R13 FAIL lowers by one tier. R12 FAIL = automatic F.
 
   CRITICAL: Cite the specific line or specific absence for every FAIL. "no assertion anywhere
-  in the body" is evidence. "line 7 uses Sleep  2s without a comment" is evidence.
-  "description contains .login-btn" is evidence. Vague claims are not.
+  in the body" is evidence. "line 7 uses Sleep  2s without a comment" is evidence. Vague claims are not.
 
 evals:
   - id: 1
@@ -125,13 +115,6 @@ evals:
       [NAME]
       User can open the dashboard
       [/NAME]
-
-      [DESCRIPTION]
-      Given: authenticated user on the home page
-      When: user navigates to the dashboard
-      Then: dashboard panel is visible
-      Risk: users cannot access the dashboard, key metrics are unavailable
-      [/DESCRIPTION]
 
       [TAGS]
       project:helpmetest feature:dashboard persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com
@@ -165,13 +148,6 @@ evals:
       User can view the settings page
       [/NAME]
 
-      [DESCRIPTION]
-      Given: authenticated user on the home page
-      When: user navigates to settings
-      Then: settings heading is visible
-      Risk: users cannot reach settings to change their account details
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:settings persona:helpmetest priority:medium url:https://helpmetest.slava.helpmetest.com
       [/TAGS]
@@ -192,60 +168,14 @@ evals:
       - "GRADE: B"
       - "FAILS: NONE"
 
-  - id: 3
-    rules: [R3]
-    violation: Description contains CSS selector in Given line
-    input: |
-      [NAME]
-      User can export test results as CSV
-      [/NAME]
-
-      [DESCRIPTION]
-      Given: user is on .exports-page and css=.run-list is populated
-      When: user clicks the export button
-      Then: a download file named results.csv becomes available
-      Risk: engineers cannot get test results out of the system for reporting
-      [/DESCRIPTION]
-
-      [TAGS]
-      project:helpmetest feature:exports persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com
-      [/TAGS]
-
-      [BODY]
-      # Auth and open exports page
-        As  Helpmetest
-        Go To  https://helpmetest.slava.helpmetest.com/exports
-        Wait For Elements State  [data-testid="run-list"]  visible  timeout=15s
-
-      # Trigger CSV export
-        Click  [data-testid="export-btn"]
-        Wait For Elements State  [data-testid="download-ready"]  visible  timeout=15s
-        ${label}=  Get Text  [data-testid="download-ready"]
-        Should Contain  ${label}  results.csv
-      [/BODY]
-    must_contain:
-      - "GRADE:"
-      - "FAILS:"
-      - "R3"
-    must_not_contain:
-      - "GRADE: A"
-      - "FAILS: NONE"
-
   - id: 4
     rules: [R4]
     violation: Hardcoded static email address fails on second run
-    note: With only R4 failing, grade B is correct (8/9 applicable pass). Only check R4 in FAILS.
+    note: With only R4 failing and R5 N/A, grade B is correct (7/8 applicable pass). Only check R4 in FAILS.
     input: |
       [NAME]
       User can sign up with email
       [/NAME]
-
-      [DESCRIPTION]
-      Given: visitor on the signup page with no existing account
-      When: user fills in their email and password and submits
-      Then: user is redirected to the onboarding page and their email appears in the header
-      Risk: new user registration is broken and the product cannot acquire new users
-      [/DESCRIPTION]
 
       [TAGS]
       project:helpmetest feature:auth persona:visitor priority:critical url:https://helpmetest.slava.helpmetest.com
@@ -281,13 +211,6 @@ evals:
       [NAME]
       User can create a new project
       [/NAME]
-
-      [DESCRIPTION]
-      Given: authenticated user on the projects list
-      When: user creates a new project named Alpha
-      Then: project card appears with title Alpha
-      Risk: project creation is broken and teams cannot organise their tests
-      [/DESCRIPTION]
 
       [TAGS]
       project:helpmetest feature:projects persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com
@@ -328,13 +251,6 @@ evals:
       User can play back a recorded test run
       [/NAME]
 
-      [DESCRIPTION]
-      Given: authenticated user with a completed test run in the system
-      When: user opens the replay page for that run
-      Then: video playback starts and the progress bar advances past 0%
-      Risk: replay is broken and engineers cannot debug test failures visually
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:replay persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com
       [/TAGS]
@@ -366,13 +282,6 @@ evals:
       [NAME]
       User can complete checkout
       [/NAME]
-
-      [DESCRIPTION]
-      Given: authenticated buyer with items in the cart
-      When: user proceeds through checkout and places an order
-      Then: confirmation page appears with a valid order ID
-      Risk: checkout is broken and the business loses revenue on every purchase attempt
-      [/DESCRIPTION]
 
       [TAGS]
       project:shop feature:checkout persona:buyer priority:critical url:https://shop.example.com
@@ -415,13 +324,6 @@ evals:
       User can delete a test
       [/NAME]
 
-      [DESCRIPTION]
-      Given: authenticated user with at least one test in their project
-      When: user deletes the test from the test list
-      Then: the test no longer appears in the list
-      Risk: delete is broken and stale tests pollute the suite permanently
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:test-management
       [/TAGS]
@@ -456,13 +358,6 @@ evals:
       [NAME]
       test login flow
       [/NAME]
-
-      [DESCRIPTION]
-      Given: registered user with valid credentials on the login page
-      When: user submits the login form with their email and password
-      Then: user lands on the dashboard and their account name is shown in the header
-      Risk: users cannot log in and lose access to their test suite
-      [/DESCRIPTION]
 
       [TAGS]
       project:helpmetest feature:auth persona:helpmetest priority:critical url:https://helpmetest.slava.helpmetest.com
@@ -499,13 +394,6 @@ evals:
       User can save profile settings
       [/NAME]
 
-      [DESCRIPTION]
-      Given: authenticated user on the profile settings page
-      When: user updates their display name and saves
-      Then: the save confirmation banner appears
-      Risk: profile updates silently fail and users think their data is saved when it is not
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:profile persona:helpmetest priority:medium url:https://helpmetest.slava.helpmetest.com
       [/TAGS]
@@ -541,13 +429,6 @@ evals:
       User record is persisted after registration
       [/NAME]
 
-      [DESCRIPTION]
-      Given: a new registration payload with valid email and password
-      When: the registration handler is called directly
-      Then: a user row exists in the database with the correct email
-      Risk: registration silently drops the database write
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:auth persona:visitor priority:critical url:https://helpmetest.slava.helpmetest.com
       [/TAGS]
@@ -579,13 +460,6 @@ evals:
       [NAME]
       Discount calculation applies to order total
       [/NAME]
-
-      [DESCRIPTION]
-      Given: order with 3 items and a 20% discount code applied
-      When: checkout total is calculated
-      Then: the displayed total reflects the 20% reduction from the original price
-      Risk: discount codes do not reduce the price and users overpay
-      [/DESCRIPTION]
 
       [TAGS]
       project:shop feature:discounts persona:buyer priority:high url:https://shop.example.com
@@ -624,13 +498,6 @@ evals:
       [NAME]
       User can create a smoke probe entry and find it in the suite list
       [/NAME]
-
-      [DESCRIPTION]
-      Given: authenticated user on the app home page with no existing entry named "smoke-probe"
-      When: user creates a new entry named "smoke-probe" using the new entry button
-      Then: the entry appears in the list and its title matches "smoke-probe"
-      Risk: entry creation is broken and engineers cannot add new runs without using the browser directly
-      [/DESCRIPTION]
 
       [TAGS]
       project:helpmetest feature:test-management persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com

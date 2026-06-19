@@ -28,7 +28,7 @@ Sets up proxy tunnels to test local development servers through HelpMeTest.
 
 HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:3000) is not reachable from there. The proxy creates a TCP tunnel:
 
-1. You start a proxy via the CLI — it registers a tunnel with the proxy server and spawns an frpc process (frpc is **bundled with the CLI** — no separate installation needed)
+1. You start a proxy via the CLI — it registers a tunnel with the proxy server (everything needed is **bundled with the CLI** — no separate installation needed)
 2. The tunnel maps a domain (e.g. `dev.local`) to your local port
 3. HelpMeTest's test runner routes traffic for that domain through the tunnel back to your machine
 4. Your local server responds as if accessed directly
@@ -52,9 +52,9 @@ Go To  http://dev.local
 
 **After starting the proxy, every test URL must use the proxy domain, not localhost.**
 
-## ⚠️ Service must be reachable from where frpc runs
+## ⚠️ Service must be reachable from the proxy
 
-frpc connects to `127.0.0.1:PORT` from the machine it runs on. If frpc runs in a container or cloud agent environment, it cannot reach a service that is only bound to `127.0.0.1` on the user's local machine.
+The proxy connects to `127.0.0.1:PORT` from the machine it runs on. If it runs in a container or cloud agent environment, it cannot reach a service that is only bound to `127.0.0.1` on the user's local machine.
 
 **If the proxy fails to connect to your local server:**
 
@@ -73,15 +73,11 @@ next dev -H 0.0.0.0
 
 After changing the bind address, restart the server and retry the proxy.
 
-## frpc Installation
+## Proxy Installation
 
-frpc is **auto-installed on first use** — no manual steps needed. When you run `helpmetest proxy start`, the CLI checks for frpc at `~/.local/bin/frpc`. If missing, it downloads and installs automatically from `https://slava.helpmetest.com/install/frpc`.
+The proxy is **auto-installed on first use** — no manual steps needed. When you run `helpmetest proxy start`, the CLI downloads and sets up everything automatically.
 
-If auto-install fails (e.g., network error), install manually:
-```bash
-brew install frp   # macOS
-# or download from https://github.com/fatedier/frp/releases
-```
+If auto-install fails (e.g., network error), re-run `helpmetest proxy start` or check your internet connection.
 
 ## When to Use
 
@@ -187,13 +183,11 @@ Expected: Your local app loads successfully. If you see `chrome-error://chromewe
 
 If your server is bound to `127.0.0.1` (loopback only), restart it with `0.0.0.0` binding — see the "Service must be reachable" section above.
 
-### Stale frpc processes blocking new proxy
+### Stale proxy blocking new one
 
 If starting a proxy fails with "proxy already exists":
-- A previous frpc process may still be running with the same name
 - Stop the proxy first: `helpmetest proxy stop dev.local`
 - Or stop all: `helpmetest proxy stop --all`
-- If stop doesn't work, check for orphaned frpc processes: `ps aux | grep frpc`
 
 ### Custom hostname not resolving
 

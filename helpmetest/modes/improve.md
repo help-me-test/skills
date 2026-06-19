@@ -71,7 +71,6 @@ Audit complete. [N] tests reviewed.
   [X] already grade A/B (no changes needed)
   [Y] need fixes:
     - [n] R1  no outcome assertion
-    - [n] R3  description missing or contains selectors
     - [n] R4  hardcoded email
     - [n] R5  re-login instead of As <State>
     - [n] R6  unjustified sleep / blocked pattern
@@ -94,21 +93,6 @@ For each test with at least one FAIL, apply the fixes below. All fixes in one pa
 Replace `Should Be Visible` / `Wait For Element` -only assertions with at least one data check:
 - `Should Be Equal`, `Should Contain`, `Should Match Regexp`
 - Read a value with `Get Text` or `Get Attribute` and assert the value, not just presence.
-
-**R3 — Rewrite description**
-
-Write or rewrite `--description` as four lines:
-```
-Given: <specific precondition — system state before the action>
-When: <exact user action>
-Then: <concrete assertions — name the values and elements checked>
-Risk: <specific user complaint if this test were deleted>
-```
-
-Rules:
-- No CSS selectors, no DOM paths, no JS variable names, no RF keyword names
-- Each line must be concrete enough to reconstruct the test from
-- Risk must name a user, not a system
 
 **R4 — Replace hardcoded email**
 
@@ -220,7 +204,7 @@ One line max, written for a product manager. Explains WHY, not WHAT.
 ### 6. Apply the fix
 
 ```bash
-helpmetest test update <id> --file /tmp/<id>-improved.robot --description "<given/when/then/risk>" --no-run
+helpmetest test update <id> --file /tmp/<id>-improved.robot --no-run
 ```
 
 ### 7. Verify it still passes
@@ -248,7 +232,7 @@ Track progress per `modes/agent.md`. One subtask per test that needed fixes:
 [N] tests reviewed. [X] already grade A/B. [Y] rewritten.
 
 Rules fixed:
-  R1  [n] tests   R3  [n] tests   R4  [n] tests
+  R1  [n] tests   R4  [n] tests
   R5  [n] tests   R6  [n] tests   R7  [n] tests
   R8  [n] tests   R9  [n] tests   R11 [n] tests
   R12 [n] tests   R13 [n] tests

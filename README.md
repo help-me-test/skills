@@ -67,8 +67,7 @@ The HelpMeTest CLI is the primary interface:
 | `helpmetest test run <id>` | Run a test |
 | `helpmetest test create` / `helpmetest test update <id>` | Create or update a test |
 | `helpmetest interactive "<command>"` | Run an interactive browser command |
-| `helpmetest keywords [search]` | List available keywords |
-| `helpmetest how-to [type]` | Show how-to guides |
+| `helpmetest search [query]` | Search docs, keywords, artifacts, and tests |
 | `helpmetest proxy start/stop/list` | Manage localhost tunnels |
 | `helpmetest artifact upsert` | Create or update an artifact |
 | `helpmetest artifact get <id>` | Fetch an artifact |

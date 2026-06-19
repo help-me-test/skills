@@ -155,7 +155,7 @@ Should Be True    ${f}[hasFocusRing]    msg=No focus ring on ${f}[tag] "${f}[tex
 
 ## Responsive Screenshot Sweep
 
-Screenshots are requested via `run_interactive_command` with `screenshot: true` — not via a keyword.
+Screenshots are requested via `helpmetest interactive "<keyword>" --screenshot` — not via a keyword.
 
 ```robot
 Go To    ${URL}

@@ -339,10 +339,6 @@ Apply all rules. Each rule is a gate.
 **R3 — State verification**
 - FAIL if test doesn't verify state change (before/after OR API response OR persistence)
 
-**R4 — Description has Given/When/Then/Risk**
-- FAIL if `--description` missing Given/When/Then/Risk format
-- FAIL if uses `[Documentation]` Robot syntax instead of `--description` CLI flag
-
 **R5 — Stable selectors**
 - FAIL if uses fragile selectors (index-based, dynamic text without stable anchor)
 

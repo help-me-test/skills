@@ -125,7 +125,7 @@ List all pages you will visit. This becomes your review checklist.
 
 **NEVER invent an alternative screenshot method.** Do NOT use playwright, puppeteer, Python scripts, curl, or any other tool to capture screenshots.
 
-`run_interactive_command` with `screenshot: true` returns the screenshot as an image directly in the response. That image IS the screenshot. Use it.
+`helpmetest interactive "<keyword>" --screenshot` captures the page and saves the screenshot file (path shown in the output). That file IS the screenshot. Use it.
 
 To upload a screenshot to storage:
 
@@ -133,7 +133,7 @@ To upload a screenshot to storage:
 helpmetest upload page-name-desktop.png
 ```
 
-The base64 is in the image content block returned by `run_interactive_command`. Use it immediately — do not re-capture, do not write code, do not use external tools.
+The screenshot file path is shown in the `helpmetest interactive ... --screenshot` output. Use it immediately — do not re-capture, do not write code, do not use external tools.
 
 ---
 

@@ -36,6 +36,7 @@ Parse the first remaining token:
 | `improve` | **improve** — audit every test against I2-I6 criteria (section comments, inline comments, assertions, selectors, tags), then rewrite and re-run each failing test in place. The only mode that both critiques and fixes.
 | `comment` | **comment** — audit and rewrite test comments only (C1–C7 rules): group per-line comments into intent-based sections, remove numbering and decorations, replace implementation narration with product-context headings, name invariants instead of describing assertions. No keywords, selectors, or assertions are changed.
 | `proxy` | **proxy** — tunnel localhost |
+| `terminal` | **terminal** — run shell commands (Jest, pytest, bun test, Go test…) using the `Bash` keyword. Cross-references `ci` for running unit tests as a GHA step. |
 | `ci` | **ci** — CI integration: acquire a token, install the CLI, run tests in GitHub Actions / GitLab / CircleCI / Bitbucket. Cross-references `proxy` for private/staging URLs. |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui-review** — visual walkthrough |
@@ -50,8 +51,7 @@ Parse the first remaining token:
 | (empty / bare `/helpmetest`) | **full-qa** — full cycle: discover + tdd + validate |
 | anything else (e.g. looks like a task description) | **tdd** (default) with the whole input as the task |
 
-Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover. If ambiguous, pick the closest mode and narrate your choice before executing.
-
+Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X", "go check X", "what's on X", "browse X", "poke around X", "look at X", "open X and see" → interactive. If ambiguous, pick the closest mode and narrate your choice before executing.
 ## 3. Load context
 
 Load these files in this order, always:
@@ -120,6 +120,9 @@ proxy         Set up localhost tunneling before testing dev servers.
               Bare/no port: asks "what port?" — then sets up + verifies before any tests are written.
 ci            Set up HelpMeTest in CI: create a token, install the binary, run tests on push/PR/schedule.
               Cross-references proxy when tests target non-public URLs (staging, localhost).
+terminal      Run shell commands in the test runner with the Bash keyword.
+              Use for unit tests (Jest, pytest, bun test, Go test, Cargo), linting, builds.
+              Cross-references ci for running as a GitHub Actions step.
               Covers GitHub Actions, GitLab CI, CircleCI, Bitbucket Pipelines, and plain shell.
 api           REST/GraphQL API tests in Robot Framework via the HTTP library.
               Bare/no endpoint: asks "specific endpoint, feature area, or explore from Feature artifacts?"

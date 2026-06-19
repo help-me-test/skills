@@ -4,7 +4,7 @@
   "name": "helpmetest-skills",
   "version": "2.0.0",
   "displayName": "HelpMeTest Skills",
-  "description": "Single HelpMeTest skill with modes for TDD, discovery, onboarding, test fixing, visual review, API testing, localhost proxy, and more.",
+  "description": "Single HelpMeTest skill with modes for TDD, discovery, onboarding, test fixing, visual review, API testing, interactive browser console, localhost proxy, and more.",
   "author": {
     "name": "HelpMeTest",
     "url": "https://github.com/help-me-test"

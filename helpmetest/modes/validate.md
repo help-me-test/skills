@@ -23,8 +23,8 @@ After orient, present the plan before scoring:
 
 Scope: [N] tests total in the project
 
-I will score each test against 10 quality rules (R1–R10):
-  R1 asserts outcome  R2 5+ steps     R3 PM-readable docs
+I will score each test against 9 quality rules (R1–R10):
+  R1 asserts outcome  R2 5+ steps
   R4 FakeMail         R5 As <State>   R6 no blocked patterns
   R7 stable selectors R8 complete tags R9 good name  R10 linked to Feature
 
@@ -71,7 +71,6 @@ helpmetest status --id <test-id>    # includes the test body in content
 
 Read:
 - `content` — the RF keywords
-- `description` — the `--description` Given/When/Then/Risk
 - `tags` — project, feature, persona, priority, url
 - Name
 
@@ -87,12 +86,6 @@ For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Do
 **R2 — 5+ meaningful steps.**
 - Count non-trivial keyword lines. `Go To`, `Fill Text`, `Click`, `Get Title`, assertions all count. `Sleep`, `Log`, comments don't.
 - FAIL if <5 meaningful steps — the test is too shallow.
-
-**R3 — Description has Given/When/Then/Risk, PM-readable.**
-- FAIL if any of the four lines is missing from `--description`.
-- FAIL if any line contains CSS selectors (`.btn`, `#id`), DOM attribute paths (`div[data-id]`), JS internals (`window.*`, variable names), or RF keyword names. The description must read for a product manager, not a developer.
-- FAIL if Given is vague (*"user is logged in"* without stating precondition detail) — no better than no description.
-- PASS when each line is concrete and the Risk names a specific user complaint.
 
 **R4 — Uses FakeMail for emails.**
 - N/A if no email field involved.
@@ -192,12 +185,12 @@ Ask: "If a developer introduced a realistic bug — removed the save handler, br
 
 Score PASSes out of applicable rules (exclude N/A).
 
-**R1-R10 (10 rules):**
-- **A (9-10 PASS):** ship it
-- **B (7-8):** solid, minor rewrites suggested
-- **C (5-6):** needs real work
-- **D (3-4):** probably better to rewrite than patch
-- **F (<3):** delete or start over
+**R1-R10 (9 rules):**
+- **A (8-9 PASS):** ship it
+- **B (6-7):** solid, minor rewrites suggested
+- **C (4-5):** needs real work
+- **D (2-3):** probably better to rewrite than patch
+- **F (<2):** delete or start over
 
 **R11-R13 (3 rules — always applicable for functional tests):**
 - Each FAIL on R11-R13 lowers the final grade by one tier (A→B, B→C, etc.)
@@ -225,11 +218,10 @@ The report **is** the evidence — no run URLs, no screenshots. But every FAIL c
 ## Example subtask note (good)
 
 ```
-Grade: C (6/9 applicable)
+Grade: C (6/8 applicable)
 
 FAILS:
 - R1 (asserts outcome): no assertion anywhere after Click submit — we prove the click happened, not that login succeeded
-- R3 (PM-readable docs): Given line says "user visits .login-page" — contains CSS selector; should say "user on the login screen"
 - R4 (FakeMail): hardcodes admin@test.com — second run fails because account already exists from first run
 
 REWRITE SUGGESTION:
@@ -237,10 +229,6 @@ After `Click  button[type='submit']`, add:
   Wait For Elements State  role=heading[name="Dashboard"]  visible
   ${url}=  Get Url
   Should Contain  ${url}  /dashboard
-
-Rewrite docs first two lines:
-  Given: registered user with valid account
-  When: user submits the login form with valid credentials
 ```
 
 ## What NOT to do

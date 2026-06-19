@@ -5,7 +5,7 @@
     "url": "https://github.com/help-me-test"
   },
   "metadata": {
-    "description": "AI-powered test automation skills for Claude Code and other AI agents. Covers the full workflow: project onboarding, discovery, TDD, full QA, test fixing, visual review, API testing, and localhost proxy.",
+    "description": "AI-powered test automation skills for Claude Code and other AI agents. Covers the full workflow: project onboarding, discovery, TDD, full QA, test fixing, visual review, API testing, interactive browser console, and localhost proxy.",
     "version": "2.0.0",
     "repository": "https://github.com/help-me-test/skills"
   },
@@ -16,7 +16,7 @@
       "description": "8 skills for the complete test automation lifecycle: project setup, discovery, TDD, full QA orchestration, test fixing, visual review, API testing, and localhost proxy.",
       "version": "2.0.0",
       "category": "testing",
-      "tags": [
+      "description": "Skills for the complete test automation lifecycle: project setup, discovery, TDD, full QA orchestration, test fixing, visual review, API testing, interactive browser console, and localhost proxy.",
         "testing",
         "qa",
         "automation",

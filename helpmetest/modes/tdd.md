@@ -261,9 +261,7 @@ Go To  <url>
 - Verify business outcomes (data saved, state changed) — not just that an element is visible
 - Use `Create Fake Email` for any registration/email fields — never hardcode
 - Test name must answer: `<Feature> — <user-facing action>` or `User can <action>`. No implementation details, no "test" in name.
-- Description must answer: Given/When/Then + Risk in plain English — a product manager must be able to read it. No CSS selectors, no DOM paths, no RF keywords.
 - Tags must include: `priority:<level>`, `feature:<name>`. Use `--tags` flag, not `[Tags]` in content.
-- Every description MUST start with `Scenario: <id>` (e.g. `Scenario: s1-add`) to link to its CASE.md scenario.
 
 **5. Red-team loop** — see `_shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
 
@@ -357,58 +355,6 @@ Reload
 <re-assert that state survived>
 ```
 
-### Description format
-
-Every test must have a `--description` with four explicit lines (use CLI `--description`, not `[Documentation]` Robot syntax):
-
-```
-Given: <precondition — what state the system is in before the action>
-When: <action — what the user/system does>
-Then: <outcome — what is asserted, specifically>
-Risk: <what silent failure this catches — user complaint if this test were deleted>
-```
-
-Example (via CLI):
-```bash
-helpmetest test update "login" --description "Given: registered user with valid account
-When: submits login form with wrong password
-Then: sees 'Invalid email or password' error, remains on login page, is NOT authenticated
-Risk: silent login failure — attacker gets in, or user is confused with no feedback" --no-run
-```
-
-**Given/When/Then — what makes them good:**
-- ✅ `Given: registered user with valid account` — specific precondition
-- ✅ `When: submits login form with wrong password` — exact action
-- ✅ `Then: sees "Invalid email or password" error, remains on login page, is NOT authenticated` — concrete, multiple assertions named
-- ❌ `Given: user is logged in | When: they do something | Then: it works` — vague, tells you nothing when the test fails
-
-**Language rules — the description must be readable by a product manager:**
-- ✅ Write in terms of user actions and visible outcomes
-- ❌ NEVER put CSS selectors, XPath, or DOM class names (`.keyword-line.current`, `#submit-btn`, `div[data-id]`)
-- ❌ NEVER put JavaScript internals, variable names, or debug APIs (`replayDebug.currentKeyword`, `window.__state`)
-- ❌ NEVER put Robot Framework syntax, keyword names, or technical implementation details
-- The test body is where selectors live. The description is where the product manager lives.
-
-Wrong:
-```
-Given: replay loaded with .banner-keywords visible
-When: user clicks .banner-next and replayDebug.currentKeyword changes
-Then: .keyword-line.current text matches window.replayDebug.currentKeyword.split(/ {2,}/)[0]
-```
-Right:
-```
-Given: a test replay is open and paused
-When: user steps forward then backward through keywords using the navigation buttons
-Then: the highlighted keyword in the banner matches the current playback position after each navigation
-```
-
-**Risk — good examples:**
-- ✅ `Risk: users completing checkout get charged without receiving an order confirmation`
-- ✅ `Risk: users typing wrong passwords are silently logged in or shown a blank screen`
-- ✅ `Risk: profile email changes silently fail — user sees stale email with no indication`
-- ❌ `Risk: the login form breaks` — too vague, what breaks? who notices?
-- ❌ `Risk: the form doesn't submit` — that's what the test does, not what it protects against
-
 ### Inline comments
 
 **Every non-obvious step must have a `# comment` above it written for a product manager, not an engineer.**
@@ -488,7 +434,6 @@ Verify it works before writing any tests. See the `proxy` skill for details.
 
 - ✅ All tests passing
 - ✅ All `priority:critical` scenarios have `test_ids`
-- Every test has Given/When/Then/Risk in `--description` (not `[Documentation]`) and test name follows `User can <action>` or `<Feature> — <behavior>` pattern
 - ✅ Every test passed `/fix` before being linked
 - ✅ Bugs documented in `feature.bugs[]`
 - ✅ Feature.status updated (`working` / `broken` / `partial`)

@@ -3,11 +3,7 @@ mode: improve
 strip_rf_preamble: false
 output_constraints: |-
   Rules for your response:
-  - Output the complete improved test in exactly this format, with all three delimiters present:
-      [DESCRIPTION]
-      <four lines: Given / When / Then / Risk>
-      [/DESCRIPTION]
-
+  - Output the complete improved test in exactly this format, with both delimiters present:
       [TAGS]
       <space-separated tags>
       [/TAGS]
@@ -17,20 +13,16 @@ output_constraints: |-
       [/BODY]
   - No prose, no markdown fences, no explanation outside the delimiters.
   - If all criteria are already satisfied, output the definition exactly as given — unchanged.
-  - Do NOT echo or repeat the input before the output. Start immediately with [DESCRIPTION].
+  - Do NOT echo or repeat the input before the output. Start immediately with [TAGS].
 description: >-
-  Evals for the improve mode — verifies that I1–I6 criteria are correctly applied
+  Evals for the improve mode — verifies that I2–I6 criteria are correctly applied
   when auditing and rewriting test definitions. Each case provides a test definition
-  in [DESCRIPTION]/[TAGS]/[BODY] format and checks the improved output mechanically.
+  in [TAGS]/[BODY] format and checks the improved output mechanically.
 prompt_preamble: |-
   You are applying the improve mode to a test definition. Rewrite the definition so
   all failing criteria are fixed. Apply every criterion — do not skip any.
 
   The test is provided in this format:
-    [DESCRIPTION]
-    <description text or empty>
-    [/DESCRIPTION]
-
     [TAGS]
     <space-separated tags or empty>
     [/TAGS]
@@ -42,16 +34,6 @@ prompt_preamble: |-
   Output the complete improved test in exactly the same format.
 
   Criteria (apply ALL that are violated):
-
-  I1  Description must have exactly four lines, each starting with its label and a colon:
-        Given: <specific system state before the action — not vague like "user is logged in">
-        When: <exact user action taken in this test>
-        Then: <concrete outcome — name the values, elements, or data checked>
-        Risk: <specific user complaint if this test were deleted — must name a user, not a system>
-      Each line MUST start with exactly "Given: ", "When: ", "Then: ", "Risk: " (label + colon + space).
-      No CSS selectors, DOM paths, JS variable names, or RF keyword names in any line.
-      If the description is missing or does not have all four labelled lines, write it from scratch
-      using the test body as the source of truth.
 
   I2  The test body must be divided into intent-based section comments following these rules:
       - One comment covers 2–8 related steps (no per-line comments)
@@ -87,104 +69,10 @@ prompt_preamble: |-
   CRITICAL: Every `#` comment is rewritten if it violates a rule — no section is exempt.
 
 evals:
-  - id: 1
-    rules: [I1]
-    violation: No description at all — must be written from the test body
-    input: |
-      [DESCRIPTION]
-      [/DESCRIPTION]
-
-      [TAGS]
-      project:helpmetest
-      [/TAGS]
-
-      [BODY]
-      # Auth and open the app
-        As  Helpmetest
-        Go To  https://helpmetest.slava.helpmetest.com/
-        Wait For Elements State  css=nav  visible  timeout=15s
-
-      # Create a new test
-        Click  [data-testid="new-test-btn"]
-        Fill Text  [data-testid="test-name"]  my smoke test
-        Click  [data-testid="save-btn"]
-
-      # Test appears in the list with the correct name
-        Wait For Elements State  [data-testid="test-list-item"]  visible  timeout=10s
-        ${name}=  Get Text  [data-testid="test-list-item"]:first-child
-        Should Be Equal  ${name}  my smoke test
-      [/BODY]
-    must_contain:
-      - "Given:"
-      - "When:"
-      - "Then:"
-      - "Risk:"
-      - "my smoke test"
-    must_not_contain:
-      - "[DESCRIPTION]\n[/DESCRIPTION]"
-      - "Given: css="
-      - "Given: [data-testid"
-      - "When: css="
-      - "When: [data-testid"
-      - "Then: css="
-      - "Then: [data-testid"
-
-  - id: 2
-    rules: [I1]
-    violation: Description leaks CSS selectors and RF keyword names
-    input: |
-      [DESCRIPTION]
-      Given: user is on the page
-      When: Click  [data-testid="export-btn"] and Wait For Elements State css=[data-testid="download-ready"]
-      Then: Should Contain label ready
-      Risk: export breaks
-      [/DESCRIPTION]
-
-      [TAGS]
-      project:helpmetest
-      [/TAGS]
-
-      [BODY]
-      # Auth and open the app
-        As  Helpmetest
-        Go To  https://helpmetest.slava.helpmetest.com/exports
-        Wait For Elements State  css=h1  visible  timeout=15s
-
-      # Trigger CSV export
-        Click  [data-testid="export-btn"]
-        Wait For Elements State  [data-testid="export-modal"]  visible  timeout=5s
-        Click  [data-testid="export-csv"]
-
-      # Export completes and download becomes available
-        Wait For Elements State  [data-testid="download-ready"]  visible  timeout=15s
-        ${label}=  Get Text  [data-testid="download-ready"]
-        Should Contain  ${label}  ready
-      [/BODY]
-    must_contain:
-      - "Given:"
-      - "When:"
-      - "Then:"
-      - "Risk:"
-    must_not_contain:
-      - "Given: css="
-      - "Given: [data-testid"
-      - "When: css="
-      - "When: [data-testid"
-      - "When: Click"
-      - "Then: Should"
-      - "Then: Wait"
-
   - id: 3
     rules: [I2]
     violation: Per-line comments in body — every step has its own comment
     input: |
-      [DESCRIPTION]
-      Given: authenticated user on the billing page
-      When: user updates their saved payment card
-      Then: confirmation banner appears with "Card saved" text
-      Risk: user cannot update billing info, payment method becomes stale
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest persona:helpmetest priority:high
       [/TAGS]
@@ -226,13 +114,6 @@ evals:
     rules: [I3]
     violation: Non-obvious Javascript call with no why-comment
     input: |
-      [DESCRIPTION]
-      Given: replay page loaded for a passing desktop run
-      When: last HLS segment is fetched and its ftyp box inspected
-      Then: ftyp box equals "ftyp" confirming a valid self-contained MP4
-      Risk: broken recording pipeline produces unplayable segments silently
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:replay persona:helpmetest priority:high
       [/TAGS]
@@ -266,13 +147,6 @@ evals:
     rules: [I4]
     violation: Test body has no outcome assertion — only navigation and clicks
     input: |
-      [DESCRIPTION]
-      Given: authenticated user on the app
-      When: user opens account settings and clicks delete
-      Then: account deletion flow completes
-      Risk: delete flow is broken
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest
       [/TAGS]
@@ -298,13 +172,6 @@ evals:
     rules: [I5]
     violation: Fragile CSS class-chain selectors — model must identify and emit discover commands, not guess testids
     input: |
-      [DESCRIPTION]
-      Given: authenticated user with items in cart
-      When: user proceeds through checkout and places order
-      Then: order confirmation page appears with a valid order ID
-      Risk: checkout flow is broken and users cannot complete purchases
-      [/DESCRIPTION]
-
       [TAGS]
       project:shop feature:checkout persona:buyer priority:critical url:https://shop.example.com
       [/TAGS]
@@ -339,13 +206,6 @@ evals:
     rules: [I6]
     violation: All required tags missing
     input: |
-      [DESCRIPTION]
-      Given: authenticated user on the projects list
-      When: user creates a new project named Alpha
-      Then: new project card appears in the list with title Alpha
-      Risk: project creation is broken and users cannot organise their tests
-      [/DESCRIPTION]
-
       [TAGS]
       [/TAGS]
 
@@ -374,12 +234,9 @@ evals:
       - "[TAGS]\n[/TAGS]"
 
   - id: 8
-    rules: [I1, I2, I4, I6]
-    violation: Multiple criteria failing — no description, per-line comments, no assertions, missing tags
+    rules: [I2, I4, I6]
+    violation: Multiple criteria failing — per-line comments, no assertions, missing tags
     input: |
-      [DESCRIPTION]
-      [/DESCRIPTION]
-
       [TAGS]
       [/TAGS]
 
@@ -400,10 +257,6 @@ evals:
         Wait For Elements State  css=nav  visible  timeout=20s
       [/BODY]
     must_contain:
-      - "Given:"
-      - "When:"
-      - "Then:"
-      - "Risk:"
       - "project:"
       - "url:"
       - "Should"
@@ -416,19 +269,11 @@ evals:
       - "# fill password"
       - "# click submit"
       - "# wait for dashboard"
-      - "[DESCRIPTION]\n[/DESCRIPTION]"
 
   - id: 9
     rules: []
     violation: none — already correct, must pass through unchanged
     input: |
-      [DESCRIPTION]
-      Given: authenticated user on the app home page
-      When: user creates a new test named "my smoke test" using the new test button
-      Then: the test appears in the list and its title matches "my smoke test"
-      Risk: test creation is broken and engineers cannot add tests without using the browser
-      [/DESCRIPTION]
-
       [TAGS]
       project:helpmetest feature:test-management persona:helpmetest priority:high url:https://helpmetest.slava.helpmetest.com
       [/TAGS]
@@ -450,13 +295,7 @@ evals:
         Should Be Equal  ${name}  my smoke test
       [/BODY]
     must_contain:
-      - "Given:"
-      - "When:"
-      - "Then:"
-      - "Risk:"
       - "project:helpmetest"
       - "my smoke test"
       - "Should Be Equal  ${name}  my smoke test"
-    must_not_contain:
-      - "Given: css="
-      - "Given: [data-testid"
+    must_not_contain: []
