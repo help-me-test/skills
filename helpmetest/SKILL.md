@@ -1,7 +1,7 @@
 ---
 name: helpmetest
 description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), improve (audit + rewrite tests in place — adds section comments, inline comments, fixes selectors and tags), comment (rewrite test comments to quality standard — grouped by intent, no per-line narration), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), interactive (drive a real browser one command at a time — explore, debug, prototype), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
-argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | improve | comment | report | proxy | api | ui | interactive | onboard | <task>]"
+argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | improve | comment | report | proxy | api | ui | interactive | onboard | ssl | <task>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -37,6 +37,7 @@ Parse the first remaining token:
 | `comment` | **comment** — audit and rewrite test comments only (C1–C7 rules): group per-line comments into intent-based sections, remove numbering and decorations, replace implementation narration with product-context headings, name invariants instead of describing assertions. No keywords, selectors, or assertions are changed.
 | `proxy` | **proxy** — tunnel localhost |
 | `terminal` | **terminal** — run shell commands (Jest, pytest, bun test, Go test…) using the `Bash` keyword. Cross-references `ci` for running unit tests as a GHA step. |
+| `ssl` or `domain` | **ssl** — write, run, and debug DomainChecker SSL certificate tests. No browser needed — keywords make direct TLS connections from inside the VM. Pass a domain to generate a test instantly. |
 | `ci` | **ci** — CI integration: acquire a token, install the CLI, run tests in GitHub Actions / GitLab / CircleCI / Bitbucket. Cross-references `proxy` for private/staging URLs. |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui-review** — visual walkthrough |
@@ -133,6 +134,10 @@ interactive   Drive a real cloud browser one command at a time with Robot Framew
               or verify something ad-hoc without running a full suite.
               Bare: announces intent, asks "what do you want to explore or debug?"
 onboard       New project setup: create HELPMETEST.md + ProjectOverview + initial artifacts.
+ssl           Write and run DomainChecker SSL keyword tests against any domain.
+              Pass a domain: generates cert validity, expiry, issuer, algorithm, and SAN assertions instantly.
+              Bare: asks "which domain to check?"
+              Alias: domain
               Bare: runs the structured 3-question interview (source of truth, stage, goal).
 full-qa       End-to-end: discover → tdd → fix — ran by default on bare /helpmetest.
 change-impact git diff → @helpmetest annotations → run affected tests → RegressionRun verdict.
