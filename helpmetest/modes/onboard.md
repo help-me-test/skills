@@ -128,7 +128,7 @@ When asked to build anything:
 
 Create in this order. Do not skip any. Each one is a prerequisite for the next.
 
-Use this exact command — do not call `helpmetest artifact schema` first, the schema is inline here:
+Use this exact command — do not call `helpmetest artifact schema` first, the required fields are: `name`, `description`, `url`, `summary`:
 
 ```bash
 helpmetest artifact upsert \
@@ -136,20 +136,19 @@ helpmetest artifact upsert \
   --type "ProjectOverview" \
   --name "<project name>" \
   --content '{
-    "description": "<2-3 sentences: what this app does and who it is for>",
+    "name": "<project name>",
+    "description": "<one-line summary of artifact purpose>",
     "url": "<app URL or empty string>",
-    "tech_stack": "<what you found>",
-    "source_of_truth": "<prd|code|tickets|api-spec|user|mixed>",
-    "stage": "<greenfield|legacy|active>",
-    "goal": "<build|test|fix|audit>",
-    "personas": [],
-    "features": []
+    "summary": "<one paragraph: what this product does and who it is for>",
+    "tech_stack": ["<tech1>", "<tech2>"],
+    "features": [],
+    "persona_ids": []
   }'
 ```
 
 ### 3b. Persona artifacts
 
-For each distinct user type found (admin, registered user, guest, etc.), use this exact command:
+For each distinct user type found (admin, registered user, guest, etc.), use this exact command — required fields are: `name`, `description`, `persona_type`:
 
 ```bash
 helpmetest artifact upsert \
@@ -157,10 +156,11 @@ helpmetest artifact upsert \
   --type "Persona" \
   --name "<role name>" \
   --content '{
-    "role": "<what this person does>",
+    "name": "<role name>",
+    "description": "<who they are and what they do>",
+    "persona_type": "primary",
     "goals": ["<goal 1>", "<goal 2>"],
-    "auth_state_name": "<PascalCase name for Save As / As keywords>",
-    "registration_strategy": "<how to create this user for testing>"
+    "auth_state": "<PascalCase name for Save As / As keywords>"
   }'
 ```
 
