@@ -128,42 +128,40 @@ When asked to build anything:
 
 Create in this order. Do not skip any. Each one is a prerequisite for the next.
 
-### 3a. ProjectOverview
+Use this exact command — do not call `helpmetest artifact schema` first, the schema is inline here:
 
-```json
-{
-  "id": "project-overview",
-  "type": "ProjectOverview",
-  "name": "<project name>",
-  "content": {
-    "description": "<2-3 sentences: what this app does and who it's for>",
-    "url": "<app URL if known>",
+```bash
+helpmetest artifact upsert \
+  --id "project-overview" \
+  --type "ProjectOverview" \
+  --name "<project name>" \
+  --content '{
+    "description": "<2-3 sentences: what this app does and who it is for>",
+    "url": "<app URL or empty string>",
     "tech_stack": "<what you found>",
     "source_of_truth": "<prd|code|tickets|api-spec|user|mixed>",
     "stage": "<greenfield|legacy|active>",
     "goal": "<build|test|fix|audit>",
     "personas": [],
     "features": []
-  }
-}
+  }'
 ```
 
 ### 3b. Persona artifacts
 
-For each distinct user type found (admin, registered user, guest, etc.):
+For each distinct user type found (admin, registered user, guest, etc.), use this exact command:
 
-```json
-{
-  "id": "persona-<name>",
-  "type": "Persona",
-  "name": "<role name>",
-  "content": {
+```bash
+helpmetest artifact upsert \
+  --id "persona-<name>" \
+  --type "Persona" \
+  --name "<role name>" \
+  --content '{
     "role": "<what this person does>",
     "goals": ["<goal 1>", "<goal 2>"],
     "auth_state_name": "<PascalCase name for Save As / As keywords>",
     "registration_strategy": "<how to create this user for testing>"
-  }
-}
+  }'
 ```
 
 For each persona, note: the auth state will be created by a dedicated auth-setup test using `Save As <auth_state_name>`. Every other test starts with `As <auth_state_name>`.

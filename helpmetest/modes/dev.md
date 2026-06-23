@@ -70,6 +70,8 @@ Load `modes/tdd.md` immediately after onboard. Follow "I need to build something
 ### 3. Build to GREEN
 Implement the app incrementally — one failing test at a time. Pick the highest-priority failing test, write the minimum code to pass it, move to the next. No speculative code, no "I'll need this later."
 
+**Done = 0 failing tests.** Not "most tests pass". Not "core features work". Every test must be green before moving to §4. If tests are failing after implementation: fix them — do not yield, do not summarize, do not declare the project "complete with known issues". Fix and run again. Repeat until the test runner shows 0 failures.
+
 ### 4. Eyes on the result (via `interactive` + `proxy`)
 App is now running. Load `modes/interactive.md`. Start a proxy tunnel if local (see `proxy` skill). Navigate to the app and read the Interactive section — verify real selectors match what tests use, spot anything tests missed.
 
