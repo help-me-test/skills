@@ -52,13 +52,24 @@ Announce the situation and plan in one paragraph, then **immediately continue** 
 
 Nothing exists. Start from zero.
 
-### 1. Onboard
-Load `modes/onboard.md` and run through all phases. It creates:
-- `HELPMETEST.md`
-- `ProjectOverview` artifact
-- `Persona` artifacts
-- `Feature` artifacts with Given/When/Then scenarios
-- Test runner infrastructure (config files only — NO app source files)
+### 1. Onboard — HARD GATE
+
+**STOP. Before writing any code or creating any files:**
+
+```
+Read: .claude/skills/helpmetest/modes/onboard.md
+```
+
+Run every phase of onboard.md. Do not interpret "onboard" as "scaffold a Vite project". Onboard means:
+1. Write `HELPMETEST.md`
+2. Create `ProjectOverview`, `Persona`, `Feature` artifacts via `helpmetest artifact upsert`
+3. Set up test runner config files ONLY (`package.json`, `vitest.config.ts`, `src/test/setup.ts`)
+4. **No `src/App.tsx`, `src/main.tsx`, `index.html`, or any application source file**
+
+You are not done with onboard until:
+- `HELPMETEST.md` exists
+- `helpmetest artifact list` shows a `ProjectOverview`, at least one `Persona`, at least one `Feature`
+- `npm test -- --run` exits with "No test files found"
 
 **When onboard Phase 8 completes: do not yield. Immediately continue to §2.**
 
