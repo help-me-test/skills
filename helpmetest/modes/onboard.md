@@ -39,32 +39,12 @@ If artifacts exist but HELPMETEST.md is missing — write HELPMETEST.md from exi
 
 ## Phase 1 — Interview
 
-Ask these three questions. Ask them together, not one at a time.
+In autonomous mode (called from dev mode with no user to answer), infer the answers from context:
+- Source of truth: user's task description
+- Stage: greenfield if no HELPMETEST.md and no app code exists
+- Goal: build
 
-```
-I need to understand this project before setting anything up.
-
-1. What's the source of truth for what this system should do?
-   - PRD or spec doc (share the path or paste it)
-   - GitHub issues / Linear / Jira tickets (give me access or paste them)
-   - OpenAPI / Swagger spec (path or URL)
-   - Existing codebase (I'll read it)
-   - We work together — you'll describe features as we go
-   - Mix of the above
-
-2. Where is this project right now?
-   - Greenfield — nothing built yet
-   - Legacy — code exists, no tests
-   - Active — code + some tests, ongoing development
-
-3. What's the immediate goal?
-   - Build new features (TDD from scratch)
-   - Add tests to what already exists
-   - Fix bugs
-   - Full QA audit of a running app
-```
-
-Wait for answers. Take notes. These shape everything below.
+If a human is present and answers are unclear, ask all three together in one message and wait. Otherwise proceed immediately with inferred answers.
 
 ---
 
@@ -342,76 +322,63 @@ I don't say "this should work." I run the test and show you the result.
 
 ## Phase 7 — Set Up Test Infrastructure (for greenfield projects)
 
-If this is a greenfield project (no existing tests), set up the test framework after onboarding artifacts are done. For legacy/active projects with existing tests, skip this phase.
+**STOP: this phase sets up the TEST RUNNER ONLY. No application source files.**
 
-**Detect the stack and create infrastructure:**
+Allowed in this phase:
+- `package.json` — init + devDependencies only
+- `tsconfig.json`, `vitest.config.ts`, `vite.config.ts` — config files
+- `src/test/setup.ts` — test setup file
+- `.gitignore`
+
+**NOT allowed in this phase (belongs in tdd mode):**
+- `src/App.tsx`, `src/main.tsx`, `src/index.tsx` — application source
+- Any component, hook, store, or utility file
+- `public/index.html` — app entry point
+
+If this is a greenfield project (no existing tests), set up the test framework only:
 
 **TypeScript / React** (check for `package.json`, `tsconfig.json`, `src/`):
 ```bash
-npm install --save-dev vitest @vitest/coverage-v8 @testing-library/react @testing-library/user-event
+npm install --save-dev vitest @vitest/coverage-v8 @testing-library/react @testing-library/user-event jsdom
 ```
 Create `vitest.config.ts`:
 ```typescript
 import { defineConfig } from 'vitest/config'
-
 export default defineConfig({
   test: {
     environment: 'jsdom',
-    coverage: {
-      provider: 'v8',
-      thresholds: { lines: 80, functions: 80, branches: 80 }
-    }
+    setupFiles: ['./src/test/setup.ts'],
   }
 })
 ```
-
-**Python** (check for `requirements.txt`, `pyproject.toml`, `setup.py`):
-```bash
-pip install pytest pytest-cov pytest-asyncio
-```
-Create `pytest.ini`:
-```ini
-[pytest]
-testpaths = tests
-addopts = --cov=. --cov-report=term-missing --cov-fail-under=80
+Create `src/test/setup.ts`:
+```typescript
+import '@testing-library/jest-dom'
 ```
 
-**.NET** (check for `*.csproj`, `Program.cs`):
-```bash
-dotnet new xunit -n <ProjectName>.Tests -o tests
-dotnet add tests/<ProjectName>.Tests.csproj reference <ProjectName>.csproj
-dotnet add tests/<ProjectName>.Tests.csproj package Moq
-dotnet add tests/<ProjectName>.Tests.csproj package FluentAssertions
-```
-
-**Verification:** After setup, run the test suite to confirm it works.
+**Verification:** `npm test -- --run` should exit with "No test files found" — that is correct and expected. The runner works; tests come next in tdd mode.
 
 ---
 
-## Phase 8 — Present, confirm, hand off
+## Phase 8 — Hand off
 
-Present what you created and ask for corrections:
+Present what was created:
 
 ```
 ## Onboarding complete
 
-**What I created:**
+**Created:**
 - ProjectOverview: <id>
 - Personas: <list>
-- Features (<N>, <M> total scenarios):
-  - <Feature 1>: <list scenario names>
-  - <Feature 2>: ...
-- OnboardingTasks: tasks-onboarding (<N tasks>)
-- HELPMETEST.md written to project root
+- Features (<N> features, <M> total scenarios)
+- OnboardingTasks: tasks-onboarding
+- HELPMETEST.md written
 
-Does this look right? Anything to add, remove, or change?
-
-**Recommended next step:**
-→ Run `/tdd` on the first task: "<first task title>"
-Or say "continue" and I'll start immediately.
+**Next:** writing all tests RED for <first feature> — starting now.
 ```
 
-Wait for response. If the user requests changes, update the affected artifacts and HELPMETEST.md, then confirm what changed.
+**If called from dev mode: do not yield. Immediately load `modes/tdd.md` and proceed to write tests.**
+**If called standalone with a human present: present the above and ask "Does this look right? Say 'continue' to start TDD."**
 
 ---
 

@@ -53,17 +53,19 @@ Announce the situation and plan in one paragraph, then **immediately continue** 
 Nothing exists. Start from zero.
 
 ### 1. Onboard
-Run `/helpmetest onboard` — do not skip this even if the project feels simple. It creates:
+Load `modes/onboard.md` and run through all phases. It creates:
 - `HELPMETEST.md`
 - `ProjectOverview` artifact
-- Initial `Feature` artifacts with Given/When/Then scenarios
+- `Persona` artifacts
+- `Feature` artifacts with Given/When/Then scenarios
+- Test runner infrastructure (config files only — NO app source files)
 
-No code, no tests yet. The artifacts are the spec.
+**When onboard Phase 8 completes: do not yield. Immediately continue to §2.**
 
 ### 2. Write tests RED (via `tdd` mode)
-Load `modes/tdd.md` and follow "I need to build something". All tests written against the not-yet-built app. Every test must fail. That is correct — failing tests are the spec.
+Load `modes/tdd.md` immediately after onboard. Follow "I need to build something". Write ALL tests for every Feature artifact scenario. Every test must fail — no app code exists yet. That is correct.
 
-Do not write a single line of application code during this phase.
+**Do not write a single line of application code until every test exists and is confirmed failing.**
 
 ### 3. Build to GREEN
 Implement the app incrementally — one failing test at a time. Pick the highest-priority failing test, write the minimum code to pass it, move to the next. No speculative code, no "I'll need this later."
