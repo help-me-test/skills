@@ -118,23 +118,7 @@ as the first meaningful line (before `Go To`).
 
 **R7 — Replace fragile selectors**
 
-Do not guess or invent `data-testid` values. Discover them from the live page:
-
-```bash
-# 1. Navigate to the page where the fragile selector appears
-helpmetest interactive "Go To  <url-from-test>"
-
-# 2. Read the "Interactive" section in the output — it lists every
-#    interactive element with its best available selector:
-#
-#    Interactive
-#      * Click  [data-testid='checkout-btn']  —  Place order
-#      * Click  [data-testid='cart-icon']     —  Cart (3)
-#
-# 3. Copy the selector that matches the element you're targeting.
-#    Use --session <id> to continue in the same browser session.
-helpmetest interactive "Click  [data-testid='checkout-btn']" --session <id>
-```
+Do not guess or invent selectors. Use `interactive` mode to navigate to the page and read the Interactive section — it lists every element with its best available selector. See `modes/interactive.md`.
 
 Selector priority:
 1. `[data-testid="..."]` — stable, survives styling and layout changes

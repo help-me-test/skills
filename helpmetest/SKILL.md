@@ -27,7 +27,8 @@ Parse the first remaining token:
 | First token | Mode |
 |------------|------|
 | `agent` | **agent-only** — you were invoked with no downstream workflow; maintain the Tasks artifact lifecycle around whatever the user describes next, pick the closest workflow mode based on the task text. |
-| `tdd` | **tdd** — write/fix tests |
+| `tdd` | **tdd** — write/fix tests (sub-step; for full code work use `dev`) |
+| `dev` | **dev** — orchestrator for all code work: greenfield, new feature, change, refactor. Reads the situation and runs the right sequence: onboard → tests RED → build GREEN → interactive → discover → validate → improve → coverage |
 | `discover` | **discover** — map into Feature artifacts |
 | `fix-tests` or `fix` | **fix-tests** — diagnose and repair broken tests |
 | `coverage` | **coverage** — gap analysis: what scenarios have no tests |
@@ -50,9 +51,9 @@ Parse the first remaining token:
 | `report` | **report** — read-only project health diagnosis: triage → auth → tests → stability → sync → coverage → code → bugs → artifacts → drift → tiered report → recommended next fix. Sub-phase: `report <phase>`. |
 | `continue` | **resume** — task mentions an existing Tasks artifact id; fetch it, find the first open subtask, resume (see `modes/agent.md` §Resuming an existing artifact). |
 | (empty / bare `/helpmetest`) | **full-qa** — full cycle: discover + tdd + validate |
-| anything else (e.g. looks like a task description) | **tdd** (default) with the whole input as the task |
+| anything else (e.g. looks like a task description) | **dev** if it sounds like code work ("build", "add", "change", "implement", "develop", "create", "refactor", "I want to make"); otherwise **tdd** |
 
-Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X", "go check X", "what's on X", "browse X", "poke around X", "look at X", "open X and see" → interactive. If ambiguous, pick the closest mode and narrate your choice before executing.
+Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X" / "browse X" / "look at X" → interactive, "build X" / "add feature" / "I want to develop X" / "refactor X" / "change X" → dev. If ambiguous, pick the closest mode and narrate your choice before executing.
 ## 3. Load context
 
 Load these files in this order, always:
@@ -94,7 +95,12 @@ Every mode follows the same pattern: orient → announce → act. The announce s
 
 ```
 agent         Tasks-artifact lifecycle only — baseline discipline, any workflow.
-tdd           Write or fix tests. Default for 'write tests', 'implement X', 'fix bug', 'refactor'.
+dev           Orchestrator for ALL code work — greenfield, new feature, change, refactor.
+              Reads the situation (no project / new feature / existing / broken) and runs the right sequence:
+              onboard → tdd RED → implement GREEN → interactive → discover → validate → improve → coverage.
+              Triggers: 'build X', 'add feature X', 'I want to develop X', 'change X', 'refactor X', 'implement X'.
+              Never build code before tests — the sequence is enforced, not suggested.
+tdd           Write or fix tests. Sub-step called by dev, or use directly for targeted test work.
               Bare: presents TDD landscape (failing tests + uncovered scenarios), recommends one, asks "that or something specific?"
 discover      Map a live app, PRD, or spec into Feature artifacts. Also handles fast triage sweeps
               ("find bugs", "poke around", "good test around") — outputs a three-section findings table

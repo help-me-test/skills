@@ -182,6 +182,12 @@ Done means green tests, not "this should work." Run them. Show the output.
 
 ---
 
+### "I want to build an app" / "I want to develop X" / "Refactor X" — use `dev` mode
+
+For any full code work (greenfield, new feature, change, refactor), use `dev` mode — it orchestrates the correct sequence including onboard, tdd, interactive, discover, validate, and coverage. See `modes/dev.md`.
+
+`tdd` is a sub-step of `dev`, not the entry point for code work.
+
 ### "I need to build something" (TDD)
 
 New feature, bug fix, or refactor. Tests come first — they define what "done" means.
@@ -243,13 +249,7 @@ Feature exists (or was just built by someone else). Your job is tests only.
 
 **1. Read the Feature artifact** — `helpmetest artifact get feature-X`. If none exists, create one first based on what you know.
 
-**2. Explore interactively before writing** — run the scenario step by step using `helpmetest interactive "<keyword>"`. A test written after seeing real behavior uses real selectors and reflects actual timing. A test written from a description is a guess.
-
-```
-As  <persona>
-Go To  <url>
-# Execute each Given/When/Then step, observe what actually happens
-```
+**2. Explore interactively before writing** — use `interactive` mode to run the scenario step by step against the live app. A test written from real observation uses real selectors and reflects actual timing. A test written from a description is a guess. See `modes/interactive.md`.
 
 **3. Before writing each test, answer this out loud:**
 > "If this test passes but the feature is actually broken, what user complaint would we miss until a customer reports it?"
@@ -414,11 +414,7 @@ ${code}=   Get Email Verification Code  ${email}
 
 ### Localhost
 
-If testing a local server, set up the proxy first:
-```bash
-helpmetest proxy start localhost:3000
-```
-Verify it works before writing any tests. See the `proxy` skill for details.
+If testing a local server, set up a proxy tunnel first — see the `proxy` skill. Use the domain the proxy gives you in all test URLs, not `localhost`.
 
 ---
 

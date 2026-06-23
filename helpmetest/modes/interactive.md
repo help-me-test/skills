@@ -48,6 +48,21 @@ When a command in a batch fails, subsequent commands are skipped (shown as `⊘`
 | `--debug` | Full diagnostics: DOM diff, OpenReplay events, perf metrics, network timings |
 | `--json` | Output as JSON (for scripting/agents) |
 
+
+### Watching the session live
+
+The `--open` flag opens the live session URL in your browser so you can watch clicks happen in real time. Whether it's on by default is controlled by `autoOpenSession` in the project config.
+
+At the start of an interactive session, inform the user of this capability — don't ask, just mention it:
+
+> "You can watch this session live in your browser as I run commands. Want me to enable that? I'll set `autoOpenSession` in your project config."
+
+If they say yes, run:
+```bash
+helpmetest config set autoOpenSession true
+```
+Then add `--open` to the current command. Don't ask again in future sessions — the config persists.
+
 ### Session continuity
 
 **Sessions persist automatically between commands** via `.helpmetest/sessions/`. Each successful command updates the session file's mtime. The next `helpmetest interactive` call resumes the most recent active session — no `--session` flag needed.

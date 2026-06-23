@@ -126,15 +126,8 @@ Create before starting:
 
 ### Phase 2: Reproduce Interactively
 
-Run steps one at a time via `helpmetest interactive "<keyword>"`:
+Run the failing steps one at a time using `interactive` mode (see `modes/interactive.md`). Stop at the failing step and investigate based on error type:
 
-```robot
-As  <auth_state>
-Go To  <url>
-# → observe after each step
-```
-
-Stop at the failing step. Investigate based on error type:
 
 - **Element not found**: Try alternate selectors — is element gone (bug) or selector changed (test issue)?
 - **Not interactable**: Check visibility, scroll, multiple matches, disabled state
@@ -313,119 +306,7 @@ If user says "fix all selector drifts" — apply across the category without ask
 
 ## Mode: Validate — Test Quality Review
 
-**The core question: would this test fail if the feature broke? If not → reject.**
-
-### The Business Value Test (MOST IMPORTANT)
-
-1. "What business capability does this test verify?"
-2. "If this test passes but the feature is broken, is that possible?"
-
-**If answer to #2 is YES → IMMEDIATE REJECTION**
-
----
-
-### Validation Rules (R1–R13)
-
-Apply all rules. Each rule is a gate.
-
-**R1 — Meaningful steps**
-- FAIL if < 5 meaningful steps (each step must change state, not just navigation)
-- FAIL if test is only navigation + element counting
-
-**R2 — Behavioral assertions**
-- FAIL if < 2 assertions (Get Text, Should Be, Wait For ≠ element present)
-- FAIL if only asserts element visibility without behavior
-
-**R3 — State verification**
-- FAIL if test doesn't verify state change (before/after OR API response OR persistence)
-
-**R5 — Stable selectors**
-- FAIL if uses fragile selectors (index-based, dynamic text without stable anchor)
-
-**R6 — Required tags**
-- FAIL if missing `priority:?` or `feature:?`
-
-**R7 — Actionable assertions**
-- FAIL if only checks "no error" instead of positive outcome
-- FAIL if vacuous assertion (always passes)
-
-**R8 — Tags are complete and consistent**
-- FAIL if tags contradict each other or contradict test body
-
-**R9 — Auth state used correctly**
-- FAIL if test re-authenticates instead of reusing established auth state
-
-**R10 — Linked to a Feature.scenario**
-- FAIL if the test is an orphan (no scenario references its id in `test_ids`)
-
-**R11 — Mutation Resistance**
-- FAIL if the test could pass even when the code under test is broken
-- Check: remove the save handler, break the validation — would this test fail?
-- Patterns that fail R11: asserts visible but not functional, clicks but checks no data change
-
-**R12 — Tests Our Business Logic, Not Framework Behavior**
-- FAIL if test validates: Express/Fastify routes, Prisma/Mongoose ops, bcrypt/JWT sign, axios/fetch calls
-- PASS if test validates custom business logic wrapping these libraries
-
-**R13 — Minimal Mocking**
-- FAIL if >3-4 mocks per test
-- FAIL if mocking pure functions or business logic (only mock external I/O)
-
----
-
-### Scoring
-
-Score PASSes out of applicable rules.
-
-**R1-R10:**
-- **A (9-10 PASS):** ship it
-- **B (7-8):** solid, minor rewrites suggested
-- **C (5-6):** needs real work
-- **D (3-4):** probably better to rewrite than patch
-- **F (<3):** delete or start over
-
-**R11-R13 (always applicable for functional tests):**
-- Each FAIL on R11-R13 lowers the final grade by one tier (A→B, B→C, etc.)
-- FAIL on R12 + test only validates framework behavior → automatic F
-
----
-
-### Bullshit Score Translation
-
-| Bullshit Score | Grade | Action |
-|----------------|-------|--------|
-| 1–3 | A-B | ship it |
-| 4–6 | C | minor rewrites |
-| 7–9 | D | rewrite or delete |
-| 10 | F | delete immediately |
-
----
-
-### Output: Single Test
-
-```
-[Grade] — [PASS/REJECT] (R11-R13: X/3)
-Test ID: [id]
-Rule failures: R11, R12
-Evidence: [specific line or absence]
-[What to fix]
-```
-
-### Output: Batch
-
-Table grouped by grade (A / B / C / D / F), then action menu:
-
-```
-Reply with numbers to act:
-
-1. Delete [N] F-grade tests
-2. Fix [N] D-grade tests
-3. Rewrite [N] C-grade tests
-4. Keep [N] A/B-grade tests
-all — do everything
-```
-
-When user replies: execute without asking further.
+See `modes/validate.md` for the full R1–R13 rules, scoring, and output format. Apply it exactly as defined there.
 
 ---
 

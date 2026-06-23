@@ -231,21 +231,7 @@ Don't run all tests on every push — it's slow and noisy. Run critical on push,
 
 ## Testing a Staging or Localhost Server from CI
 
-If your tests hit a URL that isn't publicly reachable (internal staging, localhost, VPN-only), the cloud runner can't reach it directly. Use the proxy to bridge the gap.
-
-**Add a proxy start step before running tests:**
-
-```bash
-# Tunnel your local dev server
-helpmetest proxy start localhost:3000
-
-# Or tunnel an internal staging server
-helpmetest proxy start https://staging.internal.mycompany.com
-```
-
-Then tests use the proxy domain (`http://dev.local`) instead of the real URL. The proxy step must come before `helpmetest test run` in your CI job.
-
-**Full details in `modes/proxy.md`** — covers multi-tunnel strategies, WebSocket, and how to verify the tunnel actually works before writing tests.
+If your tests hit a URL that isn't publicly reachable, the cloud runner can't reach it directly. Set up a proxy tunnel first — see the `proxy` skill for exact syntax. The proxy step must come before `helpmetest test run` in your CI job, and tests must use the proxy domain, not `localhost`.
 
 ---
 
