@@ -111,6 +111,8 @@ When you're inside the `helpmetest agent claude` harness, your tools are restric
 - `Read`, `Write`, `Edit` — files
 
 Use the `helpmetest` CLI for all HelpMeTest operations. Key commands:
+- `helpmetest login` — authenticate via browser; saves token to `.helpmetest/config.yaml`
+- `helpmetest login --token <token>` — skip browser; validate and save a known token directly (useful when you already have a token from the dashboard or CI secret)
 - `helpmetest status` — test state
 - `helpmetest interactive "<Robot Framework keyword>"` — browser automation
 - `helpmetest test run <name-or-tag-or-id>` — run tests
@@ -120,7 +122,7 @@ Use the `helpmetest` CLI for all HelpMeTest operations. Key commands:
 - `helpmetest artifact upsert --id <id> --type <type> --name <name> --content '<json>'` — create/update artifact
 - `helpmetest test create --name <name> --tags <tags> --content '<robot>'` — create test
 - `helpmetest test update <id> ...` — update test
-- `helpmetest proxy start <host:port>` — start proxy tunnel
+- `helpmetest proxy start` — start proxy tunnel (see `proxy` skill for syntax and domain setup)
 - `helpmetest upload <file>` — upload file
 - `helpmetest open test <id>` — open test in browser
 
@@ -131,6 +133,7 @@ Modes are not just prose workflows — they produce structured, typed artifacts 
 | Mode | Output artifact type(s) |
 |---|---|
 | `tdd` | Tests (via `helpmetest test create` / `helpmetest test update`) + updates to `Feature.scenarios[].test_ids` |
+| `dev` | `Tasks` (orchestration receipt) + all artifacts produced by sub-modes it runs |
 | `fix` | `SelfHealing` + updates to `Feature.bugs[]` if a bug is found |
 | `discover` | `Feature[]` + `Persona[]` + `ProjectOverview` + (optional) `Memory` |
 | `coverage` | `CoverageReport` |
@@ -189,3 +192,21 @@ If you're inside the harness (`helpmetest agent claude "<task>"`), the harness p
 If you're invoked via slash command (`/helpmetest …`) outside the harness, you don't have a pre-picked id — pick one yourself (`tasks-<short-uuid>` derived from current time + task hash) and create the artifact the same way.
 
 Either way: maintain the Tasks artifact, track subtasks, close with evidence, populate `content.links` with every related artifact.
+
+
+## 12. Use interactive as your eyes — always
+
+You have a real browser available at any time via `helpmetest interactive`. Use it. Don't guess what an app looks like, what selectors exist, or whether a flow works — go look.
+
+This applies to all work, not just QA: writing a feature, debugging a bug, reviewing a UI, writing a test. If the app is running, open it.
+
+**For a local dev server**, the cloud browser can't reach `localhost` directly — set up a proxy tunnel first. Read the `proxy` skill for exact syntax and domain setup, then come back and use the domain it gives you in `interactive` commands.
+
+**When to reach for it:**
+- Starting work on any feature → navigate to the relevant page first, see what's actually there
+- Selector in a test is wrong → go find the real one in the Interactive section
+- "Does this work?" → go check, don't speculate
+- Writing a test → prototype the flow interactively first, then copy into `helpmetest test create`
+- Something looks broken → open it, look at Network for 4xx/5xx, look at the page state
+
+The Interactive section of every response lists ready-to-paste RF commands for every element on the page. Use those — don't invent selectors.
