@@ -235,7 +235,7 @@ New feature, bug fix, or refactor. Tests come first — they define what "done" 
 
 Mark each scenario: **write immediately** (critical/high) / **write before launch** (medium) / **skip** (cosmetic, already covered, unreliable). Don't test everything — test what would hurt if it broke.
 
-**4. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec. After each test, run the red-team loop (`_shared.md §3a`) before writing the next one.
+**4. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec. After each test, run the red-team loop (`shared.md §3a`) before writing the next one.
 
 **5. Implement incrementally** — pick the highest-priority failing test, make it pass, move to the next.
 
@@ -263,7 +263,7 @@ Feature exists (or was just built by someone else). Your job is tests only.
 - Test name must answer: `<Feature> — <user-facing action>` or `User can <action>`. No implementation details, no "test" in name.
 - Tags must include: `priority:<level>`, `feature:<name>`. Use `--tags` flag, not `[Tags]` in content.
 
-**5. Red-team loop** — see `_shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
+**5. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
 
 **6. Validate** the finished test with `/helpmetest validate` as a formal gate. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
 

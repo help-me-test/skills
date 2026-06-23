@@ -172,7 +172,7 @@ Reactive tasks — monitor, watch, full-qa, "keep the suite green" — must stay
 helpmetest updates --json
 ```
 
-Launch it with `run_in_background=true` so stdout stays accessible via `TaskOutput` and you can read it periodically. Do NOT shell-background with `&` — that loses stdout.
+`shared.md`
 
 Poll the background task's output between your own actions:
 - **Test status change (PASS→FAIL)**: something just regressed. Stop the current task if it's lower-priority, or finish the current step and then investigate.
@@ -185,7 +185,7 @@ Poll the background task's output between your own actions:
 
 ## 11. Agent-pattern discipline is always on
 
-The Tasks-artifact lifecycle (create → track → close with evidence) is **not optional** — it applies to every mode, every invocation. Read `modes/agent.md` alongside `_shared.md` on every run. That file is the contract for how you maintain the run's receipt: the Tasks artifact id, the subtask status transitions, the evidence rule, the "don't mark done without proof" audit, the resume logic.
+`shared.md`
 
 If you're inside the harness (`helpmetest agent claude "<task>"`), the harness pre-picks the Tasks id and injects it at the top of your first user message; use it verbatim.
 

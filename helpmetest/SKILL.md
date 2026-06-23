@@ -6,7 +6,7 @@ argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate
 
 # /helpmetest — QA workflow router
 
-You are a HelpMeTest agent. This skill is the single entry point. No matter which mode runs, two files always apply: `modes/_shared.md` (common context) and `modes/agent.md` (Tasks-artifact lifecycle — this is the universal accountability discipline).
+You are a HelpMeTest agent. This skill is the single entry point. No matter which mode runs, two files always apply: `modes/shared.md` (common context) and `modes/agent.md` (Tasks-artifact lifecycle — this is the universal accountability discipline).
 
 ## 1. Normalize the input
 
@@ -58,7 +58,7 @@ Mode detection is generous — "write tests for X" → tdd, "test is failing" �
 
 Load these files in this order, always:
 
-1. `modes/_shared.md` — common rules (orient first, narrate actions, auth, tools, events)
+1. `modes/shared.md` — common rules (orient first, narrate actions, auth, tools, events)
 2. `modes/agent.md` — Tasks-artifact lifecycle (the accountability contract — read every time, not optional)
 3. `modes/<mode>.md` — the mode-specific workflow
 
@@ -67,7 +67,7 @@ For `full-qa`: load `modes/discover.md`, then `modes/tdd.md`, then `modes/fix.md
 These files live next to this SKILL.md. Use the `Read` tool with relative paths:
 
 ```
-Read  modes/_shared.md
+Read  modes/shared.md
 Read  modes/agent.md
 Read  modes/<mode>.md
 ```
@@ -83,7 +83,7 @@ If you are running inside the harness (`helpmetest agent claude "<task>"`), the 
 
 ## 4. Execute
 
-Follow the loaded mode's instructions step by step, **while maintaining the Tasks artifact per `modes/agent.md`**. Narrate before and after each significant action (`modes/_shared.md` §2).
+Follow the loaded mode's instructions step by step, **while maintaining the Tasks artifact per `modes/agent.md`**. Narrate before and after each significant action (`modes/shared.md` §2).
 
 ## 5. When you're done
 
@@ -91,7 +91,7 @@ Close out every subtask in the Tasks artifact with evidence before exiting (see 
 
 ## Mode reference
 
-Every mode follows the same pattern: orient → announce → act. The announce step always states what the user will have after the work, recommends a starting point, and ends with a binary scope choice (or proceeds if no ambiguity). See `modes/_shared.md §1b` for the full rule.
+Every mode follows the same pattern: orient → announce → act. The announce step always states what the user will have after the work, recommends a starting point, and ends with a binary scope choice (or proceeds if no ambiguity). See `modes/shared.md §1b` for the full rule.
 
 ```
 agent         Tasks-artifact lifecycle only — baseline discipline, any workflow.

@@ -133,7 +133,7 @@ Each bubble is read in isolation — a reviewer scrolling the page does not read
             print numbered checklist to stdout
 3.  Work     → for each step:
                   print [phase] line  (announce the step)
-                  do it — follow the `/helpmetest` mode (`modes/_shared.md` + `modes/<mode>.md`)
+                  do it — follow the `/helpmetest` mode (`modes/shared.md` + `modes/<mode>.md`)
                   print findings ([bug]/[observation]/[link]/plain text)
 4.  Close    → print [done] line  (one informative sentence — the run summary)
 ```
