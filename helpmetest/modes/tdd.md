@@ -300,7 +300,7 @@ helpmetest artifact upsert --id feature-X --type Feature --file /tmp/feature-X.j
 
 Where the JSON sets `"test_ids": ["<test-id>"]` in the matching scenario. Fetch the current artifact first (`artifact get feature-X`), update the JSON locally, then upsert.
 
-**8. Run and fix** — see "Fix broken tests" below if a newly-written test fails.
+**8. Run and fix** — see "Fix broken tests" below if a newly-written test fails. **Max 3 fix attempts per test.** If the test still fails after 3 attempts, mark it `needs-fix` in the Feature artifact, link the test ID anyway, and move to the next scenario. Do NOT spend the entire session on one test.
 
 ---
 
