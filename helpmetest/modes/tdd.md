@@ -100,7 +100,7 @@ helpmetest artifact list --type Tasks
 
 After orient, present the TDD landscape in user-value terms. Never start work silently.
 
-**If invoked with a specific task** (feature name, test id, file to change): skip to the relevant use case below, but still open with one sentence stating what the user will have after this work.
+**If invoked with a specific task** (feature name, test id, file to change): open with one sentence stating what the user will have after this work, then **immediately proceed** — do not ask for scope confirmation. The task is fully specified; start writing.
 
 **If invoked bare (no task given)**, present based on what orient found:
 
@@ -256,18 +256,46 @@ Feature exists (or was just built by someone else). Your job is tests only.
 
 
 
-**4. Write tests** for `priority:critical` scenarios first, then high, then medium. For each:
+**4. Write tests** for `priority:critical` scenarios first, then high, then medium. Create each with:
+
+```bash
+helpmetest test create \
+  --id "<feature-slug>-<scenario-slug>" \
+  --name "User can <action>" \
+  --tags "feature:<feature-id>,priority:<level>,persona:public,project:<project-id>" \
+  --no-run \
+  --content '# Given — <precondition>
+Go To  <url>
+
+# When — <user action>
+Fill Text  <selector>  <value>
+Press Keys  <selector>  ENTER
+
+# Then — <expected outcome>
+<assertion keyword>  <selector>  <expected>'
+```
+
+Required tags: `feature:X`, `priority:X`, `persona:X`, `project:X`. Comments are required and must be evenly distributed — one section comment per 1–3 keywords. Use `--no-run` on create; run separately.
+
 - 5+ meaningful steps
 - Verify business outcomes (data saved, state changed) — not just that an element is visible
 - Use `Create Fake Email` for any registration/email fields — never hardcode
-- Test name must answer: `<Feature> — <user-facing action>` or `User can <action>`. No implementation details, no "test" in name.
-- Tags must include: `priority:<level>`, `feature:<name>`. Use `--tags` flag, not `[Tags]` in content.
+- Test name: `User can <action>` or `<Feature> — <behavior>`. No "test" in name.
 
-**5. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
+**5. Run each test immediately after creating it:**
+```bash
+helpmetest test run <test-id>
+```
 
-**6. Validate** the finished test with `/helpmetest validate` as a formal gate. A test that passes when the feature is broken must be rewritten — it is not done until the validator says PASS.
+**6. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
 
-**7. Link tests back** — add each test ID to `scenario.test_ids` in the Feature artifact **only after** it passes the red-team loop and validation.
+**7. Link tests back** — after each test passes, add its ID to `scenario.test_ids` in the Feature artifact:
+
+```bash
+helpmetest artifact upsert --id feature-X --type Feature --file /tmp/feature-X.json
+```
+
+Where the JSON sets `"test_ids": ["<test-id>"]` in the matching scenario. Fetch the current artifact first (`artifact get feature-X`), update the JSON locally, then upsert.
 
 **8. Run and fix** — see "Fix broken tests" below if a newly-written test fails.
 
