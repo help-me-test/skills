@@ -75,15 +75,17 @@ Check what auth states are available:
 helpmetest artifact list --type Persona
 ```
 
-After orient, announce before navigating anywhere:
+After orient, announce then **immediately proceed** — do not wait for a response:
 
 **No specific page or question given (bare invocation):**
-> "After this you'll have screenshots of every page at desktop, mobile, and tablet, plus a ranked list of what to fix — ordered by impact across the whole app. Takes about 10–15 minutes. Full audit, or is there a specific page or flow you want me to focus on?"
+> "After this you'll have screenshots of every page at desktop, mobile, and tablet, plus a ranked list of what to fix — ordered by impact across the whole app. Takes about 10–15 minutes. Starting now."
+
+Then immediately navigate to the app — do not stop and wait for confirmation.
 
 **Specific page or question given:**
 > "After this you'll know exactly what's wrong with [page/element] and what to change. Taking a look now."
 
-Wait for scope answer if bare. If specific: proceed directly to Phase 1 scoped to that page.
+Then immediately navigate. Never pause for scope confirmation — proceed with full scope by default.
 
 Check:
 1. What auth states are saved? (e.g. "Admin", "Helpmetest")
