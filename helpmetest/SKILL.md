@@ -53,7 +53,7 @@ Parse the first remaining token:
 | (empty / bare `/helpmetest`) | **full-qa** — full cycle: discover + tdd + validate |
 | anything else (e.g. looks like a task description) | **dev** if it sounds like code work ("build", "add", "change", "implement", "develop", "create", "refactor", "I want to make"); otherwise **tdd** |
 
-Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X" / "browse X" / "look at X" → interactive, "build X" / "add feature" / "I want to develop X" / "refactor X" / "change X" → dev. If ambiguous, pick the closest mode and narrate your choice before executing.
+Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X" / "browse X" / "look at X" → interactive, "build X" / "add feature" / "I want to develop X" / "refactor X" / "change X" → dev. If ambiguous, pick the closest mode and **immediately start loading it** — do not produce a text-only response first, go straight to the Read tool call.
 ## 3. Load context
 
 Load these files in this order, always:
