@@ -128,17 +128,22 @@ For each Feature artifact, fetch full content:
 helpmetest artifact get <feature-id>
 ```
 
-Extract each scenario (`content.functional[]`, `content.edge_cases[]`) — capture:
+Extract each scenario (`content.functional[]`, `content.edge_cases[]`) — for each one, record:
 - Scenario `name`
 - Scenario `tags` (especially `priority:<level>` and `risk_category:<type>`)
 - Scenario `test_ids` (the link back to tests)
-- Usefulness Score (calculated above)
 
-For each entry, classify:
-- **Covered** — `test_ids` is non-empty AND every id in it corresponds to an existing test (check against the test list from step 1).
-- **Gap** — `test_ids` is empty.
-- **Dead link** — `test_ids` contains an id that doesn't exist as a test.
-- **Under-covered** — scenario has 1 test but you'd expect 2+ (e.g. `priority:critical` scenario with only a happy-path test, no error path).
+For each entry, classify AND score (do both in the same pass):
+- **Covered** — `test_ids` non-empty AND all ids exist → `usefulness_score: null`
+- **Gap** — `test_ids` is empty → **REQUIRED: compute `usefulness_score` and `risk_category`**
+  - `usefulness_score = business_impact × failure_probability`
+  - business_impact: critical=5, high=4, medium=3, low=2, trivial=1
+  - failure_probability: very_high=5, high=4, medium=3, low=2, very_low=1
+  - risk_category: `money` / `security` / `data_export` / `data_integrity` / `core_journey` / `null`
+- **Dead link** — `test_ids` has an id that doesn't exist → `usefulness_score: null`
+- **Under-covered** — 1 test, would expect 2+ → compute score same as Gap
+
+**You must compute usefulness_score for every Gap before building the CoverageReport.** A gap entry without a score is invalid.
 
 ---
 
