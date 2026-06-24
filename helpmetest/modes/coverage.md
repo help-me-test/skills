@@ -64,9 +64,11 @@ helpmetest status
 
 Count what you're working with: N features, M tests. Narrate the numbers before you dig in.
 
-### 2. Score each Gap by Usefulness
+### 2. Score each Gap by Usefulness — MANDATORY
 
-For every gap found (scenarios with empty `test_ids`), calculate the Usefulness Score:
+**Do this before building the coverage map.** Every gap in `critical_gaps[]` MUST have a `usefulness_score` field. Skip this and the report is incomplete.
+
+For each scenario found to be a Gap (empty `test_ids`), compute:
 
 **Usefulness Score = Business Impact × Failure Probability**
 
@@ -87,11 +89,19 @@ For every gap found (scenarios with empty `test_ids`), calculate the Usefulness 
 | Very Low | 1 | Trivial assignment, can't break |
 
 **Decision thresholds:**
-- **≥15:** Write test immediately — high business risk AND likely to break
+- **≥15:** Write test immediately
 - **10-14:** Review — is this already covered by an existing E2E test?
 - **<10:** Skip — not worth the maintenance cost
 
-**Rank gaps by Usefulness Score** — cover highest scores first.
+Also assign a `risk_category` — pick the best match:
+- `money` — payment, refund, discount, tax
+- `security` — login, auth, password reset, token refresh
+- `data_export` — CSV, reports, migration
+- `data_integrity` — CRUD, transactions, validation
+- `core_journey` — registration→login, checkout flow, key user path
+- `null` — none of the above
+
+Write these two values (score + category) for **every gap** before moving to Step 3. The `critical_gaps[]` array in the CoverageReport will not be valid without them.
 
 ---
 

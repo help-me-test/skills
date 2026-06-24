@@ -144,10 +144,11 @@ Run the failing steps one at a time using `interactive` mode (see `modes/interac
 
 ### Phase 4A: Fix Test
 
-1. Validate fix interactively first — run the complete corrected flow
-2. Update via `helpmetest test update <id> ...`
-3. Run via `helpmetest test run <id>` to confirm
-4. Update Feature artifact
+**HARD RULES — no skipping:**
+1. Validate fix interactively first — run the complete corrected flow via `helpmetest interactive`
+2. Update: `helpmetest test update <id> --file /tmp/<id>-fixed.robot --no-run`
+3. **MUST run**: `helpmetest test run <id>` — wait for green. "Should work" is not evidence.
+4. **MUST update Feature artifact**: add a `bugs[]` entry OR update `scenario.test_ids` to confirm fix. A fix with no artifact trace did not happen.
 
 ### Phase 4B: Document Bug
 
