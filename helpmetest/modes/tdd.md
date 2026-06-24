@@ -117,9 +117,9 @@ After orient, present the TDD landscape in user-value terms. Never start work si
 > "Suite is green and covered. Tell me the feature you want to build test-first and I'll enumerate scenarios before writing a single line of code."
 
 **Rules:**
+- If a feature, test id, or task was named in the prompt → **do not ask anything. Proceed immediately.** The templates below only apply when invoked completely bare with no target.
 - Always recommend an order with a reason. Never present a menu of options with no recommendation.
-- The binary choice is "my recommended path vs. redirect to something specific" — not a list of 3+ options.
-- One question, not two.
+- When asking: one question maximum, binary choice ("my recommended path vs. something specific you have in mind").
 
 ---
 
