@@ -97,25 +97,26 @@ State the diagnosis once before acting: **"Based on [evidence], the problem is [
 
 **Golden Rule: Always reproduce interactively before fixing. Never guess.**
 
-### Tasks Artifact
+### Tasks Artifact — create FIRST before any investigation
 
-Create before starting:
+**Do this before reading any test or running any command:**
 
-```json
-{
-  "type": "Tasks",
-  "name": "Tasks: Debug [test name]",
-  "content": {
-    "overview": "Debug failing test [test-id]. Root cause → fix or document bug.",
+```bash
+helpmetest artifact upsert \
+  --id "tasks-fix-$(date +%Y%m%d)-<test-id>" \
+  --type Tasks \
+  --name "Tasks: Debug <test-id>" \
+  --content '{
+    "overview": "Debug failing test <test-id>. Root cause → fix or document bug.",
     "tasks": [
-      { "id": "1.0", "title": "Understand the failure", "status": "pending", "priority": "critical" },
-      { "id": "2.0", "title": "Reproduce interactively", "status": "pending", "priority": "critical" },
-      { "id": "3.0", "title": "Determine root cause", "status": "pending", "priority": "critical" },
-      { "id": "4.0", "title": "Fix test OR document bug", "status": "pending", "priority": "critical" }
+      {"id": "1", "title": "Understand the failure", "status": "in_progress", "priority": "critical"},
+      {"id": "2", "title": "Reproduce interactively", "status": "pending", "priority": "critical"},
+      {"id": "3", "title": "Fix test or document bug", "status": "pending", "priority": "critical"}
     ]
-  }
-}
+  }'
 ```
+
+Save the artifact id — you will update it to `done` with a run URL after the fix is verified.
 
 ### Phase 1: Understand
 
