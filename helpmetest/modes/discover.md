@@ -469,6 +469,8 @@ Wait for answers, then proceed to Step 3.
 
 ## Step 2B — Explore Live App
 
+**HARD LIMIT: ≤10 interactive calls total for exploration.** After 10 calls, you MUST stop exploring and proceed to Step 3 (create artifacts). More exploration is always available later — right now, artifact creation is the deliverable.
+
 **Browser tool:** all live exploration uses `helpmetest interactive`. Load `modes/interactive.md` before starting — it covers session continuity, batching, output sections, selector discovery, and keyword reference. The Interactive section of every response gives you ready-to-paste commands for everything on the current page; use it instead of guessing selectors.
 
 ### Interactive Command Recovery
