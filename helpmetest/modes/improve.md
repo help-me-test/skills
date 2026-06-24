@@ -175,6 +175,8 @@ Typical structure:
 # Persistence check — reload and verify the data survives
 ```
 
+**Section size constraint:** The server's validator enforces even distribution. Target `ceil(total_keywords / 3)` sections — gives ~2-3 keywords each. If the validator rejects, increase section count by 1 and re-split at natural boundaries. See `modes/comment.md` for the full constraint spec.
+
 For deep comment quality, run `/helpmetest comment` after improve.
 
 **I3 — Inline comments**
