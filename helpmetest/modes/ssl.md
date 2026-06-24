@@ -68,33 +68,56 @@ SSL Version    helpmetest.com    ==    2       # TLS 1.2 → 2, TLS 1.3 → 3
 
 ## Workflow: `/helpmetest ssl <domain>`
 
-1. **Check for existing test** — search artifacts for a test covering the domain
-   - Found → show current pass rate, ask if user wants to update or just run it
+1. **Check for existing test** — search for a test covering the domain:
+   ```bash
+   helpmetest test show ssl-<domain-slug>
+   ```
+   - Found → show current pass rate, offer to run or update
    - Not found → proceed to generate
 
-2. **Generate the test** — standard coverage for a valid production domain:
+2. **Generate and push the test** — use this exact `test create` command. Comments are required and must be evenly distributed (one comment per 1-2 keywords). Required tags: `feature:ssl`, `url:<domain>`, `priority:high`, `persona:public`, `project:<project-id>`.
 
-```robot
-SSL Certificate Info    <domain>
-SSL Is Valid    <domain>    ==    ${TRUE}
-SSL Is Expired    <domain>    ==    ${FALSE}
-SSL Days Remaining    <domain>    >    30
-SSL Issuer Organization    <domain>    ==    Let's Encrypt
-SSL Subject    <domain>    *=    <domain>
-SSL SANs    <domain>    contains    <domain>
-SSL Algorithm    <domain>    ==    sha256WithRSAEncryption
-SSL Resolved IP    <domain>    is not empty
-```
-
-   Adjust `SSL Issuer Organization` and `SSL Algorithm` if the domain uses a different CA or algorithm — run a debug check first if unsure (see below).
-
-3. **Push and run**
    ```bash
-   helpmetest test update <test-id>
-   helpmetest test run <test-id>
+   helpmetest test create \
+     --id "ssl-<domain-slug>" \
+     --name "SSL Certificate Check: <domain>" \
+     --tags "feature:ssl,url:<domain>,priority:high,persona:public,project:robot-infra" \
+     --no-run \
+     --content '# Fetch certificate and verify validity
+   SSL Certificate Info    <domain>
+   SSL Is Valid    <domain>    ==    ${TRUE}
+
+   # Confirm expiry status and days remaining
+   SSL Is Expired    <domain>    ==    ${FALSE}
+   SSL Days Remaining    <domain>    >    30
+
+   # Validate issuer organization
+   SSL Issuer Organization    <domain>    ==    Let'\''s Encrypt
+
+   # Check subject and subject alternative names
+   SSL Subject    <domain>    *=    <domain>
+   SSL SANs    <domain>    contains    <domain>
+
+   # Verify encryption algorithm and DNS resolution
+   SSL Algorithm    <domain>    ==    sha256WithRSAEncryption
+   SSL Resolved IP    <domain>    is not empty'
    ```
 
-4. **Report result** — PASS or failure with the specific assertion that failed.
+   **Important:** Adjust `SSL Issuer Organization` and `SSL Algorithm` if the domain uses a different CA or algorithm. If unsure, run the debug check first (see below) before asserting these values.
+
+   Use `--no-run` on create, then run separately:
+
+3. **Run and report**
+   ```bash
+   helpmetest test run ssl-<domain-slug>
+   ```
+   Report PASS or the specific failing assertion. If `SSL Issuer Organization` fails, correct the value from the error output and update:
+   ```bash
+   helpmetest test update ssl-<domain-slug> --content '<corrected content>'
+   helpmetest test run ssl-<domain-slug>
+   ```
+
+4. **Report result** — PASS or failure with the specific assertion that failed and the actual vs expected value.
 
 ---
 
