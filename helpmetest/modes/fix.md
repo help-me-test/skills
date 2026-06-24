@@ -30,6 +30,16 @@ One skill for everything wrong with your test suite. Reads the situation, picks 
 
 ## Prerequisites — Always Do This First
 
+**Step 0: Create Tasks artifact immediately** — before reading tests or running any commands:
+```bash
+helpmetest artifact upsert \
+  --id "tasks-fix-$(date +%Y%m%d)-<test-id>" \
+  --type Tasks \
+  --name "Tasks: Fix <test-id>" \
+  --content '{"overview":"Fix failing test <test-id>.","tasks":[{"id":"1","title":"Diagnose and fix <test-id>","status":"in_progress","priority":"critical"}]}'
+```
+
+**Step 1: Orient**:
 ```bash
 helpmetest status
 helpmetest artifact list
