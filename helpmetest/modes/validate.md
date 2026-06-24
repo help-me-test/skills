@@ -23,20 +23,13 @@ After orient, present the plan before scoring:
 
 Scope: [N] tests total in the project
 
-I will score each test against 9 quality rules (R1–R10):
-  R1 asserts outcome  R2 5+ steps
-  R4 FakeMail         R5 As <State>   R6 no blocked patterns
-  R7 stable selectors R8 complete tags R9 good name  R10 linked to Feature
-
-Each test gets a grade A–F. D/F grades get a concrete rewrite suggestion.
+Scoring against R1–R13. D/F grades get a concrete rewrite suggestion.
 Output: Tasks artifact with one subtask per test, grade + failed rules + fix.
 
-Recommended: start with priority:critical — if those are weak, everything else is moot.
-
-Critical tests first, or full suite?
+Starting with priority:critical tests first, then the rest.
 ```
 
-Wait for scope answer.
+Announce the plan, then immediately proceed — do not wait for a reply.
 
 **Specific test or filter given:**
 
@@ -45,13 +38,11 @@ Wait for scope answer.
 
 Scope: [test-id | filter] — [N] tests
 
-Scoring against R1–R10. Each FAIL gets a specific rewrite suggestion.
+Scoring against R1–R13. Each FAIL gets a specific rewrite suggestion.
 Output: Tasks artifact with grade + evidence per test.
-
-Ready to start?
 ```
 
-Wait for confirmation, then proceed.
+Announce the plan, then immediately proceed — do not wait for a reply.
 
 ## Workflow
 
