@@ -57,13 +57,16 @@ Know the scope. Narrate how many tests you'll review before starting.
 ### 2. For each test in scope — fetch its content
 
 ```bash
-helpmetest status --id <test-id>    # includes the test body in content
+helpmetest search "<test-id>"            # find the test and see its tags + name
+helpmetest test run <test-id> --json     # get full content — `keywords` field is the RF body
 ```
 
 Read:
-- `content` — the RF keywords
-- `tags` — project, feature, persona, priority, url
-- Name
+- `keywords` — the RF body (from `--json` output)
+- `tags` — project, feature, persona, priority, url (from search result)
+- `name` — test name
+
+**Do not use `helpmetest test run` to check pass/fail** — that runs the test. Use it only to extract content via `--json` for static analysis.
 
 ### 3. Score against the /tdd rulebook
 
@@ -225,7 +228,7 @@ After `Click  button[type='submit']`, add:
 ## What NOT to do
 
 - **Do not rewrite the tests.** That's `fix` or `tdd`. This mode critiques.
-- **Do not run the tests.** A test can be quality-bad AND currently green — both are true independently. You're judging the test content, not the outcome.
+- **Do not run the tests to check pass/fail.** A test can be quality-bad AND currently green — both are true independently. You're judging the test content, not the outcome. Exception: `helpmetest test run <id> --json` is permitted *only* to extract the `keywords` field for static analysis — it will run the test as a side effect, but that's acceptable.
 - **Do not score overly harshly.** If a rule is N/A (no email, no auth), don't count it against the test.
 - **Do not skip the rewrite recommendation.** A failing rule without a concrete fix is useless. Every FAIL gets a "change X to Y" suggestion.
 
