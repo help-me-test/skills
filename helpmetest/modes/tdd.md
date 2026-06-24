@@ -282,10 +282,11 @@ Required tags: `feature:X`, `priority:X`, `persona:X`, `project:X`. Comments are
 - Use `Create Fake Email` for any registration/email fields — never hardcode
 - Test name: `User can <action>` or `<Feature> — <behavior>`. No "test" in name.
 
-**5. Run each test immediately after creating it:**
+**5. Run each test immediately after creating it — one at a time, NOT batch:**
 ```bash
 helpmetest test run <test-id>
 ```
+**Do NOT create multiple tests then run them all at the end. Create one → run it → fix if red → move to next.**
 
 **6. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
 

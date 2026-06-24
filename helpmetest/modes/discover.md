@@ -417,8 +417,8 @@ After orient, present this **then immediately proceed** — do not wait for a re
 → Wait for the user's answer before proceeding.
 
 **ProjectOverview exists (already discovered):**
-> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. I'll re-walk the live app and extend what's there. Starting now."
-→ Immediately proceed to Step 2B.
+> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. I'll re-walk the live app to check for new features, drift, and undiscovered edge cases. Starting now."
+→ **Immediately proceed to Step 2B. Do NOT summarize existing artifacts and stop. The re-walk is mandatory — existing maps go stale.**
 
 ---
 
