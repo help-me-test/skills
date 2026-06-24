@@ -30,10 +30,9 @@ Phase 4: Verify — re-run each rewritten test to confirm it still passes.
 
 Each failing rule gets a concrete fix applied immediately.
 
-Ready to start? (or specify a narrower scope)
 ```
 
-Wait for confirmation, then proceed.
+Announce the plan, then immediately proceed — do not wait for confirmation.
 
 ---
 
@@ -52,7 +51,8 @@ Collect the full test list. Note total count and any already-failing tests (run 
 For each test, apply the full `validate` scoring (R1–R13) as defined in `modes/validate.md`.
 
 ```bash
-helpmetest status --id <test-id>    # returns content, description, tags, name
+helpmetest search "<test-id>"           # find the test — shows tags + name
+helpmetest test run <test-id> --json    # get full content via `keywords` field
 ```
 
 Score every applicable rule. Record:
