@@ -75,17 +75,12 @@ Check what auth states are available:
 helpmetest artifact list --type Persona
 ```
 
-After orient, announce then **immediately proceed** — do not wait for a response:
+After orient, narrate your intent in a `[phase]` line and **immediately make your first tool call in the same response** — do not produce text-only output, the runner will exit. The announce and the first navigation happen together:
 
-**No specific page or question given (bare invocation):**
-> "After this you'll have screenshots of every page at desktop, mobile, and tablet, plus a ranked list of what to fix — ordered by impact across the whole app. Takes about 10–15 minutes. Starting now."
-
-Then immediately navigate to the app — do not stop and wait for confirmation.
-
-**Specific page or question given:**
-> "After this you'll know exactly what's wrong with [page/element] and what to change. Taking a look now."
-
-Then immediately navigate. Never pause for scope confirmation — proceed with full scope by default.
+```
+[phase] UI review of <url> — full audit, desktop + mobile + tablet. Starting now.
+<immediately call helpmetest interactive to navigate>
+```
 
 Check:
 1. What auth states are saved? (e.g. "Admin", "Helpmetest")
