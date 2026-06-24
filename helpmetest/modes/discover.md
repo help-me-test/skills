@@ -46,7 +46,7 @@ Trigger phrases: "good test around", "find anything weird", "quick sanity check"
 
 ### Pre-flight — announce before you start
 
-Before touching the browser, present your plan in this format and wait for a go/no-go:
+Before touching the browser, present your plan in this format **then immediately start** — your first `helpmetest interactive` call happens in the same response turn:
 
 ```
 ## Triage plan — <site>
@@ -61,10 +61,10 @@ failed network requests, mobile layout, performance thresholds,
 keyboard navigation, broken links, empty state, persistence after reload,
 back/forward navigation, copy quality scan.
 
-Expected time: ~N minutes. Ready to start?
+Starting now.
 ```
 
-The user may add flows, remove checks, or change the target URL. Update your plan accordingly before proceeding.
+Do not wait for a go/no-go. Proceed to "What to do" immediately.
 
 ### What to do
 
@@ -402,20 +402,23 @@ After presenting, **stop**. When the user picks items: bugs → `/tdd` first the
 
 ## Announce
 
-After orient, present before doing anything else.
+After orient, present this **then immediately proceed** — do not wait for a reply. Your first tool call (Step 1 navigation or read) happens in the same response turn as the announcement.
 
-**No ProjectOverview exists (fresh discovery):**
-> "After this you'll have a complete map of this app — every feature, every user type, every scenario — structured and ready for test-first implementation. I need one thing to start: what's the source?
+**URL already provided in the prompt (most common):**
+> "Discovering `<url>` — I'll walk the live app, map every feature, and create Feature artifacts ready for /tdd. Starting now."
+→ Immediately call `helpmetest interactive "Go To  <url>" --screenshot` in the same response.
+
+**No source given yet:**
+> "After this you'll have a complete map of this app — every feature, every user type, every scenario — structured and ready for test-first implementation. What's the source?
 > - Live URL to walk
 > - A PRD or spec doc (share the path or paste it)
 > - Tickets (GitHub, Linear, Jira — give me access or paste them)
-> - The codebase (I'll read it)
-> - Walk me through it directly"
+> - The codebase (I'll read it)"
+→ Wait for the user's answer before proceeding.
 
 **ProjectOverview exists (already discovered):**
-> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. After this you'll have an up-to-date map with any flows that appeared or changed since then. I'd re-walk the live app and extend what's there. Full re-discovery, or focus on a specific area that changed?"
-
-Wait for the answer. Then proceed to Step 1.
+> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. I'll re-walk the live app and extend what's there. Starting now."
+→ Immediately proceed to Step 2B.
 
 ---
 
