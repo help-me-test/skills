@@ -554,60 +554,61 @@ For each expected capability: find it → create Feature artifact. If missing �
 
 ### Create ProjectOverview
 
-```json
+Required top-level fields: `name`, `description`, `url`, `summary`. Use `--file`:
+
+```bash
+cat > /tmp/project-overview.json << 'EOF'
 {
-  "type": "ProjectOverview",
-  "id": "project-<domain>",
-  "name": "ProjectOverview: <Site Name>",
-  "content": {
-    "url": "<url>",
-    "summary": "What this site does and who it's for",
-    "industry": "e-commerce|saas|healthcare|etc",
-    "persona_ids": ["persona-admin", "persona-user"],
-    "features": [
-      { "feature_id": "feature-search", "name": "Search", "status": "working" },
-      { "name": "Checkout", "status": "missing", "priority": "critical", "reason": "Cannot complete purchases" }
-    ]
-  }
+  "name": "<Site Name> — Project Overview",
+  "description": "What this site does and who it's for",
+  "url": "<base url>",
+  "summary": "One paragraph: what the app does, who uses it, core features",
+  "industry": "todo|saas|e-commerce|etc",
+  "persona_ids": [],
+  "features": [
+    { "feature_id": "feature-<id>", "name": "<Feature Name>", "status": "working" }
+  ]
 }
+EOF
+helpmetest artifact upsert --id "project-<domain>" --type ProjectOverview --name "<Site Name> — Project Overview" --file /tmp/project-overview.json
 ```
 
 ---
 
 ## Step 3 — Create Feature Artifacts
 
-For each capability (whether found in docs or in the live app):
+For each capability (whether found in docs or in the live app). Required top-level fields: `name`, `description`, `goal`. Use `--file`:
 
-```json
+```bash
+cat > /tmp/feature-<id>.json << 'EOF'
 {
-  "id": "feature-<kebab-name>",
-  "type": "Feature",
   "name": "<Feature Name>",
-  "content": {
-    "goal": "<what business outcome this serves — one sentence>",
-    "source": "prd|api-spec|tickets|live-app|codebase|user",
-    "functional": [
-      {
-        "name": "User can <accomplish goal>",
-        "given": "<starting state>",
-        "when": "<what the user does>",
-        "then": "<expected outcome>",
-        "tags": ["priority:critical"],
-        "test_ids": []
-      }
-    ],
-    "edge_cases": [
-      {
-        "name": "<error or edge scenario>",
-        "given": "...", "when": "...", "then": "Error shown: <message>, state unchanged",
-        "tags": ["priority:high"],
-        "test_ids": []
-      }
-    ],
-    "gaps": ["<unclear or missing — needs user input>"],
-    "bugs": []
-  }
+  "description": "One sentence: what this feature lets users do",
+  "goal": "<what business outcome this serves — one sentence>",
+  "source": "live-app",
+  "functional": [
+    {
+      "name": "User can <accomplish goal>",
+      "given": "<starting state>",
+      "when": "<what the user does>",
+      "then": "<expected outcome>",
+      "tags": ["priority:critical"],
+      "test_ids": []
+    }
+  ],
+  "edge_cases": [
+    {
+      "name": "<error or edge scenario>",
+      "given": "...", "when": "...", "then": "Error shown: <message>, state unchanged",
+      "tags": ["priority:high"],
+      "test_ids": []
+    }
+  ],
+  "gaps": [],
+  "bugs": []
 }
+EOF
+helpmetest artifact upsert --id "feature-<id>" --type Feature --name "<Feature Name>" --file /tmp/feature-<id>.json
 ```
 
 **Minimum per feature: 5 functional scenarios + 5 edge cases.**
@@ -637,6 +638,8 @@ Wait for approval. Update artifacts based on feedback.
 ---
 
 ## Step 5 — Hand off to /tdd
+
+**This is mandatory.** Your final response MUST end with this exact block — do not skip it:
 
 ```
 Feature artifacts ready.
