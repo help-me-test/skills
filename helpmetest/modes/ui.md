@@ -238,7 +238,21 @@ Add accessibility findings to `actions` with `category: accessibility`.
 
 ## Phase 6: Create the UIReview Artifact
 
-After all screenshots, create a `UIReview` artifact using `helpmetest artifact upsert --type UIReview`.
+After all screenshots, create a `UIReview` artifact. Required fields: `name`, `description`, `app_name`, `reviewed_at`, `pages`. Use `--file` with a temp JSON file — do not call `helpmetest artifact schema` first:
+
+```bash
+cat > /tmp/uireview.json << 'EOF'
+{
+  "name": "<App Name> — UI Review",
+  "description": "UI walkthrough of <App Name> at <date>",
+  "app_name": "<App Name>",
+  "reviewed_at": "<YYYY-MM-DD>",
+  "pages": [...],
+  "actions": [...]
+}
+EOF
+helpmetest artifact upsert --id "uireview-<app>-<date>" --type UIReview --name "<App Name> — UI Review" --file /tmp/uireview.json
+```
 
 **Artifact structure:**
 
