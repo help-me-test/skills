@@ -475,7 +475,12 @@ Wait for answers, then proceed to Step 3.
 
 If an interactive command returns an error, **immediately try an alternative — never give up.**
 
-Common fixes:
+Common keyword mistakes (these will error — use the right-hand side):
+- `Type  selector  text` → **`Fill Text  selector  text`** (`Type` does not exist)
+- `Check  selector` → **`Click  selector`** (use Click on checkboxes too; `Check` does not exist)
+- `Scroll By  0  300` → **`helpmetest interactive "Scroll By  0  300"`** (RF keyword, must be inside the interactive string, not a bare shell command)
+- `Analyze Web Vitals` → **`helpmetest interactive "Analyze Web Vitals"`** (same — inside interactive)
+- `Broken Links  <url>  maxPages=10` → **`helpmetest interactive "Broken Links  <url>  maxPages=10"`** (same)
 - `Keyboard Key  Enter` → error "expected 2 arguments"? Use `Press Keys  input.selector  Enter` instead.
 - Element not found? Try `Javascript  document.querySelector('...').outerHTML` to inspect actual DOM.
 - Click fails? Try `Hover` first, then click.
@@ -554,6 +559,8 @@ For each expected capability: find it → create Feature artifact. If missing �
 
 ### Create ProjectOverview
 
+**Do this first, before any Feature artifacts.** Feature upserts require a `project:X` tag, which requires the ProjectOverview to exist first.
+
 Required top-level fields: `name`, `description`, `url`, `summary`. Use `--file`:
 
 ```bash
@@ -570,14 +577,21 @@ cat > /tmp/project-overview.json << 'EOF'
   ]
 }
 EOF
-helpmetest artifact upsert --id "project-<domain>" --type ProjectOverview --name "<Site Name> — Project Overview" --file /tmp/project-overview.json
+helpmetest artifact upsert --id "project-<domain>" --type ProjectOverview \
+  --name "<Site Name> — Project Overview" \
+  --tags "project:<domain>" \
+  --file /tmp/project-overview.json
 ```
+
+Note the `--tags "project:<domain>"` — this is required and creates the project namespace that Feature artifacts must reference.
 
 ---
 
 ## Step 3 — Create Feature Artifacts
 
-For each capability (whether found in docs or in the live app). Required top-level fields: `name`, `description`, `goal`. Use `--file`:
+**Do NOT call `helpmetest artifact schema Feature`** — the template below has all required fields. Schema probing wastes turns.
+
+For each capability. Required top-level fields: `name`, `description`, `goal`. Use `--file` and tag with `project:<domain>`:
 
 ```bash
 cat > /tmp/feature-<id>.json << 'EOF'
@@ -608,8 +622,13 @@ cat > /tmp/feature-<id>.json << 'EOF'
   "bugs": []
 }
 EOF
-helpmetest artifact upsert --id "feature-<id>" --type Feature --name "<Feature Name>" --file /tmp/feature-<id>.json
+helpmetest artifact upsert --id "feature-<id>" --type Feature \
+  --name "<Feature Name>" \
+  --tags "project:<domain>,priority:high" \
+  --file /tmp/feature-<id>.json
 ```
+
+The `--tags "project:<domain>"` is **required** — omitting it causes tag validation failure. Use the same `<domain>` as the ProjectOverview ID.
 
 **Minimum per feature: 5 functional scenarios + 5 edge cases.**
 
