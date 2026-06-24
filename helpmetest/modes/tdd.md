@@ -249,7 +249,7 @@ Feature exists (or was just built by someone else). Your job is tests only.
 
 **1. Read the Feature artifact** — `helpmetest artifact get feature-X`. If none exists, create one first based on what you know.
 
-**2. Explore interactively before writing** — use `interactive` mode to run the scenario step by step against the live app. A test written from real observation uses real selectors and reflects actual timing. A test written from a description is a guess. See `modes/interactive.md`.
+**2. Quick selector probe (optional, max 3 tries)** — one `helpmetest interactive` call to confirm key selectors exist (Go To + Get Elements). If a selector fails after 2 retries, **stop and write the test anyway** — the test run output will tell you exactly what failed and what the real selectors are. Do not spend more than 3 interactive commands trying to fix a selector; let the test run be the oracle.
 
 **3. Before writing each test, answer this out loud:**
 > "If this test passes but the feature is actually broken, what user complaint would we miss until a customer reports it?"
