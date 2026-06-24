@@ -69,8 +69,10 @@ Then stop. Don't launch a full audit unless the user asks for one.
 
 **Always do this first. Never skip.**
 
+Check what auth states are available:
+
 ```bash
-helpmetest status
+helpmetest artifact list --type Persona
 ```
 
 After orient, announce before navigating anywhere:
