@@ -631,6 +631,7 @@ helpmetest artifact upsert --id "feature-<id>" --type Feature \
 ```
 
 The `--tags "project:<domain>"` is **required** — omitting it causes tag validation failure. Use the same `<domain>` as the ProjectOverview ID.
+**`source` valid values**: `live-app` (for URL exploration) or `spec` (for doc/PRD extraction). Do NOT use any other value — it will cause a 422.
 **If you populate `bugs[]`**, each entry requires: `name` (string), `severity` (`critical|major|minor`), `given`, `when`, `then`, `actual`. Missing `name` causes a 422. Leave `bugs: []` empty during initial discovery — document bugs only if you observe broken behavior.
 
 **Minimum per feature: 5 functional scenarios + 5 edge cases.**
