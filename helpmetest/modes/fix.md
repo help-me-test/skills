@@ -119,7 +119,7 @@ Create before starting:
 
 ### Phase 1: Understand
 
-1. `helpmetest open test <id>` + `helpmetest status --id <id> --history 10`
+1. `helpmetest test view <id>` to read the test body; `helpmetest test run <id> --json` to get last run details
 2. Read the error. Classify: selector? timing? assertion? state? API?
 3. Check recent git changes — map changed files to likely failure causes
 4. Load the Feature artifact the test belongs to
@@ -282,7 +282,7 @@ When a test fails: classify → fix if fixable → document if not → resume li
    <feature name> — <what it does>
 ```
 
-Wait for user to confirm, then resolve one by one.
+Present the Sync Report, then immediately begin resolving — present one discrepancy at a time using the Resolution Options format below.
 
 ### Resolution Options (per discrepancy)
 

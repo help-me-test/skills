@@ -35,10 +35,7 @@ I will:
 Recommended: start with priority:critical and priority:high gaps — those are
 the flows that hurt most when they break silently.
 
-Full scope, or critical/high only?
-```
-
-Wait for scope answer.
+Announce the plan, then immediately proceed with the full scope — do not wait for confirmation.
 
 **Filter given (feature area or priority):**
 
@@ -52,11 +49,9 @@ I will:
 1. Map scenarios → tests for the filtered set
 2. Classify: Covered / Gap / Dead link / Under-covered
 3. Produce a CoverageReport for the scoped area
-
-Ready to start?
 ```
 
-Wait for confirmation, then proceed.
+Announce the plan, then immediately proceed — do not wait for confirmation.
 
 ## Workflow
 
@@ -138,10 +133,9 @@ For each entry, classify:
 ---
 
 ### 5. Find orphan tests
-
 Cross-check the test list against all `scenario.test_ids` references. Any test id not referenced by any scenario is an orphan.
 
-### 4. Produce the CoverageReport artifact
+### 6. Produce the CoverageReport artifact
 
 This is the deliverable. Create it with `helpmetest artifact upsert --type CoverageReport`. Required fields per the schema (fetch with `helpmetest artifact schema CoverageReport`):
 
@@ -190,7 +184,7 @@ This is the deliverable. Create it with `helpmetest artifact upsert --type Cover
 
 Don't include scenarios that are fully covered in `critical_gaps` — only list gaps. Don't truncate the arrays; list every row. If the scope is huge (>50 features), shrink the scope with a filter rather than summarizing — partial data in a full-structured artifact is more useful than complete data in prose.
 
-### 5. Populate links on the CoverageReport
+### 7. Populate links on the CoverageReport
 
 When you create the CoverageReport, set its `content.links` to **every related artifact id**: the enclosing Tasks artifact and every Feature you scanned. That's the only place the links need to live — the server computes reverse edges, so the Tasks detail page will automatically show the CoverageReport as a linked chip. Don't double-upsert the Tasks artifact just to add the CoverageReport id.
 
@@ -198,11 +192,11 @@ When you create the CoverageReport, set its `content.links` to **every related a
 content.links = ["<tasks-artifact-id>", "feature-a", "feature-b", ...]
 ```
 
-### 6. Close out the Tasks artifact
+### 8. Close out the Tasks artifact
 
 Mark subtasks `done` with notes pointing at the CoverageReport id: *"Coverage report produced: `<coverage-report-id>`."* Don't duplicate the report contents in the Tasks artifact — the report IS the report, the Tasks artifact just tracks lifecycle.
 
-### 6. Evidence
+### 9. Evidence
 
 The evidence is the CoverageReport artifact itself — structured, queryable, complete. Every claim in it maps to a concrete field. No screenshots needed; no test runs.
 

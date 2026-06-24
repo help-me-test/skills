@@ -29,11 +29,9 @@ Synonyms in user text: "linkage" → `sync`, "flaky" → `stability`, "annotatio
 
 Bare `/helpmetest report`:
 
-> "After this you'll know the health of your HelpMeTest project end to end — auth states, test stability over the last 10 runs with aggregated error analysis, Feature↔test sync, code annotation freshness, open bugs, artifact hygiene. I'll surface anything critical immediately, then walk through 9 phases. Read-only — nothing gets modified, no tests run.
->
-> Full sweep, or just one phase (triage / auth / tests / sync / coverage / code / bugs / artifacts / drift)?"
+> "After this you'll know the health of your HelpMeTest project end to end — auth states, test stability over the last 10 runs with aggregated error analysis, Feature↔test sync, code annotation freshness, open bugs, artifact hygiene. I'll surface anything critical immediately, then walk through 9 phases. Read-only — nothing gets modified, no tests run."
 
-Single phase: state what that phase will tell them, then proceed without asking.
+Announce, then immediately begin Phase 1. If the user scoped to a single phase (e.g. `report tests`), state what that phase will tell them, then proceed — do not wait for confirmation.
 
 ---
 
@@ -64,8 +62,9 @@ If the user says continue, keep going. If they say stop, hand off to the recomme
 
 Auth has to be near the top: a broken `Helpmetest` saved state silently breaks every test that uses `As Helpmetest`, and the `tests` phase will report a wave of failures whose real cause is one upstream auth issue. Naming auth first stops that misdirection.
 
-```
-how_to({ type: "authentication_state_management" })
+```bash
+helpmetest search "setup-auth"
+helpmetest status
 ```
 
 For each saved state:
