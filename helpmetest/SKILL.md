@@ -41,7 +41,7 @@ Parse the first remaining token:
 | `ssl` or `domain` | **ssl** — write, run, and debug DomainChecker SSL certificate tests. No browser needed — keywords make direct TLS connections from inside the VM. Pass a domain to generate a test instantly. |
 | `ci` | **ci** — CI integration: acquire a token, install the CLI, run tests in GitHub Actions / GitLab / CircleCI / Bitbucket. Cross-references `proxy` for private/staging URLs. |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
-| `ui-review` or `ui` | **ui-review** — visual walkthrough |
+| `ui-review` or `ui` | **ui** — visual walkthrough |
 | `onboard` | **onboard** — new project bootstrap |
 | `interactive` | **interactive** — drive a real browser one command at a time: explore pages, debug selectors, prototype a flow before writing a test, or verify something ad-hoc |
 | `change-impact` or `impact` | **change-impact** — git diff → find @helpmetest annotations → run affected tests → RegressionRun artifact with verdict |

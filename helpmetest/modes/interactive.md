@@ -113,27 +113,23 @@ Saved to `.helpmetest/screenshots/`. Session URL is shown at the bottom — open
 
 ---
 
-## MCP tool (when called as an agent)
+## Running interactively (agent usage)
 
-```javascript
-helpmetest_run_interactive_command({
-  command: "Go To  https://forms.playground.helpmetest.com",
-  explanation: "Navigating to the login form to find the email input selector",
-  tasks: [
-    { name: "Navigate to login page", status: "in_progress" },
-    { name: "Find email + password selectors", status: "pending" },
-    { name: "Fill and submit", status: "pending" },
-    { name: "Verify redirect to dashboard", status: "pending" },
-    { name: "Exit", status: "pending" }
-  ]
-})
+Pass commands as positional arguments:
+
+```bash
+helpmetest interactive \
+  "Go To  https://forms.playground.helpmetest.com" \
+  "Fill Text  #email  user@example.com" \
+  "Click  button[type=submit]"
 ```
 
 **Rules:**
-- `tasks` is mandatory on the **first call**. Pass an updated tasks array to every subsequent call — mark completed steps `done`, next step `in_progress`.
-- `explanation` always set — it surfaces in the session log for the user.
-- The MCP tool handles session continuity automatically.
-- Batch (`command` with `\n`) when the path is confirmed; go step by step when exploring.
+- Commands run sequentially; on first failure, later commands are skipped (`⊘`).
+- Use `--screenshot` to capture a screenshot after the run.
+- Use `--json` to get structured event output (all keyword results + OpenReplay events).
+- Session continuity is automatic — the browser stays open between calls within the same session.
+- Batch commands when the path is confirmed; go step by step when exploring.
 
 ---
 
