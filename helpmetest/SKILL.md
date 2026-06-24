@@ -56,15 +56,9 @@ Parse the first remaining token:
 Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X" / "browse X" / "look at X" → interactive, "build X" / "add feature" / "I want to develop X" / "refactor X" / "change X" → dev. If ambiguous, pick the closest mode and narrate your choice before executing.
 ## 3. Load context
 
-Load these files in this order, always:
+**FIRST: check if mode files are already inlined.** When running inside `helpmetest agent`, the harness inlines all `modes/*.md` files directly into your system prompt. Look for a section starting with `# Mode: shared` or `# Shared context` in your current context. If it's there — **do not Read any files. Skip straight to §4.** Reading files you already have wastes quota and triggers rate limits.
 
-1. `modes/shared.md` — common rules (orient first, narrate actions, auth, tools, events)
-2. `modes/agent.md` — Tasks-artifact lifecycle (the accountability contract — read every time, not optional)
-3. `modes/<mode>.md` — the mode-specific workflow
-
-For `full-qa`: load `modes/discover.md`, then `modes/tdd.md`, then `modes/fix.md` — run them end to end.
-
-These files live next to this SKILL.md. Use the `Read` tool with relative paths:
+Only Read if the mode files are NOT already in your context:
 
 ```
 Read  modes/shared.md
@@ -72,14 +66,10 @@ Read  modes/agent.md
 Read  modes/<mode>.md
 ```
 
-If a relative path doesn't resolve, try the install location explicitly:
-
+If a relative path doesn't resolve, try:
 ```
-Read  ~/.claude/skills/helpmetest/modes/<name>.md
 Read  .claude/skills/helpmetest/modes/<name>.md
 ```
-
-If you are running inside the harness (`helpmetest agent claude "<task>"`), the skill bundle composer inlines every `modes/*.md` file into your system prompt — you already have them and do not need to `Read`. Check: if your system prompt already contains sections labeled `# Mode: agent`, `# Mode: tdd`, etc., skip the Read step.
 
 ## 4. Execute
 
