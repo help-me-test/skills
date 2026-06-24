@@ -283,6 +283,15 @@ Structure:
 
 Each comment describes what the keywords immediately below it do — not what came before, not a summary of the whole test. Group steps by intent. Write one section comment per group. Apply C1–C13. Do not change any keyword, selector, assertion value, or failure message — only comments change.
 
+**Section size constraint (validator rule):** The server enforces even distribution — sections must be roughly the same size (std dev < 1.5× mean). If you group 2 steps under one comment and 8 under another, the validator rejects it. To satisfy both C1 (group by intent) and the validator:
+
+1. Count total keyword lines in the test (excluding blank lines and comments).
+2. Target N_sections = ceil(total_keywords / 3) — gives ~2-4 keywords per section.
+3. Split intent-groups that are too large into sub-phases with more specific comments.
+4. If validator still rejects, increase section count by 1 and re-split until it passes.
+
+Example: 13 keywords → aim for 4-5 sections of 2-3 keywords each. If a 3-keyword section and a 5-keyword section sit next to each other, split the 5-keyword section in two.
+
 ### 4. Apply
 
 ```bash
