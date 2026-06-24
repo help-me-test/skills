@@ -160,24 +160,43 @@ After R-rule fixes, apply two additional passes that validate does not cover:
 
 **I2 — Section comments**
 
-The test body must be divided into intent-based section comments following C1–C13 (see `modes/comment.md`). Summary:
-- One comment covers 2–8 related steps (no per-line comments)
-- No numbering, no decorations
-- Written in product/test context, not implementation narration
-- `As <state>` bundles with `Go To` and the first wait — never isolated
-- Section comment names the invariant protected, not what the assertions do
+The test body must be divided into intent-based section comments. Rules:
+- One comment covers exactly 2 keywords (for ~13-keyword tests) — this satisfies the validator's even-distribution check
+- No numbering, no decorations, no "verify/check/assert" as first word
+- Written in product context: names the phase from the user's perspective
+- Comments must NOT describe what the keyword does — they name the intent
 
-Typical structure:
+**Working example — 13 keywords → 7 sections of 2 each:**
 ```robot
-# Open the form as an authenticated user
-# Fill and submit the form
-# Confirm the record was saved
-# Persistence check — reload and verify the data survives
+# Open todo app
+  Go To  https://todo.playground.helpmetest.com
+
+# Clear previous state and reload
+  Javascript  window.localStorage.clear()
+  Reload
+
+# Verify list is empty
+  ${items_before}=  Get Text  css=.todo-count
+  Should Contain  ${items_before}  0
+
+# Add todo with valid text
+  Fill Text  input.new-todo  Buy milk
+  Press Keys  input.new-todo  Enter
+
+# Todo appears in list
+  ${todo_text}=  Get Text  css=.todo-list li label
+  Should Contain  ${todo_text}  Buy milk
+
+# Counter shows correct item count
+  ${counter}=  Get Text  css=.todo-count
+  Should Contain  ${counter}  1 item left
+
+# Input clears and is ready for next todo
+  ${cleared}=  Javascript  document.querySelector("input.new-todo").value === ""
+  Should Be True  ${cleared}
 ```
 
-**Section size constraint:** The server's validator enforces even distribution. Target `ceil(total_keywords / 3)` sections — gives ~2-3 keywords each. If the validator rejects, increase section count by 1 and re-split at natural boundaries. See `modes/comment.md` for the full constraint spec.
-
-For deep comment quality, run `/helpmetest comment` after improve.
+**Section size formula:** count keywords → target `ceil(total / 2)` sections so each has ~2 keywords. For 13 keywords → 7 sections. If validator rejects due to "Uneven comment distribution", adjust by 1 section at a time. See `modes/comment.md` for full spec.
 
 **I3 — Inline comments**
 
