@@ -288,6 +288,8 @@ helpmetest test run <test-id>
 ```
 **Do NOT create multiple tests then run them all at the end. Create one → run it → fix if red → move to next.**
 
+**Retry limit:** if `helpmetest test create` returns a validation error, fix the error and retry **once**. If it fails again, use `--file /tmp/<id>.robot` instead of inline `--body`. If a third attempt fails, move to the next scenario — do NOT keep retrying the same test in a loop.
+
 **6. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
 
 **7. Link tests back** — after each test passes, add its ID to `scenario.test_ids` in the Feature artifact:

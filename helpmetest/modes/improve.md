@@ -118,14 +118,16 @@ as the first meaningful line (before `Go To`).
 
 **R7 — Replace fragile selectors**
 
-Do not guess or invent selectors. Use `interactive` mode to navigate to the page and read the Interactive section — it lists every element with its best available selector. See `modes/interactive.md`.
+**FAST PATH: if the test currently passes (100/100 or close), existing selectors are working — do NOT run interactive to re-discover them. Only use `interactive` when a selector is actively failing or is visibly fragile (bare `.class`, positional `nth-child`, deeply nested path).**
+
+For genuinely fragile selectors only: use `interactive` mode to navigate to the page and read the Interactive section — it lists every element with its best available selector. See `modes/interactive.md`.
 
 Selector priority:
 1. `[data-testid="..."]` — stable, survives styling and layout changes
 2. `role=button[name="Place order"]` — semantic, survives DOM restructuring
 3. `text=Place order` — last resort for elements with no testid or role
 
-Do not change selectors that are already stable (`[data-testid=...]`, `role=`, `text=`).
+Do not change selectors that are already stable (`[data-testid=...]`, `role=`, `text=`, `css=.well-named-class`). The goal is to improve failing tests, not audit already-working ones.
 
 **R8 / R10 — Complete tags**
 
