@@ -417,8 +417,8 @@ After orient, present this **then immediately proceed** — do not wait for a re
 → Wait for the user's answer before proceeding.
 
 **ProjectOverview exists (already discovered):**
-> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. I'll re-walk the live app to check for new features, drift, and undiscovered edge cases. Starting now."
-→ **Immediately proceed to Step 2B. Do NOT summarize existing artifacts and stop. The re-walk is mandatory — existing maps go stale.**
+> "This project was already mapped — [N] Feature artifacts exist covering [list area names]. I'll re-walk the live app to check for new features, drift, and undiscovered edge cases, and run an adversarial probe (SSL, 404s, console errors). Starting now."
+→ **Immediately proceed to Step 2B. Do NOT summarize existing artifacts and stop. The re-walk AND adversarial probe are mandatory.**
 
 ---
 
@@ -629,6 +629,7 @@ helpmetest artifact upsert --id "feature-<id>" --type Feature \
 ```
 
 The `--tags "project:<domain>"` is **required** — omitting it causes tag validation failure. Use the same `<domain>` as the ProjectOverview ID.
+**If you populate `bugs[]`**, each entry requires: `name` (string), `severity` (`critical|major|minor`), `given`, `when`, `then`, `actual`. Missing `name` causes a 422. Leave `bugs: []` empty during initial discovery — document bugs only if you observe broken behavior.
 
 **Minimum per feature: 5 functional scenarios + 5 edge cases.**
 
