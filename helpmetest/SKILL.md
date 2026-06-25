@@ -1,7 +1,7 @@
 ---
 name: helpmetest
-description: "Single entry point for all HelpMeTest QA work. Dispatches to a mode based on the first argument: agent (Tasks-artifact harness, base discipline), tdd (write/fix tests — default for code-work tasks), discover (map site into Features; also handles fast triage sweeps — 'find bugs', 'poke around', 'good test around'), fix (repair failing tests), coverage (gap analysis), regression (change-targeted run), validate (test quality review), improve (audit + rewrite tests in place — adds section comments, inline comments, fixes selectors and tags), comment (rewrite test comments to quality standard — grouped by intent, no per-line narration), report (read-only project health diagnosis), proxy (tunnel localhost), api (API-level RF tests), ui (visual walkthrough), interactive (drive a real browser one command at a time — explore, debug, prototype), onboard (new project bootstrap). Usage: /helpmetest [mode] [task...]. Bare /helpmetest runs full QA (discover + tdd)."
-argument-hint: "[agent | tdd | discover | fix | coverage | regression | validate | improve | comment | report | proxy | api | ui | interactive | onboard | ssl | <task>]"
+description: "Single entry point for all HelpMeTest QA work. Use when: writing tests, fixing tests, test is failing, test is red, tests broke, write tests for X, implement X, fix bug — tdd mode. Android app, iOS app, mobile app, APK, IPA, debug my app, Open App — mobile mode. Mac app, desktop app, Electron, Linux app, Mac Start — desktop mode. Email verification, verification code, inbox, fake email, disposable email — fakemail mode. SSL cert, certificate, TLS, DNS, WHOIS, domain health, SPF, DKIM, DMARC, security headers — ssl mode. PDF, DOCX, Word file, document, convert doc, Open Document — doc2html mode. Login, auth, session, Save As, 2FA, TOTP, passkey, sign in — auth mode. API, REST, GraphQL, endpoint, POST, GET, JSON response — api mode. Localhost, local server, tunnel, dev server, port — proxy mode. Unit test, Jest, pytest, Vitest, bun test, run tests, shell — terminal mode. CI, GitHub Actions, GitLab CI, pipeline, on push — ci mode. Screenshot, visual, layout, UI audit, looks wrong, viewport — ui mode. Explore, browse, poke around, debug selector, click around — interactive mode. What does this site do, map the app, find bugs, discover features, read the PRD — discover mode. Health check, project status, what's broken, project report — report mode. What's not tested, coverage gap, untested scenarios — coverage mode. Did I break anything, regression, safe to push, changed files — change-impact mode. Can I push, pre-push check — pre-push mode. PR review, pull request coverage — pr-review mode. New project, set up helpmetest, initialize, onboard — onboard mode. Improve tests, rewrite tests, fix comments, comment style — improve/comment mode. Also use for: full QA, nightly runs, validate test quality, exploratory testing."
+argument-hint: "[tdd | mobile | desktop | auth | fakemail | ssl | doc2html | api | proxy | terminal | ci | ui | interactive | discover | fix | coverage | regression | validate | improve | comment | report | change-impact | pre-push | pr-review | nightly | onboard | <task description>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -42,6 +42,11 @@ Parse the first remaining token:
 | `ci` | **ci** — CI integration: acquire a token, install the CLI, run tests in GitHub Actions / GitLab / CircleCI / Bitbucket. Cross-references `proxy` for private/staging URLs. |
 | `api-testing` or `api` | **api-testing** — API-level RF tests |
 | `ui-review` or `ui` | **ui** — visual walkthrough |
+| `auth` | **auth** — `Save As` / `As` session management, 2FA, Passkey, Secrets |
+| `desktop` | **desktop** — Mac and Linux desktop app automation via Appium |
+| `mobile` | **mobile** — Android and iOS app testing on real devices via device-farm |
+| `fakemail` or `email` | **fakemail** — disposable email addresses, verification codes, attachments |
+| `doc2html` or `document` | **doc2html** — convert PDF/DOCX/EPUB/email to HTML and assert rendered content |
 | `onboard` | **onboard** — new project bootstrap |
 | `interactive` | **interactive** — drive a real browser one command at a time: explore pages, debug selectors, prototype a flow before writing a test, or verify something ad-hoc |
 | `change-impact` or `impact` | **change-impact** — git diff → find @helpmetest annotations → run affected tests → RegressionRun artifact with verdict |
@@ -49,11 +54,21 @@ Parse the first remaining token:
 | `pr-review` or `pr` | **pr-review** — branch diff → map to annotations → flag unannotated files as gaps → CoverageReport artifact (no test runs) |
 | `nightly` | **nightly** — run all Feature tests, mark broken ones, discover new URLs, create stub Features |
 | `report` | **report** — read-only project health diagnosis: triage → auth → tests → stability → sync → coverage → code → bugs → artifacts → drift → tiered report → recommended next fix. Sub-phase: `report <phase>`. |
-| `continue` | **resume** — task mentions an existing Tasks artifact id; fetch it, find the first open subtask, resume (see `modes/agent.md` §Resuming an existing artifact). |
+| `continue` | **resume** — task mentions an existing Tasks artifact id; fetch it, find the first open subtask, resume |
 | (empty / bare `/helpmetest`) | **full-qa** — full cycle: discover + tdd + validate |
-| anything else (e.g. looks like a task description) | **dev** if it sounds like code work ("build", "add", "change", "implement", "develop", "create", "refactor", "I want to make"); otherwise **tdd** |
+| anything else | **NL routing** — see §2a below |
 
-Mode detection is generous — "write tests for X" → tdd, "test is failing" → fix-tests, "what does this site do" → discover, "explore X" / "browse X" / "look at X" → interactive, "build X" / "add feature" / "I want to develop X" / "refactor X" / "change X" → dev. If ambiguous, pick the closest mode and **immediately start loading it** — do not produce a text-only response first, go straight to the Read tool call.
+### §2a — Natural-language mode routing
+
+When no explicit mode token matches, find the right mode dynamically:
+
+1. Each mode file starts with a description and trigger phrases. Read the first ~20 lines of candidate `modes/*.md` files (or scan the inline system-prompt sections if already loaded) to find the best match for the request.
+2. Pick the mode whose description and triggers best fit the intent. Prefer **specific** over generic — `mobile` beats `tdd` for "debug my android app".
+3. Narrate your choice in one sentence before executing: *"Treating this as `mobile` — you mentioned an APK. Say `tdd` if you want generic test writing instead."* Then proceed without asking.
+4. Fall back to **tdd** only when no other mode clearly fits.
+
+**When a task spans multiple modes**: see §6 — Multi-mode orchestration.
+
 ## 3. Load context
 
 Load these files in this order, always:
@@ -86,6 +101,33 @@ Follow the loaded mode's instructions step by step, **while maintaining the Task
 ## 5. When you're done
 
 Close out every subtask in the Tasks artifact with evidence before exiting (see `modes/agent.md` §Evidence and §Final audit). Then end with a summary in the `What you can now trust works / What's still unprotected / Bugs found` format (see `modes/tdd.md`).
+
+## 6. Multi-mode orchestration
+
+Some tasks naturally span more than one mode. When you detect this, **chain the modes in sequence** rather than forcing the task into a single mode or dropping the extra work.
+
+**Detection**: the request mentions concerns that belong to different modes, or completing one mode's output is a prerequisite for the next.
+
+**How to chain**:
+1. Announce the planned sequence upfront: *"This needs `interactive` to explore the flow, then `mobile` to write the test, then `fix` if the run fails."*
+2. Execute each mode fully before starting the next — don't interleave them.
+3. Pass context forward: the artifact, test id, or finding from mode N becomes the input to mode N+1.
+4. A single Tasks artifact spans the whole chain. Each mode adds its subtasks; none closes the artifact early.
+
+**Common patterns**:
+
+| Request | Chain |
+|---------|-------|
+| "debug my android app" | `mobile` → `fix` (if test red) |
+| "test the login email flow" | `auth` → `fakemail` → `tdd` |
+| "test my local iOS app" | `proxy` → `mobile` |
+| "add helpmetest to CI for my API" | `api` → `ci` |
+| "check SSL and API health" | `ssl` → `api` |
+| "explore then write tests for checkout" | `interactive` → `tdd` |
+| "test the PDF export email" | `doc2html` → `fakemail` |
+| "test the Mac app login with 2FA" | `desktop` → `auth` |
+
+If the chain is uncertain, start with the first mode then reassess before proceeding to the next.
 
 ## Mode reference
 
