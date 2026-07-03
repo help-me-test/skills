@@ -271,31 +271,9 @@ Now that all artifacts exist, update the Artifacts and Personas sections in HELP
 
 ## Phase 6 — Write Agent Instruction Files
 
-After HELPMETEST.md is written, inject the TDD contract into the agent's instruction files so it persists across sessions.
+Phase 6 is now covered by `SKILL.md` §3a, which self-installs the same block on every mode invocation, not just onboard. If you're running onboard, it's already been written before you got here — verify with `grep helpmetest:start CLAUDE.md AGENTS.md` rather than re-writing it.
 
-Write to whichever files exist or are appropriate for this environment. Use HTML comment markers for idempotent updates — do not duplicate content on re-runs.
-
-**CLAUDE.md / AGENTS.md** — append if they exist, create if not:
-
-```markdown
-<!-- helpmetest:start v1 -->
-## This project uses HelpMeTest TDD
-
-Read HELPMETEST.md at session start. It contains the project contract.
-
-**Nothing is built before:**
-1. A Feature artifact exists with scenarios
-2. User has approved the scenario list
-3. Tests are written and confirmed failing
-4. User has approved the test list
-
-**Done = all tests green + user sign-off.** Not "looks right."
-
-Run `/onboard` if HELPMETEST.md is missing.
-<!-- helpmetest:end -->
-```
-
-**SOUL.md** (if it exists at project root — OpenClaw and similar environments):
+**SOUL.md** (if it exists at project root — OpenClaw and similar environments) still gets its own personality-flavored block, written here specifically:
 
 ```markdown
 <!-- helpmetest:start v1 -->
