@@ -172,6 +172,8 @@ Reactive tasks — monitor, watch, full-qa, "keep the suite green" — must stay
 helpmetest updates --json
 ```
 
+Same shorthand filters as `test run` work here — `--keywords`, `--errors`, `--results`, `--screenshots`, `--network-requests` — each expands to `--filter <type> --json`. Useful to cut noise on a long-lived background listener, e.g. `helpmetest updates --errors` to only wake up on error events.
+
 `shared.md`
 
 Poll the background task's output between your own actions:

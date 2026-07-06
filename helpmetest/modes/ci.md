@@ -202,6 +202,20 @@ helpmetest test run "#priority:critical" --json \
   | python3 -c "import json,sys; r=json.load(sys.stdin); print(r['status'])"
 ```
 
+### Shorthand filter flags
+
+Instead of `--json | grep '"type":...'`, narrow the stream directly — each is `--filter <type> --json` in one flag:
+
+```bash
+helpmetest test run "#priority:critical" --keywords          # = --filter keyword --json
+helpmetest test run "#priority:critical" --errors            # = --filter error --json
+helpmetest test run "#priority:critical" --results           # = --filter keyword_result --json
+helpmetest test run "#priority:critical" --screenshots       # = --filter screenshot --json (Take Screenshot events, base64 in .value)
+helpmetest test run "#priority:critical" --network-requests  # = --filter OpenReplayEvents --json
+```
+
+Only one shorthand (or an explicit `--filter`) at a time — combining them errors instead of silently merging. `--schema` prints the full NDJSON event schema for building custom `--select` expressions.
+
 ---
 
 ## Mark Deployments in the Timeline

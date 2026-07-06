@@ -78,6 +78,39 @@ helpmetest interactive "Exit"
 
 ---
 
+## Reviewing a past session (server-side, from any machine)
+
+`helpmetest interactive review` fetches the **durable server-side record** of a session — every keyword result and HTTP request captured during it — even if the local `.helpmetest/sessions/` pointer is gone or you're on a different machine. Use it to answer "were we properly authenticated?" or to audit what actually happened in a session without re-running anything.
+
+```bash
+helpmetest interactive review                                              # current/last local session
+helpmetest interactive review acme__interactive__2026-07-05T11:00:00.000Z  # any session by runId
+```
+
+### Shorthand flags
+
+Each is `--select <field> --json` in one flag:
+
+| Flag | Equivalent | Returns |
+|---|---|---|
+| `--keywords` | `--select keywords --json` | `[{keyword, status, line}]` |
+| `--errors` | `--select errors --json` | `[{keyword, message, timestamp}]` |
+| `--results` | `--select results --json` | `[{keyword, value, timestamp}]` — Get/assertion return values |
+| `--screenshots` | `--select screenshots --json` | `[{timestamp, image}]` — base64 PNG from `Take Screenshot` |
+| `--network-requests` | `--select requests --json` | `[{ts, method, url, status, duration}]` |
+| `--auth` | `--select authEvents --json` | `[{kind: "keyword"\|"request", ...}]` — Save As/As/Login calls and 401/403 responses |
+
+Only one shorthand (or an explicit `--filter`) at a time — combining them is an error, not a silent merge.
+
+For a custom shape, use `--select` directly with a JMESPath-style expression:
+```bash
+helpmetest interactive review --select "keywords[].{keyword,status}" --json
+```
+
+`--limit <n>` caps events fetched (default 500).
+
+---
+
 ## What the output contains
 
 ### Content
