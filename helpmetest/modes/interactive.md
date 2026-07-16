@@ -45,7 +45,8 @@ When a command in a batch fails, subsequent commands are skipped (shown as `⊘`
 | `--open` | Open the live session URL in your browser immediately — watch clicks happen |
 | `--session <runId>` | Resume a specific named session (bypasses auto-resume) |
 | `--timeout <ms>` | Per-command timeout (default 5000ms) |
-| `--debug` | Full diagnostics: DOM diff, OpenReplay events, perf metrics, network timings |
+| `--dom-diff` | Show DOM mutations (adds/removes/attribute/text changes) that happened during the command — sourced from the session's existing rrweb recording, added as a "DOM Diff" output section |
+| `--debug` | Full diagnostics: OpenReplay events, perf metrics, network timings |
 | `--json` | Output as JSON (for scripting/agents) |
 
 
@@ -99,6 +100,7 @@ Each is `--select <field> --json` in one flag:
 | `--screenshots` | `--select screenshots --json` | `[{timestamp, image}]` — base64 PNG from `Take Screenshot` |
 | `--network-requests` | `--select requests --json` | `[{ts, method, url, status, duration}]` |
 | `--auth` | `--select authEvents --json` | `[{kind: "keyword"\|"request", ...}]` — Save As/As/Login calls and 401/403 responses |
+| `--dom-diff` | `--select domDiff --json` | `[{timestamp, counts, added, removedIds, attributeChanges, textChanges}]` — DOM mutations across the whole session, from the same rrweb recording |
 
 Only one shorthand (or an explicit `--filter`) at a time — combining them is an error, not a silent merge.
 
