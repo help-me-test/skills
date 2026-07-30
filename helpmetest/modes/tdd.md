@@ -386,6 +386,26 @@ Reload
 <re-assert that state survived>
 ```
 
+### Uptime / smoke / liveness checks — `wait_until=domcontentloaded`
+
+`Go To` defaults to `wait_until=load`, which blocks until every network request the page
+kicks off has finished — analytics (PostHog), tag managers, ad-conversion pixels, third-party
+widgets. For a test that only checks the page is up (`Get Title`, a status code, a single
+visible element) that tax is pure waste: measured 2.7-3.3s per check on `wait_until=load`
+versus ~0.2-0.9s on `wait_until=domcontentloaded`, with zero difference in what the test
+actually verifies.
+
+```robot
+As  <StateName>
+Go To  <url>  wait_until=domcontentloaded
+Get Title  contains  <expected>
+```
+
+Use `wait_until=domcontentloaded` (or leave the default `load` only when the test genuinely
+needs the page fully settled — e.g. before a screenshot, or before interacting with
+content injected by a third-party script) for any `type:smoke`, `feature:uptime`, or
+liveness-style check.
+
 ### Inline comments
 
 **Every non-obvious step must have a `# comment` above it written for a product manager, not an engineer.**

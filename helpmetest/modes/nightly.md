@@ -82,13 +82,16 @@ For each URL found:
 1. Check if any existing Feature artifact covers that URL (look at Feature `functional[].given` for the URL, or Feature tags)
 2. If NO Feature covers the URL → it's a new page to document
 
-For each uncovered URL:
 - Run a lightweight interactive check:
   ```
   As <StateName>
-  Go To <url>
+  Go To <url>  wait_until=domcontentloaded
   Get Title
   ```
+  (`domcontentloaded` instead of the `Go To` default of `load` — a liveness/title check
+  doesn't need third-party scripts, analytics, or ad pixels to finish; waiting for `load`
+  measured 2.7-3.3s per check versus ~0.2-0.9s with `domcontentloaded`, purely from
+  waiting on PostHog/GTM/ad-conversion network calls that don't affect the assertion.)
 - Create a stub Feature artifact:
   ```json
   {
