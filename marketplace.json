@@ -13,10 +13,10 @@
     {
       "name": "HelpMeTest Skills",
       "source": "./",
-      "description": "8 skills for the complete test automation lifecycle: project setup, discovery, TDD, full QA orchestration, test fixing, visual review, API testing, and localhost proxy.",
+      "description": "Single HelpMeTest skill with modes for TDD, discovery, onboarding, test fixing, visual review, API testing, interactive browser console, localhost proxy, and more.",
       "version": "2.0.0",
       "category": "testing",
-      "description": "Skills for the complete test automation lifecycle: project setup, discovery, TDD, full QA orchestration, test fixing, visual review, API testing, interactive browser console, and localhost proxy.",
+      "keywords": [
         "testing",
         "qa",
         "automation",
@@ -28,14 +28,7 @@
         "tdd"
       ],
       "skills": [
-        "./onboard",
-        "./tdd",
-        "./discover",
-        "./fix-tests",
-        "./helpmetest",
-        "./ui-review",
-        "./proxy",
-        "./api-testing"
+        "./helpmetest"
       ]
     }
   ]
