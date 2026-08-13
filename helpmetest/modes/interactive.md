@@ -44,10 +44,11 @@ When a command in a batch fails, subsequent commands are skipped (shown as `⊘`
 | `--screenshot` | Capture screenshot after the command (appends `Take Screenshot` automatically) |
 | `--open` | Open the live session URL in your browser immediately — watch clicks happen |
 | `--session <runId>` | Resume a specific named session (bypasses auto-resume) |
-| `--timeout <ms>` | Per-command timeout (default 5000ms) |
+| `--timeout <ms>` | Per-command timeout (default 15000ms — raised from 5000ms 2026-08-11: the old default was shorter than legitimate slow selector/navigation waits, so it discarded the real RF error and misreported it as "the session ended unexpectedly" even when the browser was still alive and working) |
 | `--dom-diff` | Show DOM mutations (adds/removes/attribute/text changes) that happened during the command — sourced from the session's existing rrweb recording, added as a "DOM Diff" output section |
 | `--debug` | Full diagnostics: OpenReplay events, perf metrics, network timings |
 | `--json` | Output as JSON (for scripting/agents) |
+| `--stream` | Emit newline-delimited JSON events (one JSON object per line: `keyword`, `keyword_result`, `phase_done`, final `{"type":"done",...}`) instead of TTY pretty-print or a single JSON blob — for agents that want to process events as they arrive rather than waiting for the full result |
 
 
 ### Watching the session live
@@ -81,11 +82,11 @@ helpmetest interactive "Exit"
 
 ## Reviewing a past session (server-side, from any machine)
 
-`helpmetest interactive review` fetches the **durable server-side record** of a session — every keyword result and HTTP request captured during it — even if the local `.helpmetest/sessions/` pointer is gone or you're on a different machine. Use it to answer "were we properly authenticated?" or to audit what actually happened in a session without re-running anything.
+`helpmetest interactive history` fetches the **durable server-side record** of a session — every keyword result and HTTP request captured during it — even if the local `.helpmetest/sessions/` pointer is gone or you're on a different machine. Use it to answer "were we properly authenticated?" or to audit what actually happened in a session without re-running anything. Same command name and identical output format as `helpmetest test history` — both render through one shared formatter.
 
 ```bash
-helpmetest interactive review                                              # current/last local session
-helpmetest interactive review acme__interactive__2026-07-05T11:00:00.000Z  # any session by runId
+helpmetest interactive history                                              # current/last local session
+helpmetest interactive history acme__interactive__2026-07-05T11:00:00.000Z  # any session by runId
 ```
 
 ### Shorthand flags
@@ -94,11 +95,16 @@ Each is `--select <field> --json` in one flag:
 
 | Flag | Equivalent | Returns |
 |---|---|---|
-| `--keywords` | `--select keywords --json` | `[{keyword, status, line}]` |
+| `--keywords` | `--select keywords --json` | `[{keyword, status, line, elapsed}]` |
 | `--errors` | `--select errors --json` | `[{keyword, message, timestamp}]` |
 | `--results` | `--select results --json` | `[{keyword, value, timestamp}]` — Get/assertion return values |
 | `--screenshots` | `--select screenshots --json` | `[{timestamp, image}]` — base64 PNG from `Take Screenshot` |
-| `--network-requests` | `--select requests --json` | `[{ts, method, url, status, duration}]` |
+| `--network` | `--select network --json` | `[{kind: "http"\|"graphql"\|"ws", method, url, status, duration, ...}]` — HTTP requests, GraphQL operations, WebSocket messages |
+| `--metrics` | `--select metrics --json` | `[{tag, args}]` — WebVitals, PageLoadTiming, ResourceTiming, LongTask/LongAnimationTask, PageRenderTiming, rage-click (MouseThrashing) |
+| `--interactions` | `--select interactions --json` | `[{tag, args}]` — MouseClick, InputChange, SelectionChange, TabChange |
+| `--console` | `--select console --json` | `[{tag, args}]` — ConsoleLog, JSException |
+| `--events` | `--select events --json` | `[{tag, args}]` — Redux/Zustand/Vuex/NgRx dispatches, custom app-reported issues/user id |
+| `--navigation` | `--select navigation --json` | `[{url, title, referrer, ts}]` — page location changes |
 | `--auth` | `--select authEvents --json` | `[{kind: "keyword"\|"request", ...}]` — Save As/As/Login calls and 401/403 responses |
 | `--dom-diff` | `--select domDiff --json` | `[{timestamp, counts, added, removedIds, attributeChanges, textChanges}]` — DOM mutations across the whole session, from the same rrweb recording |
 
@@ -106,7 +112,7 @@ Only one shorthand (or an explicit `--filter`) at a time — combining them is a
 
 For a custom shape, use `--select` directly with a JMESPath-style expression:
 ```bash
-helpmetest interactive review --select "keywords[].{keyword,status}" --json
+helpmetest interactive history --select "keywords[].{keyword,status}" --json
 ```
 
 `--limit <n>` caps events fetched (default 500).

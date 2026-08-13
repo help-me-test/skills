@@ -288,6 +288,8 @@ helpmetest test run <test-id>
 ```
 **Do NOT create multiple tests then run them all at the end. Create one → run it → fix if red → move to next.**
 
+To re-run several *already-existing* tests in parallel (e.g. a regression pass, not the create-one-at-a-time TDD loop above), pass multiple identifiers: `helpmetest test run "Login" "Checkout" "Signup"` — shows a live table with all tests running concurrently.
+
 **Retry limit:** if `helpmetest test create` returns a validation error, fix the error and retry **once**. If it fails again, use `--file /tmp/<id>.robot` instead of inline `--body`. If a third attempt fails, move to the next scenario — do NOT keep retrying the same test in a loop.
 
 **6. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
