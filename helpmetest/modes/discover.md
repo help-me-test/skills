@@ -36,6 +36,24 @@ helpmetest status
 helpmetest artifact list
 ```
 
+**Also check for a spec-driven-dev framework before asking the user for a source.** These
+tools generate their own machine-readable spec/plan/task files — if present, that's the
+source, full stop, don't ask "what's the source" first. Look for any of:
+
+```bash
+# spec-kit (github/spec-kit): /speckit.specify → /speckit.plan → /speckit.tasks → /speckit.implement
+ls specs/*/spec.md specs/*/tasks.md .specify/ 2>/dev/null
+
+# OpenSpec: /openspec-propose → /openspec-apply-change → /openspec-archive-change
+ls openspec/changes/*/proposal.md openspec/specs/ 2>/dev/null
+
+# Generic PRD/task-list pairs (create-prd + create-tasks skills)
+ls PRD*.md prd.md docs/PRD*.md tasks/*/tasks-prd-*.md 2>/dev/null
+```
+
+Any hit → this is a **Framework-sourced discovery**, not a blind doc/PRD read. Skip straight
+to Step 1's framework branch below; do not present the "what's the source" menu.
+
 ---
 
 ## Triage Mode — fast bug sweep, no test artifacts
@@ -424,15 +442,24 @@ After orient, present this **then immediately proceed** — do not wait for a re
 
 ## Step 1 — Identify the Source
 
-You have two input types. Handle both if both exist.
+You have three input types. Handle whichever exist.
 
-**Docs (PRD / spec / tickets / API spec / Figma notes / codebase):**
+**Framework-sourced (spec-kit / OpenSpec / PRD+tasks — detected in Orient First):**
+Read the framework's spec file(s) completely (e.g. spec-kit's `specs/*/spec.md`, OpenSpec's
+`openspec/specs/**`, or a `PRD*.md` + its matching `tasks-prd-*.md`). Do not ask the user
+for a source — the framework's own output *is* the source. Extract features per Step 2A,
+using the framework's own scenario language (spec-kit: Given/When/Then acceptance scenarios
+and `FR-XXX` functional requirements; OpenSpec: its `## Requirements`/`## Scenarios` blocks;
+PRD: its functional requirements section) verbatim — don't paraphrase, that's where drift
+from the real spec starts.
+
+**Docs (PRD / spec / tickets / API spec / Figma notes / codebase) — no framework detected:**
 Read the source completely before asking anything. Then extract features (Step 2A).
 
 **Live app (running URL):**
 Navigate and explore. Then create Persona + ProjectOverview + Features (Step 2B).
 
-If the user hasn't said which, ask once:
+If none of the above and the user hasn't said which, ask once:
 > "What's the source? A live URL, a spec/PRD, tickets, or all of the above?"
 
 ---
@@ -451,7 +478,17 @@ For each distinct capability in the source:
 | State / persistence | Does the result survive a reload? |
 | Error / failure | What happens when backend or network fails? |
 
-3. Note every ambiguity. Ask at most 5 clarifying questions before creating artifacts:
+3. **Framework-sourced only — requirement/scenario-to-task coverage gate:** before treating
+   any implementation as complete, cross-check every requirement/scenario in the spec against
+   the framework's own task breakdown (spec-kit's `tasks.md`, OpenSpec's `tasks.md`, a
+   create-tasks PRD's parent tasks). A requirement with no matching task means the
+   implementation may be silently incomplete — the test you write for it is likely to go red
+   not because of a bug, but because the feature was never built. Flag these explicitly to the
+   user before writing tests, rather than discovering the gap only when a test fails. (Observed
+   real case: a spec-kit spec's `FR-006` — delete-a-list-with-confirmation — had no matching
+   task in `tasks.md`; `/speckit.implement` never built it; the gap surfaced only when the
+   resulting HelpMeTest test went red against a live app with no delete-list UI at all.)
+4. Note every ambiguity. Ask at most 5 clarifying questions before creating artifacts:
 
 ```
 I found some ambiguities before creating artifacts:
