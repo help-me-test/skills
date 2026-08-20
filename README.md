@@ -67,6 +67,9 @@ The HelpMeTest CLI is the primary interface:
 | `helpmetest status` | Show tests and their current state |
 | `helpmetest test run <id>` | Run a test |
 | `helpmetest test create` / `helpmetest test update <id>` | Create or update a test |
+| `helpmetest test view <id> [--limit N]` | Show a test's source + tags + last N runs (default 10) inline |
+| `helpmetest test runs <id> [--since 7d] [--errors] [--limit N]` | Longer/filterable run history than `test view`'s default 10 |
+| `helpmetest test history <id> <timestamp>` | Full detail (keywords, network, errors) for one specific run |
 | `helpmetest interactive "<command>"` | Run an interactive browser command |
 | `helpmetest search [query]` | Search docs, keywords, artifacts, and tests |
 | `helpmetest proxy start/stop/list` | Manage localhost tunnels |
