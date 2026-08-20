@@ -74,7 +74,7 @@ The HelpMeTest CLI is the primary interface:
 | `helpmetest search [query]` | Search docs, keywords, artifacts, and tests |
 | `helpmetest proxy start/stop/list` | Manage localhost tunnels |
 | `helpmetest artifact upsert` | Create or update an artifact |
-| `helpmetest artifact get <id>` | Fetch an artifact |
+| `helpmetest artifact get <id>` | Fetch an artifact (`--open` to view in browser, `--include-linked` for related artifacts) |
 | `helpmetest artifact list` | List artifacts |
 | `helpmetest deploy` | Deploy |
 | `helpmetest open <id>` | Open a resource |

@@ -40,7 +40,7 @@ Copy the token. Store it as a secret in your CI system:
 **Manage tokens:**
 ```bash
 helpmetest token list          # see all tokens
-helpmetest token delete old-token   # rotate a compromised one
+helpmetest token unset old-token   # rotate a compromised one
 ```
 
 ---

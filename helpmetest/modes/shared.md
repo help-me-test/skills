@@ -123,7 +123,7 @@ Use the `helpmetest` CLI for all HelpMeTest operations. Key commands:
 - `helpmetest test create --name <name> --tags <tags> --content '<robot>'` — create test
 - `helpmetest test update <id> ...` — update test
 - `helpmetest proxy start` — start proxy tunnel (see `proxy` skill for syntax and domain setup)
-- `helpmetest upload <file>` — upload file
+- `helpmetest files upload <file>` — upload file
 - `helpmetest open test <id>` — open test in browser
 
 ## 9. Every mode has an output artifact

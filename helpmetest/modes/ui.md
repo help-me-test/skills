@@ -129,7 +129,7 @@ List all pages you will visit. This becomes your review checklist.
 To upload a screenshot to storage:
 
 ```bash
-helpmetest upload page-name-desktop.png
+helpmetest files upload page-name-desktop.png
 ```
 
 The screenshot file path is shown in the `helpmetest interactive ... --screenshot` output. Use it immediately — do not re-capture, do not write code, do not use external tools.
@@ -415,7 +415,7 @@ When the user picks an action and says "fix this" or "can you fix #N":
 
 1. **Fix the code** — make the change in the source file
 2. **Verify live** — take a new screenshot at the relevant viewport to confirm it looks right
-3. **Upload the new screenshot** — `helpmetest upload <path>`
+3. **Upload the new screenshot** — `helpmetest files upload <path>`
 4. **Update the artifact** — two partial updates:
    - Mark the action done: `helpmetest artifact upsert --id <id> --content '{"actions.<N>.status": "done"}'`
    - Replace the screenshot: `helpmetest artifact upsert --id <id> --content '{"pages.<P>.screenshots.<V>.url": "<new-url>"}'`
@@ -448,6 +448,6 @@ When the user picks an action and says "fix this" or "can you fix #N":
 
 - [ ] Code change made in source file
 - [ ] New screenshot taken at the affected viewport showing the fix
-- [ ] New screenshot uploaded via `helpmetest upload`
+- [ ] New screenshot uploaded via `helpmetest files upload`
 - [ ] Action `status` updated to `"done"` via partial artifact update
 - [ ] Screenshot URL in artifact updated to the new post-fix screenshot
