@@ -82,7 +82,7 @@ helpmetest interactive "Exit"
 
 ## Reviewing a past session (server-side, from any machine)
 
-`helpmetest interactive history` fetches the **durable server-side record** of a session — every keyword result and HTTP request captured during it — even if the local `.helpmetest/sessions/` pointer is gone or you're on a different machine. Use it to answer "were we properly authenticated?" or to audit what actually happened in a session without re-running anything. Same command name and identical output format as `helpmetest test history` — both render through one shared formatter.
+`helpmetest interactive history` fetches the **durable server-side record** of a session — every keyword result and HTTP request captured during it — even if the local `.helpmetest/sessions/` pointer is gone or you're on a different machine. Use it to answer "were we properly authenticated?" or to audit what actually happened in a session without re-running anything. Same output format as `helpmetest test view <id> <timestamp>` (formerly `test history`) — both render through one shared formatter.
 
 ```bash
 helpmetest interactive history                                              # current/last local session

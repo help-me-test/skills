@@ -167,7 +167,7 @@ Use these for negative assertions and library regression tests:
 
 ```bash
 helpmetest test run ssl-domainchecker-regression
-helpmetest test runs ssl-domainchecker-regression   # check history
+helpmetest test view ssl-domainchecker-regression --since 7d   # check history
 ```
 
 Pass rate should be ≥95%. Residual ⚠️ INFRA_ERR are VM network jitter — not FAIL.
