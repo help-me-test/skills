@@ -124,31 +124,47 @@ Each bubble is read in isolation — a reviewer scrolling the page does not read
 
 ---
 
+## Preflight — must be true before any action
+
+1. **Tasks artifact exists.** Before reading a test, running a command, or writing any code: create (or resume) a `Tasks` artifact. This is not optional for any mode reachable from `/helpmetest` — see "Tasks artifact — full schema" below. A run with no Tasks artifact has no durable receipt; narration alone disappears once the chat scrolls.
+2. **Orient.** `helpmetest status`, `helpmetest artifact list` — know what already exists before creating anything new.
+3. **Open the run.** First line of output after orientation: state what you understood the task to be, and print `[link]` to the Tasks artifact you just created/resumed.
+4. **Post the plan.** For any task with 2+ steps, print a numbered checklist to stdout matching the Tasks artifact's top-level tasks — the two must stay in sync, not diverge into separate lists.
+
 ## The loop
 
 ```
 1.  Orient   → helpmetest status, helpmetest artifact list (check what already exists)
             print [phase] line  (announce understanding of the task)
-2.  Plan     → decompose into 3–8 concrete steps
+2.  Plan     → decompose into 3–8 concrete steps; create/resume the Tasks artifact with one subtask per step
             print numbered checklist to stdout
 3.  Work     → for each step:
+                  mark the matching subtask in_progress
                   print [phase] line  (announce the step)
                   do it — follow the `/helpmetest` mode (`modes/shared.md` + `modes/<mode>.md`)
                   print findings ([bug]/[observation]/[link]/plain text)
-4.  Close    → print [done] line  (one informative sentence — the run summary)
+                  mark the subtask done with evidence (see §Evidence below) before moving to the next step
+4.  Close    → print [done] line  (one informative sentence — the run summary); every task/subtask is terminal
 ```
 
-`tasks` artifacts are still available and useful for structured multi-step work that benefits from a stable receipt — write them via `helpmetest artifact upsert` exactly as documented below. They are no longer the success criterion. The success criterion is your final `[done]` line.
+**The Tasks artifact and the `[done]` narration line are both required, and they must agree.** The Tasks artifact is the durable, queryable receipt — it's what a reviewer opens after the run to verify what happened and click through to evidence. The `[phase]`/`[done]` narration is the live, in-the-moment channel — it's what a user watching the run sees in real time. Neither replaces the other: narration without a Tasks artifact leaves no receipt once the chat scrolls past it; a Tasks artifact without narration leaves a user watching the run with no idea what's happening until it's over.
+
+## Postflight — must be true before closing out
+
+1. **Every task/subtask is terminal** (`done`, `cancelled`, or `blocked`) — see §Final audit below.
+2. **Every `done` subtask has evidence** attached in `notes` (run URL, screenshot, artifact id, bug id — see §Evidence).
+3. **Every output artifact you created lists this Tasks artifact id** in its own `content.links` (write only that one side — the server resolves the reverse edge).
+4. **A `[done]` or `[failed]` line was printed** — exactly once, at the very end, one informative sentence with the concrete numeric outcome.
+
+If any of these is missing, you are not done — go back and fill it in before your final message.
 
 ---
 
 ## Tasks artifact — full schema
 
-For multi-step work that benefits from a stable receipt (a list of subtasks the user can scan after the run, with one note per outcome), create a `Tasks` artifact. It is **optional** — stdout narration already covers the basics. Reach for a Tasks artifact when:
+Create a `Tasks` artifact as the **first action** of any run reachable from `/helpmetest` — this is not optional (see Preflight above). It is the stable receipt: a list of subtasks the user or a future reviewer can scan after the run, with one note of evidence per outcome. stdout narration is required too, but it disappears once the chat scrolls; the Tasks artifact persists as a standalone, linkable artifact.
 
-- The work has 3+ concrete deliverables that benefit from being checked off one at a time.
-- The user (or a future you / reviewer) will want to scan a structured list of "what got done and what's the evidence" after the run, rather than re-reading the chat.
-- The run might be resumed later — Tasks artifacts persist as standalone artifacts.
+The only case where a fresh Tasks artifact is skipped: a request so small it has exactly one step with no meaningful decomposition (e.g. "what does `helpmetest status` show right now" with zero follow-up action) — even then, prefer creating a one-task artifact over skipping it, since it costs one CLI call and buys a permanent receipt.
 
 Pick your own id (`tasks-<short-name>` works), and print a `[link]` line with the artifact URL once you've created it so the user can find it.
 

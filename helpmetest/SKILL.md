@@ -99,10 +99,10 @@ Read  modes/<mode>.md
 
 HelpMeTest only enforces TDD discipline for as long as this skill is actively loaded. The next session — possibly a different agent, possibly you without this context — won't know HelpMeTest exists unless it's written into the files every agent reads at session start.
 
-Check `CLAUDE.md` and `AGENTS.md` (repo root) for the marker `<!-- helpmetest:start vN -->`. If either file is missing the marker, or has a version older than the block below (currently v3), write/replace it (idempotent — strip the old `start`...`end` range first, don't duplicate):
+Check `CLAUDE.md` and `AGENTS.md` (repo root) for the marker `<!-- helpmetest:start vN -->`. If either file is missing the marker, or has a version older than the block below (currently v4), write/replace it (idempotent — strip the old `start`...`end` range first, don't duplicate):
 
 ```markdown
-<!-- helpmetest:start v3 -->
+<!-- helpmetest:start v4 -->
 ## HelpMeTest — testing & TDD contract
 
 This project has HelpMeTest installed. Read HELPMETEST.md at session start if it exists — it has the project contract.
@@ -124,7 +124,7 @@ Use `helpmetest interactive` / `helpmetest test` for:
 4. Done = all tests green + user sign-off. Not "looks right."
 
 ### Findings persist to the Memory artifact, not this file
-Selectors, auth flows, timing quirks discovered mid-session go in the project's `Memory` artifact (`helpmetest search Memory`, `helpmetest artifact get <id>`) — not into this block. This block is static and only self-installs the workflow contract above.
+Selectors, auth flows, timing quirks discovered mid-session go in the project's `Memory` artifact (`helpmetest search Memory`, `helpmetest artifact get <id>`) — not into this block. Each entry is scoped (`project`/`feature:<id>`/`test:<id>`) with a `confidence` and `last_verified` date (see `references/cli-contracts.md`); treat low-confidence or stale (>30 days) entries as needing a quick re-check, not settled fact. This block is static and only self-installs the workflow contract above.
 
 Run `/onboard` if HELPMETEST.md is missing. Run `/helpmetest <mode>` for any test-related work — see this skill for the full mode list.
 <!-- helpmetest:end -->
@@ -255,64 +255,13 @@ report        Read-only project health diagnosis. Layered: triage → auth → t
 
 Load these from `references/` when relevant:
 - The `helpmetest` CLI is the only interface (there is no MCP). For exact command syntax, options, or to confirm a command exists, run `helpmetest <command> --help` — it is the source of truth.
-- `references/rf-recipes.md` — deterministic Robot Framework checks (axe-core, console errors, performance, web vitals, broken links/images, SSL).
+- `references/rf-recipes.md` — deterministic Robot Framework checks (axe-core, console errors, performance, web vitals, broken links/images, SSL). Load this opportunistically during normal test-writing and `interactive` exploration too, not only when a11y is explicitly requested — see `modes/tdd.md` and `modes/interactive.md`.
 - `references/adversarial-patterns.md` — attack patterns for forms, modals, keyboard nav, persistence.
 - `references/ux-heuristics.md` — Laws of UX, Nielsen's 10, a11y — for evaluating screenshots / writing UX findings.
-
-### `helpmetest config` — project settings (`.helpmetest/config.yaml`)
-
-```bash
-helpmetest config                               # show all settings (file value or default)
-helpmetest config get <key>                     # show one value
-helpmetest config set <key> <value>              # write one value
-helpmetest config unset <key>                    # remove key, revert to default
-```
-
-Known keys: `apiBaseUrl` (default `https://helpmetest.com`, set automatically by `register`/`login` — don't hand-edit unless pointing at a non-default server), `apiToken` (prefer `helpmetest login` over setting this directly; masked in output), `autoOpenSession` (`true`/`false`, default `true` — opens the live interactive session in a browser), `debug` (`true`/`false`, default `false`), `env` (default environment for `helpmetest secret`/`helpmetest otp`, default `default`), `timeout` (request timeout in seconds, default `30`), `retries` (default `3`). Boolean/number keys are validated on `set`. Unknown keys are still stored and shown under "Other settings".
-
-This is distinct from `helpmetest secret` (test passwords), `helpmetest otp` (2FA seeds), and `helpmetest token` (workspace API tokens) — `config` covers CLI behavior only.
+- `references/cli-contracts.md` — consolidated schema/flag reference: `helpmetest config` keys, `Feature.bugs[]` shape, `ValidationReport`/`CoverageReport` schemas, scoped `Memory` artifact shape. The `Tasks` artifact schema itself lives in `modes/agent.md`.
+- `references/failure-categories.md` — fixed taxonomy for classifying a failing test (`fix` mode's classify step).
+- `references/evidence-rules.md` — anti-fabrication discipline for any mode that diagnoses failures or reports findings.
 
 ### Output Artifacts
 
-#### ValidationReport
-
-Created by `validate` mode after reviewing one or more tests.
-
-```json
-{
-  "type": "ValidationReport",
-  "id": "validation-[timestamp]",
-  "name": "ValidationReport: [N] tests reviewed",
-  "content": {
-    "overview": "Reviewed [N] tests. [X] passed (A/B grade), [Y] failed (C/D/F grade).",
-    "summary": {
-      "total": <int>,
-      "grade_distribution": { "A": <int>, "B": <int>, "C": <int>, "D": <int>, "F": <int> },
-      "r11_mutagen_failures": [<test_ids>],
-      "r12_framework_tests": [<test_ids>],
-      "r13_overmocking": [<test_ids>],
-      "bullshit_score_avg": <float>|null
-    },
-    "tests": [
-      { "test_id": "...", "name": "...",
-        "grade": "A|B|C|D|F",
-        "r_scores": { "r1": "PASS|FAIL", "r2": "PASS|FAIL", ... },
-        "r11_mutation_resistance": "PASS|FAIL",
-        "r12_business_logic": "PASS|FAIL",
-        "r13_minimal_mocking": "PASS|FAIL",
-        "fail_reasons": ["R11: ...", "R12: ..."],
-        "recommendation": "ship|rewrite|delete",
-        "fix_notes": "<what to fix if rewrite>" }
-    ],
-    "actions": { "ship": [<ids>], "rewrite": [<ids>], "delete": [<ids>] }
-  }
-}
-```
-
-#### RegressionRun
-
-Created by `change-impact` mode. See `modes/regression.md` for full schema.
-
-#### CoverageReport
-
-Created by `coverage` and `pr-review` modes. See `modes/coverage.md` for full schema.
+See `references/cli-contracts.md` for `ValidationReport` and `Feature.bugs[]` shapes. `RegressionRun` is created by `change-impact` mode — see `modes/regression.md`. `CoverageReport` is created by `coverage` and `pr-review` modes — see `modes/coverage.md`.

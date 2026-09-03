@@ -26,35 +26,40 @@ Silence means the user has no idea what you did or why.
 
 # Fix Tests
 
-One skill for everything wrong with your test suite. Reads the situation, picks the right mode.
+One skill for everything wrong with your test suite. Reads the situation, picks the right submode.
 
-## Prerequisites — Always Do This First
+## Workflow
 
-**Step 0: Create Tasks artifact immediately** — before reading tests or running any commands:
-```bash
-helpmetest artifact upsert \
-  --id "tasks-fix-$(date +%Y%m%d)-<test-id>" \
-  --type Tasks \
-  --name "Tasks: Fix <test-id>" \
-  --content '{"overview":"Fix failing test <test-id>.","tasks":[{"id":"1","title":"Diagnose and fix <test-id>","status":"in_progress","priority":"critical"}]}'
-```
+1. **Create or resume the Tasks artifact** (per `modes/agent.md` Preflight — this is not optional). One artifact, id `tasks-fix-$(date +%Y%m%d)-<test-id-or-session>`, 3 subtasks from the start: `Understand the failure`, `Reproduce interactively`, `Fix test or document bug`. Created exactly once here — the submodes below (Debug/Heal/Sync) update this same artifact's subtasks, they never create a second one.
+   ```bash
+   helpmetest artifact upsert \
+     --id "tasks-fix-$(date +%Y%m%d)-<test-id>" \
+     --type Tasks \
+     --name "Tasks: Fix <test-id>" \
+     --content '{
+       "overview": "Debug failing test <test-id>. Root cause \u2192 fix or document bug.",
+       "tasks": [
+         {"id": "1", "title": "Understand the failure", "status": "in_progress", "priority": "critical"},
+         {"id": "2", "title": "Reproduce interactively", "status": "pending", "priority": "critical"},
+         {"id": "3", "title": "Fix test or document bug", "status": "pending", "priority": "critical"}
+       ]
+     }'
+   ```
+2. **Orient**:
+   ```bash
+   helpmetest status
+   helpmetest artifact list
+   helpmetest search Memory
+   git log --oneline -10
+   git diff --stat HEAD
+   ```
+3. **Announce** — present before classifying or acting (see templates below). Always say what the user will know after this, not what you will do. Recommend one starting point.
+4. **Classify the signal and route to a submode** using the table below. If the signal itself is vague ("something broke"), run Triage first (below the table) to get to a specific classification before routing.
+5. **Execute the routed submode** (`Mode: Debug` / `Mode: Heal` / `Mode: Sync` / `Mode: Validate` below) — each ends in either a fix, a documented bug, or a report. Use `references/failure-categories.md` for the actual error category once you have a specific failing test, and `references/evidence-rules.md` for how to record findings — don't invent evidence.
+6. **Verify green** — `helpmetest test run <id>` after any fix; a "should work" claim without a run is not done.
+7. **Close out** per `modes/agent.md` Postflight — every Tasks subtask terminal with evidence, Feature.status updated if a bug was found or fixed.
 
-**Step 1: Orient**:
-```bash
-helpmetest status
-helpmetest artifact list
-helpmetest search Memory
-```
-
-Check git state:
-```bash
-git log --oneline -10
-git diff --stat HEAD
-```
-
-## Announce
-
-After orient, present before classifying or acting.
+### Announce templates
 
 **Specific failing tests found:**
 > "After diagnosis you'll know whether `[test-id]` is a broken selector, a timing issue, or an actual bug in the feature. [If bug: I'll document it in the Feature artifact so it doesn't get lost.] I'd start with `[highest-priority failing test]`. That, or is there a different test you need green urgently?"
@@ -65,24 +70,22 @@ After orient, present before classifying or acting.
 **No failing tests, but user reported something broken:**
 > "Nothing is showing as failed in the last run, but something's clearly wrong. After this you'll know whether it's a test issue, a code issue, or an environment problem. I'll check git history and dig in — give me a minute."
 
-**Rule:** Always say what the user will know after this, not what you will do. Recommend one starting point.
+### Classify and route
 
-## Read the Situation → Pick the Mode
-
-After orient, classify:
-
-| Signal | Mode |
+| Signal | Submode |
 |--------|------|
-| "Something broke" / "it stopped working" / vague signal | **Triage first** (see below) |
-| One specific test named by user, or one test failing | **Debug** |
-| Multiple tests failing after a deploy or UI change | **Heal** |
+| "Something broke" / "it stopped working" / vague signal | **Triage first** (below), then re-route |
+| One named test, or one test failing, whether or not a deploy just happened | **Debug** |
+| Multiple tests failing together, especially right after a deploy or UI change | **Heal** |
 | Tests passing but code changed — drift suspected | **Sync** |
 | "Is this test any good?" / reviewing test quality | **Validate** |
-| Mixed (failures + drift + quality issues) | **All modes, in order** |
+| Mixed (failures + drift + quality issues) | **All submodes, in order** |
 
-### Triage (when you don't know what's wrong)
+Disambiguating Debug vs Heal: route on **how many tests are failing**, not on whether a deploy happened — a deploy that breaks a single named test is still Debug; only route to Heal when multiple tests failed together.
 
-Gather fast, diagnose specifically, then switch to the right mode.
+### Triage (when the signal is vague)
+
+Gather fast, diagnose specifically, then re-route using the table above.
 
 Collect everything in parallel:
 ```bash
@@ -93,13 +96,13 @@ git diff --stat HEAD           # uncommitted changes
 
 Map what you find to a root cause:
 
-- **Test issue** — test fails but feature works. Selector changed, timing off, stale after refactor → **Debug or Heal mode**
+- **Test issue** — test fails but feature works. Selector changed, timing off, stale after refactor → **Debug or Heal**
 - **App bug** — feature itself is broken. 500 errors, missing data, broken flow → document in Feature.bugs[], tell user
-- **Regression** — worked before a specific commit. Identify the commit, scope blast radius → **Debug mode** + recommend rollback or hotfix
+- **Regression** — worked before a specific commit. Identify the commit, scope blast radius → **Debug** + recommend rollback or hotfix
 - **Environment** — auth state expired, proxy down, env var missing → fix setup, re-run auth test
 - **Coverage gap** — "it's broken" but no test exists → create Feature artifact, run `/tdd`
 
-State the diagnosis once before acting: **"Based on [evidence], the problem is [specific cause]. The fix is [action]."** Then switch to the right mode.
+State the diagnosis once before acting: **"Based on [evidence], the problem is [specific cause]. The fix is [action]."** Then re-route using the table above.
 
 ---
 
@@ -107,31 +110,12 @@ State the diagnosis once before acting: **"Based on [evidence], the problem is [
 
 **Golden Rule: Always reproduce interactively before fixing. Never guess.**
 
-### Tasks Artifact — create FIRST before any investigation
-
-**Do this before reading any test or running any command:**
-
-```bash
-helpmetest artifact upsert \
-  --id "tasks-fix-$(date +%Y%m%d)-<test-id>" \
-  --type Tasks \
-  --name "Tasks: Debug <test-id>" \
-  --content '{
-    "overview": "Debug failing test <test-id>. Root cause → fix or document bug.",
-    "tasks": [
-      {"id": "1", "title": "Understand the failure", "status": "in_progress", "priority": "critical"},
-      {"id": "2", "title": "Reproduce interactively", "status": "pending", "priority": "critical"},
-      {"id": "3", "title": "Fix test or document bug", "status": "pending", "priority": "critical"}
-    ]
-  }'
-```
-
-Save the artifact id — you will update it to `done` with a run URL after the fix is verified.
+The Tasks artifact was already created in `## Workflow` step 1 — update its subtasks as you move through the phases below, don't create a second one.
 
 ### Phase 1: Understand
 
 1. `helpmetest test view <id>` to read the test body; `helpmetest test run <id> --json` to get last run details
-2. Read the error. Classify: selector? timing? assertion? state? API?
+2. Read the error. Classify using `references/failure-categories.md` — pick exactly one category (`element_not_found`, `timing`, `assertion_failure`, `auth_or_state`, `api_or_backend`, `environment`, `test_isolation`, `unknown`), grounded in the run's evidence (`references/evidence-rules.md`).
 3. Check recent git changes — map changed files to likely failure causes
 4. Load the Feature artifact the test belongs to
 
@@ -147,11 +131,13 @@ Run the failing steps one at a time using `interactive` mode (see `modes/interac
 
 ### Phase 3: Root Cause
 
-- **Selector changed** → fix selector
-- **Timing** → add wait
-- **State/auth** → verify auth state restoration
-- **API error** → document bug
-- **Test isolation** (alternating PASS/FAIL, shared state) → make idempotent
+Map to the category chosen in Phase 1 (`references/failure-categories.md`):
+
+- `element_not_found` → fix selector
+- `timing` → add wait
+- `auth_or_state` → verify auth state restoration
+- `api_or_backend` → document bug
+- `test_isolation` (alternating PASS/FAIL, shared state) → make idempotent
 
 ### Phase 4A: Fix Test
 
@@ -159,29 +145,11 @@ Run the failing steps one at a time using `interactive` mode (see `modes/interac
 1. Validate fix interactively first — run the complete corrected flow via `helpmetest interactive`
 2. Update: `helpmetest test update <id> --file /tmp/<id>-fixed.robot --no-run`
 3. **MUST run**: `helpmetest test run <id>` — wait for green. "Should work" is not evidence.
-4. **MUST update Tasks artifact**: mark the subtask done, set `notes` to the run URL as evidence. If no Tasks artifact exists, create one now.
-   ```bash
-   helpmetest artifact upsert --id tasks-fix-<id> --type Tasks --name "Tasks: Fix <id>" \
-     --content '{"overview":"Fixed <id>","tasks":[{"id":"1","title":"Fix <id>","status":"done","notes":"<run-url>"}]}'
-   ```
+4. **MUST update the Tasks artifact created in `## Workflow` step 1**: mark the subtask done, set `notes` to the run URL as evidence (per `modes/agent.md` §Evidence). Don't create a second artifact here.
 
 ### Phase 4B: Document Bug
 
-Add to Feature.bugs[]:
-```json
-{
-  "name": "Brief description",
-  "given": "Precondition",
-  "when": "Action taken",
-  "then": "Expected outcome",
-  "actual": "What actually happens",
-  "severity": "blocker|critical|major|minor",
-  "url": "http://example.com/page",
-  "tags": []
-}
-```
-
-Update Feature.status → "broken" or "partial".
+Add to `Feature.bugs[]` — shape in `references/cli-contracts.md`. Update `Feature.status` → `"broken"` or `"partial"`.
 
 ---
 
@@ -189,7 +157,9 @@ Update Feature.status → "broken" or "partial".
 
 **Don't fix blindly — classify first, then fix fast.**
 
-### Tasks Artifact
+### Tasks Artifact — replace the generic shape from Workflow step 1
+
+Heal handles bulk failures, so its Tasks artifact needs one subtask per failing test, not the 3-phase Debug shape created by default in `## Workflow` step 1. Overwrite the `tasks` array on that same artifact id (don't create a second artifact):
 
 ```json
 {
@@ -276,11 +246,11 @@ When a test fails: classify → fix if fixable → document if not → resume li
 10. **Scenario Drift** — tests and code agree but Feature artifact documents old behavior
 11. **Selector / Schema Drift** — test's selectors or API shape no longer matches code
 
-### Workflow
+### Recording discrepancies
 
 1. Run all tests: `helpmetest status` → get IDs → run each
 2. For each test + each Feature artifact, check for discrepancy types above
-3. Record: type, test, Feature, what test expects vs what code does, git evidence
+3. Record: type, test, Feature, what test expects vs what code does, git evidence — per `references/evidence-rules.md`, don't record a discrepancy type you're inferring without the actual diff/error text backing it.
 
 ### Sync Report (present before resolving)
 
@@ -335,4 +305,4 @@ See `modes/validate.md` for the full R1–R13 rules, scoring, and output format.
 - **All findings go into Feature artifacts** — a bug mentioned only in chat doesn't exist
 - **Update Feature.status** after any change: "working" | "broken" | "partial"
 
-**Version:** 0.1
+**Version:** 0.2 — restructured into a canonical `## Workflow`, fixed duplicate Tasks-artifact creation, wired `references/failure-categories.md` and `references/evidence-rules.md`.

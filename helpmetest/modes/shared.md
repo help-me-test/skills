@@ -21,7 +21,7 @@ Use what you find:
 
 Never assume the project is empty. Never create what already exists.
 
-**Also look for a `Memory` artifact** (`helpmetest search Memory`) — it carries project-specific knowledge from past sessions (selectors, auth flows, timing quirks). If found, fetch and read it with `helpmetest artifact get <id>`.
+**Also look for a `Memory` artifact** (`helpmetest search Memory`) — it carries project-specific knowledge from past sessions (selectors, auth flows, timing quirks), one entry per finding. If found, fetch it with `helpmetest artifact get <id>` and check each entry's `scope`, `confidence`, and `last_verified` before trusting it (see `references/cli-contracts.md`). Treat `confidence: low` or entries not verified in the last 30 days as needing a quick re-check, not settled fact — don't apply a stale selector or auth quirk uniformly just because it's in Memory.
 
 ## 1b. Present before acting — mandatory, every mode, every invocation
 

@@ -14,6 +14,13 @@ User says "report", "health check", "is the project ok", "what's broken", "diagn
 - **No discovery.** If the project has no Features, this mode reports that — it doesn't try to fill the gap.
 - **Output is recommendations only.** Fixes belong to `tdd` / `fix` / `discover` / etc.
 
+## Workflow
+
+1. **Announce** (below) — state what the user will know after this, then begin immediately.
+2. **Run each phase in order** (§Phases below) — 9 phases: triage → auth → tests → sync → coverage → code → bugs → artifacts → drift. Or run only the phase named in the invocation (`report <phase>`).
+3. **Stop-the-line on critical findings** — a 🔴 in an early phase (triage, auth) still lets later phases run, but gets surfaced immediately, not buried until the final summary.
+4. **Produce the tiered report** (🔴/🟠/🟡) and end with one binary question pointing at the highest-leverage fix.
+
 ---
 
 ## Inputs and dispatch
@@ -148,16 +155,18 @@ For each test with ≥5 runs of history, compute:
 - **✅ Stable** (pass rate ≥90%): Reliable, green
   - Evidence: Consistent passing trend, no failure streaks
 
-**Per failing test, summarize errors with flakiness score:**
+**Per failing test, classify each error using the fixed categories in `references/failure-categories.md`, summarize with flakiness score:**
 ```
 ❌ Test Name [flakiness: 0.67 — 🟠 FLAKY | 2/10 pass]
-  - Timeout (4 runs): "TimeoutError: locator.evaluate: Timeout 10000ms exceeded" [weight 1.5]
-  - Assertion (3 runs): "Should Contain: expected 'visible' found 'hidden'" [weight 2.0]
-  - Selector (1 run): "locator.evaluate: Error: no matching selector" [weight 1.0]
-  - Backend (1 run): "500 Server Error" [weight 1.5]
-  - Other (1 run): "Javascript: locator.evaluate: Error: paused=false" [weight 1.0]
+  - timing (4 runs): "TimeoutError: locator.evaluate: Timeout 10000ms exceeded" [weight 1.5]
+  - assertion_failure (3 runs): "Should Contain: expected 'visible' found 'hidden'" [weight 2.0]
+  - element_not_found (1 run): "locator.evaluate: Error: no matching selector" [weight 1.0]
+  - api_or_backend (1 run): "500 Server Error" [weight 1.5]
+  - unknown (1 run): "Javascript: locator.evaluate: Error: paused=false" [weight 1.0]
   - Score: weighted failures / total runs
 ```
+
+**Aggregate across all failing tests** into a one-line category summary the user can scan at a glance, e.g. `3 element_not_found · 2 timing · 1 api_or_backend · 1 unknown` — this is the failure-category stat surfaced in the final report, not just per-test detail.
 
 Findings:
 - 🔴 chronically broken test on `priority:critical`
@@ -252,14 +261,14 @@ Findings:
 
 ### Phase 8 — artifacts (hygiene)
 
-- Memory artifact present? Last updated within 30 days?
+- Memory artifact present? For each entry (see `references/cli-contracts.md` scoped shape), is `last_verified` within 30 days and `confidence` not `low`? Don't judge the whole artifact by one aggregate timestamp — a project-scope entry from a year ago and a feature-scope entry from last week can coexist in the same artifact.
 - ProjectOverview present?
 - ≥1 Persona defined?
 - Any Tasks artifacts >7 days old still `in_progress` (abandoned runs)?
 
 Findings:
 - 🟠 ProjectOverview missing
-- 🟡 Memory artifact missing or >30 days stale, no Persona, abandoned Tasks
+- 🟡 Memory artifact missing, or ≥1 entry with `confidence: low` / `last_verified` >30 days stale, no Persona, abandoned Tasks — name the specific stale entries, not just a count
 
 ### Phase 9 — drift (style/discipline)
 

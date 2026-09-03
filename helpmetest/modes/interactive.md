@@ -196,6 +196,8 @@ helpmetest interactive "Go To  https://myapp.com/login" --open --screenshot
 
 Read **Interactive** — it gives you the exact selectors and keyword types for everything on the page.
 
+**Opportunistic accessibility check** — while you're already on a new page during exploration or debugging, running the axe-core recipe from `references/rf-recipes.md` costs one extra `Evaluate` call and surfaces obvious a11y issues (missing labels, contrast, keyboard traps) without the user having to ask for a dedicated audit. Note anything `critical`/`serious` in your findings; don't let it derail the exploration you're actually there for.
+
 ### 2. Work step by step
 
 ```bash

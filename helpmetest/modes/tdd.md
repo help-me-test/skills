@@ -84,6 +84,17 @@ Silence means the user has no idea what you did or why.
 
 # Tests — Write, Generate, Fix
 
+## Workflow
+
+1. **Create or resume the Tasks artifact** (per `modes/agent.md` Preflight — not optional).
+2. **Orient** — `helpmetest status`, `helpmetest artifact list`, `helpmetest artifact list --type Tasks` (see below).
+3. **Announce** the TDD landscape (see below) — unless a specific task was named, in which case proceed immediately.
+4. **Classify the request and route to a Use Case** (§Use Cases below): changing existing code → "Change this"; building a new feature → "I need to build something"; writing tests for something that already exists → "Write tests for an existing feature"; tests are red → "Fix broken tests".
+5. **Write tests following the Red-Green-Refactor gates** (Iron Law above) — red-team loop after every create/update (`shared.md §3a`), opportunistic accessibility check when already on a page (below).
+6. **Link and verify** — every test run immediately after creation, id linked into `scenario.test_ids`, Feature.status kept current.
+7. **Close out** per `modes/agent.md` Postflight, ending with the "What you can now trust works" summary format (below) — never a bare pass/fail count.
+
+
 ## Orient First (Always)
 
 Before doing anything, check what already exists:
@@ -293,6 +304,8 @@ To re-run several *already-existing* tests in parallel (e.g. a regression pass, 
 **Retry limit:** if `helpmetest test create` returns a validation error, fix the error and retry **once**. If it fails again, use `--file /tmp/<id>.robot` instead of inline `--body`. If a third attempt fails, move to the next scenario — do NOT keep retrying the same test in a loop.
 
 **6. Red-team loop** — see `shared.md §3a`. Run it after every test create/update. Only move to the next test when all four questions come up clean.
+
+**Opportunistic accessibility check** — when a test you just wrote or reproduced interactively already navigates to and interacts with a page (i.e. you're already there, browser open), run the axe-core recipe from `references/rf-recipes.md` as a low-cost side check — this is not a separate audit task, just reading a signal that's nearly free while the page is already loaded. Any `critical`/`serious` violation found this way goes into the owning Feature's `bugs[]` like any other bug. Don't skip writing/running the actual test to go do this; it's a side observation, not the main deliverable.
 
 **7. Link tests back** — after each test passes, add its ID to `scenario.test_ids` in the Feature artifact:
 

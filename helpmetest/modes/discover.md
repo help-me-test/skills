@@ -22,6 +22,14 @@ Maps what exists into Feature artifacts. The source can be a live app, a spec do
 
 Also handles fast triage sweeps ("find bugs", "poke around", "good test around", "quick sanity check") — see **Triage mode** below.
 
+## Workflow
+
+1. **Orient** (below) — `helpmetest status`, `helpmetest artifact list`, check for a spec-driven-dev framework before asking the user for a source.
+2. **Decide Triage vs Full Discovery**: "find what's broken fast" → **Triage Mode** (below); "map the app/spec into Feature artifacts" → **Full Discovery Mode** (`## Announce` → `Step 1` through `Step 5`, further down this file).
+3. **Execute the chosen mode** end to end — Triage produces a findings table; Full Discovery produces Feature artifacts and hands off to `/tdd` (Step 5 is mandatory, not optional).
+4. **Close out** per `modes/agent.md` Postflight.
+
+
 **Reference files — load on demand:**
 - `references/adversarial-patterns.md` — attack patterns for probe checks (forms, modals, keyboard, persistence, copy scan)
 - `references/rf-recipes.md` — deterministic checks: axe-core, console errors, broken images, performance, web vitals, broken links, SSL
