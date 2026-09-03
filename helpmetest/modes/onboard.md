@@ -22,33 +22,103 @@ Silence means the user has no idea what you did or why.
 
 # /onboard — Project Onboarding
 
+> **Account/company creation happens before this skill can even be read.** `helpmetest install skills` (which puts this file on disk) only runs *after* `helpmetest register` — see `helpmetest.com/llms.txt` Step 1–3, which already infers the company name, subdomain, and app URL from the project directory (README → manifest → folder name, in that priority order) and confirms with the user before running `register`. Nothing in this skill can execute before that point, so onboard.md must not re-implement account bootstrap — it starts from an already-registered workspace.
+
 ## Before you start
 
-Check if onboarding has already happened:
+**This workspace is very likely multi-tenant** — one `apiBaseUrl` can host many unrelated projects, each scoped by a `project:<slug>` tag. Never write to a bare, un-suffixed artifact id (`project-overview`, `tasks-onboarding`) — a real run against a shared staging workspace found those exact ids already owned by a different, fully-onboarded project, and following the old literal-id instructions would have silently overwritten it. Every artifact id in this skill is `<slug>` or `<kind>-<slug>`, where `<slug>` is this project's kebab-case name.
 
-```bash
-helpmetest search ProjectOverview
-helpmetest search OnboardingTasks
+**An existing `.helpmetest/config.yaml` proves auth is configured — it proves nothing about *this project* being onboarded.** A real run found `.helpmetest/config.yaml` already present (token pre-provisioned), concluded from that alone "HelpMeTest is already installed for this project", ran `helpmetest artifact list` to "confirm" instead of the scoped check below, and reported an unrelated project's test counts as this project's status. `apiBaseUrl`/`apiToken` are workspace-level credentials, not project-level state — steps 1 and 2 below are mandatory every time, with no shortcut for "config already exists".
+
+1. **Resolve `<slug>` now, before any `helpmetest` command runs** — read the local `README.md` first heading and `package.json`/manifest `name` field yourself (skip generic words like `app`/`web`/`api`), fall back to the working directory folder name, kebab-case it. This must come from files in *this* workspace, not from anything the backend returns.
+2. **Collision check — scoped lookups only, never a browse-then-guess:** `helpmetest artifact get <slug>` and `helpmetest artifact get tasks-onboarding-<slug>`, using exactly the slug just resolved from local files. **Do not run `helpmetest artifact list` (or `helpmetest search`) at this stage** — a real eval run did exactly that, found an unrelated project's leftover artifacts in the same multi-tenant workspace, and adopted that stranger project's name/content into this project's `HELPMETEST.md` because it never derived its own slug from local files first. Multi-tenant workspaces are large; browsing the whole artifact list and pattern-matching on what looks plausible is how a different project's identity leaks into this one.
+   - Not found (both) → fresh project, proceed to Phase 0.
+   - Found and its `name`/content clearly matches this project → onboarding already happened; if HELPMETEST.md also exists, tell the user onboarding is done and ask what they want instead. If HELPMETEST.md is missing, write it from the existing artifacts, don't re-discover.
+   - Found but belongs to a **different** project → hard stop. Tell the user the slug collides with an existing unrelated project and ask for a different name/slug before writing anything.
+
+---
+
+## Phase 0 — Kickoff: document the plan before any exploration
+
+**Fetch the schema before your first upsert attempt, not after a 422** — run `helpmetest artifact schema Tasks` before writing the content below; the shape shown is illustrative only, the live schema is authoritative and this is the artifact this flow creates first, so getting it wrong here means a guaranteed failed first attempt. As soon as onboarding starts (workspace/company exists and `helpmetest status` succeeds — the API is reachable, and the collision check above cleared), create the Tasks artifact **immediately, before interviewing or exploring anything**, using the slug resolved above. This is the single roadmap every later phase updates — it is never recreated. Naming note: the artifact `name` must NOT contain its type (`Tasks`) or the API rejects it with a 400 — use a descriptive name like `"<Project Name> Onboarding Roadmap"`.
+
+```json
+{
+  "id": "tasks-onboarding-<slug>",
+  "type": "Tasks",
+  "name": "<Project Name> Onboarding Roadmap",
+  "content": {
+    "overview": "Project setup and TDD implementation roadmap",
+    "tasks": [
+      { "id": "0.1", "title": "Confirm project identity (reuse registration, or infer + confirm)", "status": "pending", "priority": "critical" },
+      { "id": "0.2", "title": "Run discovery — explore the app/code/PRD", "status": "pending", "priority": "critical" },
+      { "id": "1.0", "title": "Create ProjectOverview, Persona, Feature artifacts", "status": "pending", "priority": "critical" },
+      { "id": "2.0", "title": "Auth setup — create auth state tests", "status": "pending", "priority": "critical", "notes": "Cancel with a reason if discovery finds the app has no login/auth at all — don't leave it pending against a non-existent flow." }
+    ]
+  }
+}
 ```
 
-If a ProjectOverview exists and HELPMETEST.md exists — onboarding is done. Ask the user what they want to do instead.
-
-If artifacts exist but HELPMETEST.md is missing — write HELPMETEST.md from existing artifacts, don't re-discover.
+Every phase below updates its own subtask against this same artifact via a partial update (`tasks.<i>.status`, `tasks.<i>.notes`) — see `modes/agent.md` §Partial updates. Do not create a second Tasks artifact later in this flow; Phase 4's "Onboarding Tasks artifact" step appends to this one.
 
 ---
 
 ## Phase 1 — Interview
 
-In autonomous mode (called from dev mode with no user to answer), infer the answers from context:
+### 1a — Confirm project identity before asking anything
+
+Mark task `0.1` `in_progress`. The slug was already resolved in "Before you start" above, and the company name, subdomain, and app URL were very likely already established at `helpmetest register` time (`helpmetest.com/llms.txt` Step 1 infers them from README/manifest/folder name and confirms with the user before registering). Reuse that, don't re-derive it — this step is about getting the user's explicit confirmation, not re-inferring from scratch:
+
+1. **Check what's already known first** — `.helpmetest/config.yaml` (`apiBaseUrl` subdomain), any existing `HELPMETEST.md` `## Project` block, `helpmetest artifact get <slug>` if it exists. If a name/URL is already recorded, use it — skip straight to confirming it below.
+2. **Only if genuinely absent** (e.g. onboard was invoked standalone, skipping the llms.txt install flow), infer in this order: README first heading or manifest `name` field (skip generic words like `app`/`web`/`api`) → working directory folder name; app URL from `package.json` `homepage`, `.env` (`VITE_APP_URL`/`NEXT_PUBLIC_URL`/`APP_URL`/`BASE_URL`), or a live-looking `https://` link in the README. Leave URL blank rather than inventing one.
+3. **Still nothing** — ask exactly one question: *"What's this project called, and what's the URL to the deployed app or the path to the code?"* Do not ask this before attempting 1–2.
+
+Always present the resolved name/URL back to the user for a one-line confirmation before writing it into any artifact, even when reused from registration: *"Building this out for `<name>` (`<url>`) — confirm, or tell me if that's wrong."* Never silently commit to a guessed name.
+
+Mark `0.1` `done` with the confirmed name/URL/path recorded in `notes` once confirmed.
+
+### 1b — Remaining interview questions
+
+**Default to asking, not inferring, whenever a human is actually present to answer** (standalone `/onboard` invocation, or a chat session with a user turn visible). Silent inference is for autonomous/headless runs only (called from `dev` mode mid-chain, or no user turn to address). Getting this backwards — quietly guessing source-of-truth/stage/goal instead of asking a person who's right there — is exactly the "onboarding never asks anything" gap that gets reported back.
+
+**Autonomous mode** (no user to answer — called from `dev` mode with a task description, or genuinely headless): infer from context —
 - Source of truth: user's task description
-- Stage: greenfield if no HELPMETEST.md and no app code exists
+- Stage: greenfield if no HELPMETEST.md and no existing tests exist yet (app code may already exist and the project is still greenfield for testing purposes)
 - Goal: build
 
-If a human is present and answers are unclear, ask all three together in one message and wait. Otherwise proceed immediately with inferred answers.
+**Human present** (the common case): ask all three together in one message, plainly, and wait for a real answer:
+
+> *"Three quick questions before I start:*
+> *1. What should I use as the source of truth — a PRD/spec doc, tickets, an OpenAPI spec, the existing codebase, or should we just talk through it?*
+> *2. Is this greenfield (no tests yet) or are you adding to something that already has coverage?*
+> *3. What's the goal right now — build something new, add test coverage to what exists, fix something broken, or an audit/health check?"*
+
+If the user answers loosely ("just look at the code" / "it's new" / "add tests"), map that to the closest option and confirm the mapping in one line rather than re-asking. Only fall back to inferring without asking if the user explicitly says "you decide" or equivalent.
+
+### 1c — Orient: what HelpMeTest actually does (the part onboarding kept skipping)
+
+Before touching anything else, give the user a real, short orientation — this is the tutorial/education step, not a formality to skip past. State it plainly:
+
+> *"Quick orientation before I start building this out. HelpMeTest works like this: nothing gets built without a failing test first — the test is the spec, not a check I run afterward. Once this project is onboarded, here's what's available on demand:*
+> *- `/helpmetest tdd` — write or fix tests for a specific feature*
+> *- `/helpmetest discover` — map an existing app/PRD/tickets into Feature artifacts (what I'm about to do for this project)*
+> *- `/helpmetest interactive` — drive a real browser step by step to explore or debug something*
+> *- `/helpmetest fix` — diagnose why a specific test is red*
+> *- `/helpmetest coverage` / `validate` / `improve` — find untested scenarios, grade existing tests, or rewrite weak ones*
+> *- `/helpmetest report` — a read-only health check any time you want a status snapshot*
+> *- `/helpmetest ci` — wire this into GitHub Actions/GitLab/CircleCI once tests exist*
+> *- `/helpmetest pre-push` / `pr-review` — gate a push or review a branch diff against test coverage*
+> *You don't need to remember these — `/helpmetest <describe what you want>` routes to the right one, or just say `/helpmetest` with nothing else and I'll read the current state and recommend a next step.*
+> *Right now I'm going to run discovery on `<name>` (`<url>`), then create the Feature/Persona artifacts, then start writing the first tests RED. Want me to walk you through each step, or move fast and just show you results as they land?"*
+
+Wait for the answer — it decides how much you narrate for the rest of this session (step-by-step confirmation vs. narrate-and-proceed). Record the choice in the Tasks artifact `0.1` `notes` alongside the confirmed identity, so a resumed session doesn't ask again.
+
 
 ---
 
 ## Phase 2 — Explore
+
+Mark task `0.2` `in_progress` in `tasks-onboarding-<slug>` before starting (`helpmetest artifact upsert --id tasks-onboarding-<slug> --content '{"tasks.1.status": "in_progress"}'`).
 
 Based on the source of truth answer:
 
@@ -92,8 +162,8 @@ Write HELPMETEST.md to the project root now, with what you know from exploration
 <2-3 sentences from your exploration>
 
 ## Artifacts
-- ProjectOverview: project-overview
-- OnboardingTasks: tasks-onboarding
+- ProjectOverview: <slug>
+- OnboardingTasks: tasks-onboarding-<slug>
 - Personas: (will be listed after artifact creation)
 - Features: (will be listed after artifact creation)
 
@@ -112,7 +182,7 @@ When asked to build anything:
 1. Read this file ✓
 2. `helpmetest status` — what tests exist and their state
 3. `helpmetest artifact list` — orient on existing work
-4. `helpmetest artifact get tasks-onboarding` — what's next
+4. `helpmetest artifact get tasks-onboarding-<slug>` — what's next
 5. Present to user: current state + recommended next action
 ```
 
@@ -124,17 +194,18 @@ When asked to build anything:
 1. `ProjectOverview` — what this project is
 2. `Persona` — who uses it (at least one)
 3. `Feature` — what it does (at least one per major capability)
-4. `Tasks` (id: `tasks-onboarding`) — the TDD roadmap
+4. `Tasks` (id: `tasks-onboarding-<slug>`) — the TDD roadmap
 
 Create in this order. Do not skip any. Each one is a prerequisite for the next.
 
-Use this exact command — do not call `helpmetest artifact schema` first, the required fields are: `name`, `description`, `url`, `summary`:
+**Always fetch the schema first, for every artifact type below** (`helpmetest artifact schema ProjectOverview`, then again `helpmetest artifact schema Persona`, `helpmetest artifact schema Feature` when you reach each — a schema fetched for one type does not cover another) — per `modes/shared.md` §9, required fields and shapes change, don't memorize them. This is a first-attempt requirement, not a fallback after a 422 — a real run fetched the schema reactively (only after each type's first attempt failed) and hit three separate 422s in the same session, one per type, because it treated this note as applying only to ProjectOverview instead of to every type it was about to create. The `features` field in particular is `ProjectFeatureRef` objects (`{feature_id, name, status, priority, reason}`), not plain id strings — a real run that used the plain-string shape shown below got a 422; the shape below is illustrative only, the schema is authoritative. The artifact `id` must equal the `<slug>` from Phase 0/1a, and must carry `--tags "project:<slug>"` — the API derives project scoping from this tag and rejects other artifacts tagged `project:<slug>` until this one exists with a matching id:
 
 ```bash
 helpmetest artifact upsert \
-  --id "project-overview" \
+  --id "<slug>" \
   --type "ProjectOverview" \
   --name "<project name>" \
+  --tags "project:<slug>" \
   --content '{
     "name": "<project name>",
     "description": "<one-line summary of artifact purpose>",
@@ -148,13 +219,14 @@ helpmetest artifact upsert \
 
 ### 3b. Persona artifacts
 
-For each distinct user type found (admin, registered user, guest, etc.), use this exact command — required fields are: `name`, `description`, `persona_type`:
+For each distinct user type found (admin, registered user, guest, etc.), use this exact command — required fields are: `name`, `description`, `persona_type`. Suffix the id with `<slug>` and tag it, same as the ProjectOverview:
 
 ```bash
 helpmetest artifact upsert \
-  --id "persona-<name>" \
+  --id "persona-<name>-<slug>" \
   --type "Persona" \
   --name "<role name>" \
+  --tags "project:<slug>" \
   --content '{
     "name": "<role name>",
     "description": "<who they are and what they do>",
@@ -172,10 +244,13 @@ For each feature discovered, create one artifact:
 
 ```json
 {
-  "id": "feature-<kebab-name>",
+  "id": "feature-<kebab-name>-<slug>",
   "type": "Feature",
   "name": "<Feature Name>",
+  "tags": ["project:<slug>"],
   "content": {
+    "name": "<Feature Name — same as the artifact name above>",
+    "description": "<one-line summary of what this feature covers>",
     "goal": "<what business outcome this feature serves>",
     "functional": [
       {
@@ -206,36 +281,37 @@ For each feature discovered, create one artifact:
 - Empty state (if applicable)
 - Persistence check (if applicable — data survives reload)
 
-### 3d. Onboarding Tasks artifact — REQUIRED, do not skip
+### 3d. Link the Persona/Feature refs back into ProjectOverview — mandatory, do not skip
+
+3a created `ProjectOverview` first (deliberately — its `project:<slug>` tag is the gate the API checks before accepting any other artifact tagged the same way) with `features: []` and `persona_ids: []` left empty, because the Persona/Feature ids didn't exist yet. **Those two fields are still mandatory content, not optional** — a ProjectOverview left with empty `features`/`persona_ids` after Persona/Feature artifacts exist is incomplete. Once 3b/3c are done, go back and fill them in.
+
+**`ProjectOverview` does not support the dot-notation partial updates `modes/agent.md` §Partial updates documents — that pattern is scoped to the `Tasks` artifact only.** A real run assumed it generalized, sent `--content '{"features": [...], "persona_ids": [...]}'` as a partial merge, and got a 422 demanding `name`/`description`/`url` (fields it didn't include because it expected them to be preserved). The correct sequence is: fetch the current content, merge in the new refs yourself, then upsert the **full** object back:
+
+```bash
+helpmetest artifact get <slug>   # read current content, note the existing name/description/url/summary/tech_stack
+helpmetest artifact upsert \
+  --id "<slug>" \
+  --type "ProjectOverview" \
+  --name "<project name>" \
+  --tags "project:<slug>" \
+  --content '{
+    "name": "<project name>",
+    "description": "<same as before>",
+    "url": "<same as before>",
+    "summary": "<same as before>",
+    "tech_stack": ["<same as before>"],
+    "features": [{"feature_id": "feature-<kebab-name>-<slug>", "name": "<Feature Name>", "status": "untested", "priority": "critical", "reason": "<why it matters>"}],
+    "persona_ids": ["persona-<name>-<slug>"]
+  }'
+```
+
+### 3e. Onboarding Tasks artifact — update the one created in Phase 0, do not skip
 
 **This is mandatory.** Without it the agent has no roadmap for future sessions.
-Create it immediately after feature artifacts.
+The artifact already exists (`tasks-onboarding-<slug>`, created in Phase 0). Update it now — mark task `1.0` `done` and append one feature task per feature below. Do not recreate the artifact from scratch; that would clobber the `0.1`/`0.2` history.
 
-The id must be exactly `tasks-onboarding`. Type must be `Tasks`.
-
-```json
-{
-  "id": "tasks-onboarding",
-  "type": "Tasks",
-  "name": "Onboarding Tasks",
-  "content": {
-    "overview": "Project setup and TDD implementation roadmap",
-    "tasks": [
-      {
-        "id": "1.0",
-        "title": "Onboarding interview and artifact creation",
-        "status": "done"
-      },
-      {
-        "id": "2.0",
-        "title": "Auth setup — create auth state tests",
-        "description": "For each persona, create a test with Save As <auth_state_name>. Run it. Verify it passes before writing any other tests.",
-        "status": "pending",
-        "priority": "critical"
-      }
-    ]
-  }
-}
+```bash
+helpmetest artifact upsert --id tasks-onboarding-<slug> --content '{"tasks.2.status": "done", "tasks.2.notes": "Created ProjectOverview, N Personas, M Features."}'
 ```
 
 Then add one task per feature, in priority order:
@@ -258,8 +334,8 @@ Now that all artifacts exist, update the Artifacts and Personas sections in HELP
 
 ```markdown
 ## Artifacts
-- ProjectOverview: project-overview
-- OnboardingTasks: tasks-onboarding
+- ProjectOverview: <slug>
+- OnboardingTasks: tasks-onboarding-<slug>
 - Personas: persona-<name1>, persona-<name2>
 - Features: feature-<name1>, feature-<name2>
 
@@ -311,7 +387,7 @@ Allowed in this phase:
 - Any component, hook, store, or utility file
 - `public/index.html` — app entry point
 
-If this is a greenfield project (no existing tests), set up the test framework only:
+If no local unit-test runner already exists (regardless of whether app source code exists), set up the test framework only. This phase is about local unit-test tooling, not HelpMeTest's own cloud test suite — `helpmetest test create` (Robot Framework, cloud browser) is always available regardless of local stack and doesn't need this phase.
 
 **TypeScript / React** (check for `package.json`, `tsconfig.json`, `src/`):
 ```bash
@@ -332,6 +408,9 @@ Create `src/test/setup.ts`:
 import '@testing-library/jest-dom'
 ```
 
+**No recognized local framework** (plain HTML/JS, or any stack without an existing local unit-test setup — don't guess a stack that wasn't asked for):
+Skip local runner setup — mark this task `done` with a note that the project has no local unit-test tooling and relies on `helpmetest test create` (cloud Robot Framework) as its test surface. Do not install a framework (React Testing Library, Jest, etc.) the project doesn't already use; that's inventing scope.
+
 **Verification:** `npm test -- --run` should exit with "No test files found" — that is correct and expected. The runner works; tests come next in tdd mode.
 
 ---
@@ -347,14 +426,22 @@ Present what was created:
 - ProjectOverview: <id>
 - Personas: <list>
 - Features (<N> features, <M> total scenarios)
-- OnboardingTasks: tasks-onboarding
+- OnboardingTasks: tasks-onboarding-<slug>
 - HELPMETEST.md written
-
-**Next:** writing all tests RED for <first feature> — starting now.
 ```
 
-**If called from dev mode: do not yield. Immediately load `modes/tdd.md` and proceed to write tests.**
-**If called standalone with a human present: present the above and ask "Does this look right? Say 'continue' to start TDD."**
+**If called from dev mode: do not yield. Immediately load `modes/tdd.md` and proceed to write tests** — no menu, no wait; dev mode already decided the sequence.
+
+**If called standalone with a human present: this is the second half of the 1c orientation, not a rubber-stamp "say continue".** Present the created-artifacts block above, then a real menu of what happens next — don't default to silently starting TDD:
+
+> *"Onboarding's done. Everything above is now live in HelpMeTest. A few ways to go from here:*
+> *1. **Start TDD now** — I write every test for `<first feature>` RED, show you the list, then implement until green (the default path).*
+> *2. **Explore first** — I drive the real app with `/helpmetest interactive` so you can see what discovery found before locking in tests.*
+> *3. **Pick a different feature** — start with `<other feature>` instead of `<first feature>`.*
+> *4. **Just health-check for now** — run `/helpmetest report` and stop here; no tests written yet.*
+> *What do you want?"*
+
+Default to option 1 only if the user's 1c answer was "move fast" — otherwise wait for an explicit pick. Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the per-feature TDD tasks (`3.N`) are intentionally left `pending` at this handoff — they're picked up by `/tdd` next, not abandoned. Every other task (`0.1`, `0.2`, `1.0`, `2.0`) must still be terminal (done/cancelled) before this phase ends.
 
 ---
 
@@ -365,3 +452,19 @@ Present what was created:
 - Never create a Feature artifact without at least one happy path and one error scenario.
 - If the user can't answer the source-of-truth question, read the codebase and infer — then confirm.
 - If this is a greenfield project with no code and no PRD: ask the user to describe the first feature. Create one Feature artifact. Stop. Tell them to run `/tdd` with that feature.
+
+---
+
+**Version:** 0.8 — direct user complaint: onboarding wasn't asking questions or presenting the available workflows/modes, running silently on inference and autopiloting straight into TDD. Phase 1b now defaults to actually asking the source/stage/goal questions whenever a human is present (was: infer first, only ask "if unclear") — inference stays reserved for genuinely autonomous/headless runs. Added new Phase 1c: a real orientation step before any work starts, presenting the mode menu (tdd/discover/interactive/fix/coverage/validate/improve/report/ci/pre-push/pr-review) pulled from `SKILL.md`'s own mode reference, explaining the TDD contract in plain terms, and asking whether the user wants step-by-step narration or fast/results-only — recorded in Tasks `0.1.notes` so a resumed session doesn't re-ask. Phase 8's handoff no longer autopilots into "say continue to start TDD" — it now presents a real 4-option menu (start TDD / explore first / different feature / health-check only) and waits for a pick, defaulting to TDD only if the user explicitly asked to move fast in 1c.
+
+**Version 0.7** — fixed a real 422 found in the eval run that verified v0.6: the agent fetched `helpmetest artifact schema Feature` correctly (the schema-first rule worked) but still hit a 422 for missing `name`/`description`, because it copied this skill's own inline Feature JSON template instead of the schema it had just fetched — and that template's `content` block never had `name`/`description` fields, only `goal`/`functional`/`edge_cases`/`bugs`. Added the two missing fields to the template so it matches the real schema.
+
+**Version 0.6** — fixed a real bug found in the eval run that verified v0.5: the agent saw `.helpmetest/config.yaml` already present (workspace auth pre-provisioned for the eval), concluded from that alone that *this project* was already onboarded, skipped slug resolution and the scoped collision check, and ran the forbidden `helpmetest artifact list` — surfacing an unrelated project's data as this project's status. "Before you start" now states explicitly: an existing config file proves auth only, never onboarding state; steps 1–2 are mandatory regardless of what's already configured.
+
+**Version 0.5** — fixed a real 422 found in the eval run that verified v0.4: Phase 4 creates `ProjectOverview` first with empty `features`/`persona_ids` (required, so `project:<slug>`-tagged artifacts can be accepted), then creates Persona/Feature after — but nothing ever told the agent to circle back and link those ids into ProjectOverview, so it invented the step and guessed `Tasks`-style dot-notation partial update would work on ProjectOverview too. It doesn't — `agent.md`'s partial-update pattern is Tasks-only. Added an explicit "3d. Link the Persona/Feature refs back into ProjectOverview" step: mandatory, full-content-only, with the exact get-then-full-upsert sequence spelled out.
+
+**Version 0.4** — fixed a real schema-first gap found in the same eval run that verified v0.3: the agent fetched a schema reactively (only after a 422) for each of Tasks/ProjectOverview/Feature, one failure per type, because "always fetch schema first" was written once and read as applying only to ProjectOverview. Now stated per-type: once in Phase 0 for Tasks, and explicitly enumerated (ProjectOverview, Persona, Feature) in Phase 4 — a schema fetched for one type never covers another.
+
+**Version 0.3** — fixed a real cross-project identity-leak bug found in a live eval run: the agent skipped local slug resolution, ran an unscoped `helpmetest artifact list`, and adopted an unrelated project's leftover artifacts as this project's own identity, writing the wrong `HELPMETEST.md`. "Before you start" now requires deriving `<slug>` from local README/manifest files first and forbids `artifact list`/`search` as a discovery step — only scoped `artifact get <slug>` lookups are allowed for the collision check.
+
+**Version 0.2** — fixed a real destructive-collision bug found in a live eval run (bare `project-overview`/`tasks-onboarding` ids clobbering a different project in a shared workspace): every artifact id is now `<slug>`-suffixed with a `project:<slug>` tag and a collision check runs before any write. Also fixed: Tasks artifact name rejected by the API for containing its type; resolved the onboard.md-vs-shared.md schema-check contradiction (schema always wins); fixed `ProjectOverview.features` shape; made the seeded auth-setup task cancellable when the app has no auth; aligned the two conflicting "greenfield" definitions; added a no-local-framework fallback to Phase 7; reconciled Phase 8's intentionally-pending TDD tasks with `agent.md`'s postflight rule.
