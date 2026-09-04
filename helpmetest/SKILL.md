@@ -168,6 +168,7 @@ Some tasks naturally span more than one mode. When you detect this, **chain the 
 | "test the login email flow" | `auth` → `fakemail` → `tdd` |
 | "test my local iOS app" | `proxy` → `mobile` |
 | "add helpmetest to CI for my API" | `api` → `ci` |
+| "write a test that runs our Jest/pytest/unit tests in CI" | `terminal` → `ci` (write the `Bash`-keyword test first; only then wire it into the pipeline — don't skip straight to `ci` and stall asking which of the two the user meant) |
 | "check SSL and API health" | `ssl` → `api` |
 | "explore then write tests for checkout" | `interactive` → `tdd` |
 | "test the PDF export email" | `doc2html` → `fakemail` |
