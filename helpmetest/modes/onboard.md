@@ -487,7 +487,13 @@ Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the pe
 - Never create a Feature artifact without at least one happy path and one error scenario.
 - If the user can't answer the source-of-truth question, read the codebase and infer — then confirm.
 - If this is a greenfield project with no code and no PRD: ask the user to describe the first feature. Create one Feature artifact. Stop. Tell them to run `/tdd` with that feature.
-- **Read the whole schema, including `$defs`.** Grepping only the top-level
+- **Read the whole schema — field *types*, not just which fields are required —
+  including `$defs`.** Knowing a field is required tells you nothing about its
+  shape. `notes` being a list, not a string, is the difference between a saved
+  artifact and a 422. If you dump the schema through a script, print each
+  field's type alongside its name; a dump that lists only `required` names will
+  pass the "I fetched the schema" check and still get the write rejected.
+  Grepping only the top-level
   `required` list misses nested object requirements and produces a rejected
   upsert. Concretely: a Feature's `bugs[]` entries are `Bug` objects that require
   `actual` and `severity` beyond the Scenario shape, and `TasksContent` takes
@@ -499,6 +505,11 @@ Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the pe
   already exists; an out-of-range index is rejected with the correct syntax in
   the message. Dot-notation on an existing index (`tasks.1.status`,
   `tasks.1.notes`) is for updating fields in place.
+- **A partial update is `--id` + `--content` with no `--name`/`--type`.** Keys
+  may be plain top-level fields (`'{"description": "..."}'`) or dot-notation
+  paths — both patch in place. Adding `--name`/`--type` switches to a full
+  replace, so passing them "just in case" on a partial update silently
+  overwrites everything you didn't send.
 - **A rejected write is a 4xx with a reason — read it, don't re-roll the payload.**
   If two attempts fail with the *same* error, stop permuting the payload: the
   reason is in the response. If the status is 5xx or the message mentions a
@@ -508,7 +519,9 @@ Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the pe
 
 ---
 
-**Version:** 0.9 — fixed the three failures found by the isolated onboarding eval that scored v0.8 at 17/20. (1) Phases 1c and 8 both said "present the menu **and wait**", and Phase 8 was additionally gated on "if called standalone with a human present" — so an autonomous run with "don't block" read that as licence to skip the orientation and the handoff menu entirely, dropping both. Printing and waiting are now stated as two separate actions: the menus are unconditional *output*, and only the blocking wait is gated on a human being present. This was the single root cause of two of the three failures. (2) The schema-first rule now says to read nested `$defs`, not just the top-level `required` list — grepping only the top level is what let a Feature upsert be rejected for a `Bug` missing `actual`/`severity`, and it now also warns that `TasksContent` takes `name`/`description` while each `tasks[]` entry takes `title`. (3) Added the canonical append syntax (`tasks.-1`) with an explicit example, since guessing the next numeric index does not append; plus a rule to stop permuting a payload after two identical errors and to treat a 5xx/connection message as a service fault rather than a data problem, and never to mark a task `done` for a write that didn't succeed.
+**Version:** 1.0 — closes the last failure from the v0.9 eval (19/20), item 19. Two causes, one in the skill and one in the CLI. Skill side: "read the whole schema" was satisfiable by dumping only *which* fields are required, so the agent sent `notes` as a string where the schema wanted a list and took a 422 — the rule now demands field *types* alongside names, and warns that a required-names-only dump passes the "I fetched the schema" check while still getting the write rejected. CLI side: the two identical `Missing required fields: id, name, type, content` errors were not a payload problem at all — `upsertArtifactData` only selected partial mode when a content key contained `.` or `-1`, so a plain top-level key fell through to a full upsert that cannot succeed without `--name`/`--type`. Fixed in the CLI (partial is now `--id` + `--content` with no `--name`/`--type`) and documented here, including the warning that passing `--name`/`--type` "just in case" turns a patch into a full replace.
+
+**Version 0.9** — fixed the three failures found by the isolated onboarding eval that scored v0.8 at 17/20. (1) Phases 1c and 8 both said "present the menu **and wait**", and Phase 8 was additionally gated on "if called standalone with a human present" — so an autonomous run with "don't block" read that as licence to skip the orientation and the handoff menu entirely, dropping both. Printing and waiting are now stated as two separate actions: the menus are unconditional *output*, and only the blocking wait is gated on a human being present. This was the single root cause of two of the three failures. (2) The schema-first rule now says to read nested `$defs`, not just the top-level `required` list — grepping only the top level is what let a Feature upsert be rejected for a `Bug` missing `actual`/`severity`, and it now also warns that `TasksContent` takes `name`/`description` while each `tasks[]` entry takes `title`. (3) Added the canonical append syntax (`tasks.-1`) with an explicit example, since guessing the next numeric index does not append; plus a rule to stop permuting a payload after two identical errors and to treat a 5xx/connection message as a service fault rather than a data problem, and never to mark a task `done` for a write that didn't succeed.
 
 **Version 0.8** — direct user complaint: onboarding wasn't asking questions or presenting the available workflows/modes, running silently on inference and autopiloting straight into TDD. Phase 1b now defaults to actually asking the source/stage/goal questions whenever a human is present (was: infer first, only ask "if unclear") — inference stays reserved for genuinely autonomous/headless runs. Added new Phase 1c: a real orientation step before any work starts, presenting the mode menu (tdd/discover/interactive/fix/coverage/validate/improve/report/ci/pre-push/pr-review) pulled from `SKILL.md`'s own mode reference, explaining the TDD contract in plain terms, and asking whether the user wants step-by-step narration or fast/results-only — recorded in Tasks `0.1.notes` so a resumed session doesn't re-ask. Phase 8's handoff no longer autopilots into "say continue to start TDD" — it now presents a real 4-option menu (start TDD / explore first / different feature / health-check only) and waits for a pick, defaulting to TDD only if the user explicitly asked to move fast in 1c.
 
