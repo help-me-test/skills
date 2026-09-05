@@ -154,6 +154,59 @@ Ask: "Walk me through the main thing this app does. What does a user come here t
 **source = mix**
 Combine the above. Code fills gaps that specs leave vague. Specs correct assumptions from code.
 
+**Then verify against the running app, not just the source.** Reading code tells
+you what should happen; only the live site tells you what does. Every
+high-scoring onboarding run reproduced a real bug this way instead of reporting
+a code reading as fact. If the project has a URL, batch one exploration into a
+single call:
+
+```bash
+helpmetest interactive \
+  "Go To  <app-url>" \
+  "Fill Text  input.new-todo  buy milk" \
+  "Press Keys  input.new-todo  Enter" \
+  "Get Element Count  ul.todo-list li  ==  1"
+```
+
+Web keywords are the Browser-library names: `Go To`, `Fill Text`, `Click`,
+`Press Keys`, `Get Attribute`, `Get Element Count`, `Wait For Elements State`.
+Two collisions with the mobile library are worth knowing before your first
+batch, because both cost a round-trip:
+
+- **`Input Text` is Appium-only.** In a web session it fails with the
+  thoroughly misleading `No application is open` even though the page is loaded
+  and rendered. Use `Fill Text`.
+- **`Get Text` exists in both libraries**, so a bare `Get Text` is rejected with
+  `Multiple keywords with name 'Get Text' found`. Qualify it:
+  `Browser.Get Text  h1`. The same applies to any other name both libraries
+  define — when the error says "give the full name", prefix `Browser.`.
+- **An element that resolves but never becomes clickable is usually hover-gated
+  CSS**, not a bad selector. Delete/edit controls in list rows are commonly
+  `display:none` until the row is hovered, so `Click` waits and times out.
+  `Hover` the ancestor row first, then click:
+  `"Hover  ul.todo-list li"` then `"Click  ul.todo-list li button.destroy"`.
+  Do not go hunting for a different selector — the one you have is right.
+- **There is no `Double Click`, and `Click` takes no click-count argument.**
+  A run burned three attempts on `Double Click`, then `Click … clickCount=2`,
+  then `Click … left 2`. The keyword is `Click With Options`:
+  `"Click With Options  ul.todo-list li:first-child label  clickCount=2"`
+  (verified — it puts the row into edit mode, `li.editing` count becomes 1).
+- **Selectors are strict: matching more than one element is an error**, not a
+  "use the first" convenience. `ul.todo-list li label` fails with
+  `strict mode violation: … resolved to 2 elements` as soon as a second todo
+  exists. Scope it (`li:first-child label`, `>> nth=0`).
+- **State persists between `interactive` batches.** A todo added in one call is
+  still there in the next, so element counts drift and a selector that was
+  unique stops being unique. Assert counts relative to what you just observed,
+  or clear the app's storage key first.
+
+When a keyword or selector is wrong, the CLI's `Interactive` section lists the
+elements it can actually see with the right keyword beside them — read that
+instead of guessing a second time.
+
+A bug you reproduce here goes in the Feature artifact's `bugs[]` with what you
+observed in `actual`; a bug you only inferred from source does not.
+
 ---
 
 ## Phase 3 — Write HELPMETEST.md (do this before asking any questions)
@@ -195,7 +248,9 @@ When asked to build anything:
 ## Session Start Checklist
 1. Read this file ✓
 2. `helpmetest status` — what tests exist and their state
-3. `helpmetest artifact list` — orient on existing work
+3. `helpmetest artifact list --tags "project:<slug>"` — orient on this project's work
+   (bare `artifact list` spans the whole multi-tenant workspace and returns other
+   projects' artifacts)
 4. `helpmetest artifact get tasks-onboarding-<slug>` — what's next
 5. Present to user: current state + recommended next action
 ```
@@ -295,29 +350,88 @@ For each feature discovered, create one artifact:
 - Empty state (if applicable)
 - Persistence check (if applicable — data survives reload)
 
+**"This feature has no error case" is not an out.** A real 20/20-adjacent run
+shipped `Complete Todo` and `Delete Todo` with nothing but happy variants
+(toggle one / toggle all / delete one / delete completed), because destructive
+and state-toggle features have no obvious *invalid input*. Every feature has a
+failure mode; work down this ladder until one fits and put it in `edge_cases`:
+
+1. **Invalid or empty input** — blank, whitespace-only, too long, wrong type.
+2. **Empty collection** — the action attempted with zero items present.
+3. **Boundary** — the last item, the only item, the first item.
+4. **Stale or conflicting state** — acting on an item already deleted,
+   already completed, or changed in another tab.
+5. **Interaction with an active filter or view** — the action while a filter
+   hides the target, which is where "it vanished" bugs live.
+6. **Survives reload** — the result is still correct after a refresh; a
+   feature that only passes in-memory is a feature with a persistence bug.
+
+For a toggle feature that is 3+4 ("toggle the only item, then toggle it back").
+For a delete feature that is 2+5 ("delete the last visible item while a filter
+is active"). Neither is a happy path, and both catch real bugs.
+
+**Then verify every one by re-fetching, before moving to 3d.** A `saved` line is
+not evidence: a batch written from shell heredocs came back `saved` with its
+selectors silently stripped, and a batch run from the wrong directory returned a
+login prompt while reporting nothing wrong. Re-fetch and check the counts:
+
+```bash
+for id in feature-add-todo-<slug> feature-complete-todo-<slug>; do
+  helpmetest artifact get "$id" --json \
+    | jq -r '"\(.artifact.id): \(.artifact.content.functional | length) functional, \(.artifact.content.edge_cases | length) edge"'
+done
+```
+
+Note the `.artifact` envelope — `--json` wraps the result, so it is
+`.artifact.content`, never `.content`. A count of `0` where you sent scenarios
+means the payload was mangled in the shell; fix and re-upsert before continuing.
+
 ### 3d. Link the Persona/Feature refs back into ProjectOverview — mandatory, do not skip
 
-3a created `ProjectOverview` first (deliberately — its `project:<slug>` tag is the gate the API checks before accepting any other artifact tagged the same way) with `features: []` and `persona_ids: []` left empty, because the Persona/Feature ids didn't exist yet. **Those two fields are still mandatory content, not optional** — a ProjectOverview left with empty `features`/`persona_ids` after Persona/Feature artifacts exist is incomplete. Once 3b/3c are done, go back and fill them in.
+3a created `ProjectOverview` first, with `features: []` and `persona_ids: []` left empty because the Persona/Feature ids didn't exist yet. (The API requires every artifact to carry *a* `project:` tag, but it does **not** verify that the named ProjectOverview exists — a Feature tagged `project:ghost` is accepted with no `ghost` artifact anywhere. So create it first because you need somewhere to link the refs back to, not because the API will stop you.) **Those two fields are still mandatory content, not optional** — a ProjectOverview left with empty `features`/`persona_ids` after Persona/Feature artifacts exist is incomplete. Once 3b/3c are done, go back and fill them in.
 
 **`ProjectOverview` does not support the dot-notation partial updates `modes/agent.md` §Partial updates documents — that pattern is scoped to the `Tasks` artifact only.** A real run assumed it generalized, sent `--content '{"features": [...], "persona_ids": [...]}'` as a partial merge, and got a 422 demanding `name`/`description`/`url` (fields it didn't include because it expected them to be preserved). The correct sequence is: fetch the current content, merge in the new refs yourself, then upsert the **full** object back:
 
+**Merge the fetched copy mechanically — never retype it.** Rebuilding the
+content by hand is how required fields get dropped: a real run did exactly that
+and took `2 validation errors for ProjectOverviewContent`. Fetch, merge with
+`jq`, upsert the merged file:
+
 ```bash
-helpmetest artifact get <slug>   # read current content, note the existing name/description/url/summary/tech_stack
-helpmetest artifact upsert \
-  --id "<slug>" \
-  --type "ProjectOverview" \
-  --name "<project name>" \
-  --tags "project:<slug>" \
-  --content '{
-    "name": "<project name>",
-    "description": "<same as before>",
-    "url": "<same as before>",
-    "summary": "<same as before>",
-    "tech_stack": ["<same as before>"],
-    "features": [{"feature_id": "feature-<kebab-name>-<slug>", "name": "<Feature Name>", "status": "untested", "priority": "critical", "reason": "<why it matters>"}],
-    "persona_ids": ["persona-<name>-<slug>"]
-  }'
+# 1. Fetch current content (note the .artifact envelope).
+helpmetest artifact get <slug> --json | jq '.artifact.content' > /tmp/po-current.json
+
+# 2. Write ONLY the two fields you are adding.
+cat > /tmp/refs.json <<'JSON'
+{
+  "features": [{"feature_id": "feature-<kebab-name>-<slug>", "name": "<Feature Name>", "status": "untested", "priority": "critical", "reason": "<why it matters>"}],
+  "persona_ids": ["persona-<name>-<slug>"]
+}
+JSON
+
+# 3. Merge. Use --slurpfile: `jq -s` reads each file separately here, so
+#    `.[0] * .[1]` fails with `cannot calculate ... * null`.
+jq --slurpfile refs /tmp/refs.json '. * $refs[0]' /tmp/po-current.json > /tmp/po-new.json
+
+# 4. Upsert the merged object — every original field survives untouched.
+helpmetest artifact upsert --id "<slug>" --type ProjectOverview \
+  --name "<project name>" --tags "project:<slug>" --file /tmp/po-new.json
 ```
+
+**Then confirm the refs actually landed — this is a required step, not diligence.**
+A full re-upsert silently drops the refs if you rebuilt the content from memory
+and missed a required field, and the write still reports success:
+
+```bash
+cat > /tmp/po.jq <<'JQ'
+.artifact.content | { features: (.features | length), personas: .persona_ids }
+JQ
+helpmetest artifact get <slug> --json | jq -f /tmp/po.jq
+```
+
+`features: 0` after creating Features means 3d did not take. Fix it before
+Phase 4. (Use a `.jq` file, not an inline single-quoted program — a
+`description` containing an apostrophe breaks the latter.)
 
 ### 3e. Onboarding Tasks artifact — update the one created in Phase 0, do not skip
 
@@ -354,7 +468,13 @@ index is the mistake to avoid.
 
 ## Phase 5 — Update HELPMETEST.md with final artifact IDs
 
-Now that all artifacts exist, update the Artifacts and Personas sections in HELPMETEST.md:
+**Reconcile, don't rewrite.** Phase 3 wrote HELPMETEST.md early, with predicted
+ids. If those predictions were right, editing nothing satisfies the letter of
+this phase while verifying nothing — and the first time an upsert fails, the
+file confidently lists an artifact that does not exist. So: re-fetch every id
+you intend to list (`helpmetest artifact get <id>`), and write only ids that
+came back. If a fetch 404s, the artifact was never created — go fix that before
+touching this file. Then update the Artifacts and Personas sections:
 
 ```markdown
 ## Artifacts
@@ -413,7 +533,14 @@ Allowed in this phase:
 
 If no local unit-test runner already exists (regardless of whether app source code exists), set up the test framework only. This phase is about local unit-test tooling, not HelpMeTest's own cloud test suite — `helpmetest test create` (Robot Framework, cloud browser) is always available regardless of local stack and doesn't need this phase.
 
-**TypeScript / React** (check for `package.json`, `tsconfig.json`, `src/`):
+**Decide the branch before reading either one.** Check for `package.json` /
+`tsconfig.json` / `src/` *first*. If they are absent — a plain HTML/JS project,
+which is the common case for the projects this mode onboards — the answer is the
+**No recognized local framework** branch below, and the TypeScript/React block
+does not apply. Reading the npm block first has led agents to install a stack
+the project never used; the install list is not a default.
+
+**TypeScript / React** (only when `package.json`, `tsconfig.json`, or `src/` exist):
 ```bash
 npm install --save-dev vitest @vitest/coverage-v8 @testing-library/react @testing-library/user-event jsdom
 ```
@@ -435,7 +562,13 @@ import '@testing-library/jest-dom'
 **No recognized local framework** (plain HTML/JS, or any stack without an existing local unit-test setup — don't guess a stack that wasn't asked for):
 Skip local runner setup — mark this task `done` with a note that the project has no local unit-test tooling and relies on `helpmetest test create` (cloud Robot Framework) as its test surface. Do not install a framework (React Testing Library, Jest, etc.) the project doesn't already use; that's inventing scope.
 
-**Verification:** `npm test -- --run` should exit with "No test files found" — that is correct and expected. The runner works; tests come next in tdd mode.
+**Verification depends on which branch you took.** If you installed a runner:
+`npm test -- --run` should exit with "No test files found" — that is correct and
+expected. The runner works; tests come next in tdd mode. If you took the **no
+recognized local framework** branch, there is nothing to verify and no `npm test`
+to run — record the decision and the reason in the task note and move on. Do not
+run `npm test` to "check": in a project with no `package.json` it fails, and a
+failure there means nothing.
 
 ---
 
@@ -483,8 +616,13 @@ Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the pe
 ## Rules
 
 - Never create test code during onboarding. Onboarding ends at Phase 7.
+  **This holds even when the invocation goal says "build", "set up for TDD", or
+  "write tests".** Do not write them; finish onboarding, seed one `3.N` task per
+  feature, and say in one line that tests are the next mode (`/helpmetest tdd`),
+  not this one. Several runs reached that conclusion by their own reasoning —
+  which means a less careful one will reach the opposite.
 - Approval happens AFTER artifact creation (not before) — create first, confirm second.
-- Never create a Feature artifact without at least one happy path and one error scenario.
+- Never create a Feature artifact without at least one happy path and one error scenario. If no error case is obvious — common for toggle and delete features — work the 6-step ladder in Phase 3c; "no error case exists" is never the answer.
 - If the user can't answer the source-of-truth question, read the codebase and infer — then confirm.
 - If this is a greenfield project with no code and no PRD: ask the user to describe the first feature. Create one Feature artifact. Stop. Tell them to run `/tdd` with that feature.
 - **Read the whole schema — field *types*, not just which fields are required —
@@ -500,6 +638,41 @@ Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the pe
   `name`/`description` at the top level while each entry in `tasks[]` takes
   `title` (not `name`). When a write is rejected, re-read the schema for the
   nested type named in the error — don't guess a field.
+- **The same field name has different shapes and different enums on different
+  types — and even on different `$defs` inside one type.** Never carry a shape
+  from one artifact type to another; fetch the schema for the type you are
+  writing. Real rejections from real runs:
+  - `relevant_files` is an array of **objects** on `Tasks` (`{"path": ..., "description": ...}`)
+    but an array of **plain strings** on `Feature` (`["app/src/App.jsx"]`).
+    Reusing the Tasks shape on a Feature gives
+    `relevant_files.0 Input should be a valid string`.
+  - `status` is a different enum in three places within `ProjectOverview` alone:
+    `JourneyStep.status` is `found|missing|partial|blocked`,
+    `ProjectFeatureRef.status` is `working|broken|partial|missing|untested`,
+    and a journey's own `status` is `complete|partial|blocked`.
+  When the schema gives an `enum`, print its allowed values before writing — a
+  type alone (`string`) does not tell you the value is legal.
+- **Every content type is closed (`additionalProperties: false`), so an unknown
+  key is *rejected*, not ignored — and the allowed keys differ per type.**
+  `notes` exists on `Tasks` and `ProjectOverview` but **not** on `Persona`, so
+  carrying it over gives
+  `notes Extra inputs are not permitted [type=extra_forbidden]`.
+  Rather than memorising which field lives where, diff your payload's keys
+  against the schema's before you send it — this catches the whole class
+  offline, with no wasted round-trip:
+
+  ```bash
+  cat > /tmp/allowedkeys.jq <<'JQ'
+  .. | objects | select(.title == $t) | .properties | keys[]
+  JQ
+  helpmetest artifact schema Persona --json \
+    | jq -r --arg t PersonaContent -f /tmp/allowedkeys.jq | sort -u > /tmp/allowed.txt
+  jq -r 'keys[]' /tmp/persona.json | sort -u > /tmp/sent.txt
+  comm -23 /tmp/sent.txt /tmp/allowed.txt   # anything printed here will be rejected
+  ```
+
+  Verified: for a Persona payload carrying `notes`, that prints `notes`, which is
+  exactly the field the API then rejected.
 - **To append an array element, always use `-1` as the final path component**
   (`'{"tasks.-1": {...}}'`). A numeric index only *modifies* an element that
   already exists; an out-of-range index is rejected with the correct syntax in
@@ -516,8 +689,78 @@ Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the pe
   connection/timeout rather than your data, it is a service fault, not your
   payload — say so and stop retrying instead of burning turns. Never fabricate
   progress (e.g. marking a task `done`) for a write that did not return success.
+- **Verify a batch of writes by re-fetching, not by reading the send loop's
+  output.** After creating several artifacts in a loop, `artifact get <id>` each
+  one (or `--json` and check the counts) before treating them as saved. Exit
+  codes and dashboard links scroll past; a run that skipped this reported six
+  features as created when all six had failed. Re-fetching is the only evidence
+  that survives. `--json` wraps the result in an envelope — the content is under
+  `.artifact`, so it is `jq '.artifact.content.features | length'`, not
+  `.content.features`. Every agent that follows this rule pays one wasted probe
+  call to discover that; don't be one of them.
+- **Write payload files to absolute paths and never `cd` out of the project
+  root.** Large `--content` JSON is easier in a file — use the dedicated
+  `--file <path>` flag, which avoids shell-quoting the JSON at all. But the CLI
+  locates `.helpmetest/config.yaml` by walking up from the current directory, so
+  a *sibling* path like `/tmp/x` has no config above it. Two separate runs did
+  `cd /tmp/...` to reach their payload files and lost every write in the batch
+  to a login prompt. Stay put and pass the absolute path:
+
+  ```bash
+  # Right — quoted delimiter, and cwd stays in the project.
+  cat > /tmp/feature-add-todo.json <<'JSON'
+  { "name": "...", "description": "...", "functional": [], "edge_cases": [] }
+  JSON
+  helpmetest artifact upsert --id feature-add-todo-<slug> --type Feature \
+    --name "Add Todo" --tags "project:<slug>" --file /tmp/feature-add-todo.json
+
+  # Wrong — `cd` leaves the project; every upsert in the loop writes nothing.
+  cd /tmp && helpmetest artifact upsert ...
+
+  # Wrong — UNQUOTED delimiter. The shell expands the body before the file is
+  # written: every `backticked` selector is run as a command and replaced by its
+  # output, and every $var disappears. The JSON stays valid, so the CLI reports
+  # `saved` and you have silently stored mangled selectors.
+  cat > /tmp/f.json <<JSON
+  ```
+
+  **Always quote the heredoc delimiter (`<<'JSON'`).** A real run lost the
+  selectors out of two Feature payloads this way and the write still succeeded —
+  only the re-fetch check above caught it.
+- **Never put a `jq` program or JSON in inline single quotes when the content
+  can contain an apostrophe.** Prose fields do: `the product's owner` ends the
+  quoted string mid-program and the shell mangles the rest. A real run broke a
+  `jq` filter exactly this way. Put the program in a heredoc'd file and pass it
+  with `-f`:
+
+  ```bash
+  cat > /tmp/po.jq <<'JQ'
+  .artifact.content | { features: (.features | length), personas: .persona_ids }
+  JQ
+  helpmetest artifact get <slug> --json | jq -f /tmp/po.jq
+  ```
 
 ---
+
+**Version:** 1.9 — fixes the item-19 regression in the v1.8 run (19/20), two 422s that were both the same root cause: a payload assembled by hand rather than derived from the schema or the stored object. Instead of enumerating one more field, this version adds the two mechanical checks that close the class. (1) Every content type is `additionalProperties: false`, so an unknown key is *rejected*, not ignored, and the allowed keys differ per type — `notes` exists on `Tasks` and `ProjectOverview` but not on `Persona`, which is exactly what failed (`notes Extra inputs are not permitted`). There is now a `comm`-based pre-flight that diffs your payload's keys against the schema's *offline*; verified to print `notes` for the same payload the API then rejected. (2) 3d's example told the agent to read the current ProjectOverview and retype it into a fresh `--content` literal, which is how the second 422 (`2 validation errors for ProjectOverviewContent`) happened — required fields silently dropped in transcription. It now fetches, merges with `jq --slurpfile`, and upserts the merged file, verified to preserve `description`/`url`/`summary`/`tech_stack` while setting `features: 1`. Note `jq -s '.[0] * .[1]'` does **not** work here — jq reads each file separately and it fails with `cannot calculate … * null`; that trap is called out in the example.
+
+**Version:** 1.8 — closes the last friction from the v1.7 run (20/20): three consecutive rejected attempts to trigger double-click edit mode (`Double Click`, then `Click … clickCount=2`, then `Click … left 2`) before falling back to hover. Phase 2 now names the real keyword, `Click With Options … clickCount=2`, verified end-to-end (`li.editing` becomes 1). Two adjacent facts learned while verifying it are documented too: selectors are strict, so `ul.todo-list li label` fails with `strict mode violation: … resolved to 2 elements` the moment a second todo exists; and app state persists between `interactive` batches, so counts drift and a previously-unique selector stops being unique.
+
+**Version:** 1.7 — closes the last error the v1.6 run produced (20/20) and two "got it right by reasoning" gaps. (1) A `jq` program passed in inline single quotes broke on `product's` — an apostrophe in any prose field ends the quoted string mid-program. There is now a rule to build `jq`/JSON via a heredoc'd file and pass it with `-f`, verified live with apostrophe-containing content. (2) 3d's ref-linking now *requires* a re-fetch confirming `features` is non-zero: a full re-upsert rebuilt from memory can silently drop the refs and still report success, and the last two runs only caught this because they volunteered an unprompted check. (3) The "never write test code" rule now states explicitly that it holds even when the invocation goal says "build" or "set up for TDD" — every run so far resolved that conflict correctly by its own judgement, which is exactly why it should not depend on judgement. Note the underlying prompt-vs-rule conflict is a product decision and is still open: the skill's position is that onboarding ends at Phase 7 and `/helpmetest tdd` writes the tests.
+
+**Version:** 1.6 — the v1.5 run scored 20/20 but produced one genuinely dangerous error, plus two frictions; all verified live. (1) **Silent data corruption:** an unquoted `<<JSON` heredoc let the shell command-substitute every backticked selector out of two Feature payloads. The JSON stayed valid, so the CLI reported `saved` and the mangled selectors were stored — only the v1.1 verify-by-re-fetch rule caught it, which is that rule working in the wild. The `--file` example now shows the unquoted form as an explicit anti-pattern and says what it does. (2) The re-fetch check now also lives in Phase 3c, next to the creation loop it governs, with a working `jq` one-liner (verified: `feature-vf: 2 functional, 1 edge`) instead of only in the Rules block ~350 lines below. (3) Phase 2 gains a third keyword gotcha: an element that resolves but never becomes clickable is usually hover-gated CSS, not a bad selector — `Hover` the row then click, confirmed end-to-end against the live app. Also corrected a false claim in 3d: it said a `project:<slug>` tag is "the gate the API checks before accepting any other artifact tagged the same way". It is not — a Feature tagged `project:ghost` is accepted with no `ghost` artifact in existence. Create ProjectOverview first because you need a link target, not because the API enforces it.
+
+**Version:** 1.5 — three friction points from the v1.4 run (20/20, no failures), each verified live before writing. (1) `artifact get --json` wraps its result in an envelope, so the content is at `.artifact.content`, not `.content`; the verify-by-re-fetch rule added in v1.1 routes every agent through that shape and each one paid a probe call to discover it — now documented in the rule itself. (2) The v1.4 keyword warning covered `Input Text` but not `Get Text`, which exists in *both* Appium and Browser and is rejected with `Multiple keywords with name 'Get Text' found`; Phase 2 now states the general fix (prefix `Browser.`) and both collisions are shown, `Browser.Get Text  h1` confirmed working. (3) Phase 7 led with the vitest/React install block while the no-framework branch is the common case for the plain-HTML projects this mode targets — an ordering that has previously led agents to install a stack the project never used. The branch decision now comes before either block, and the TS/React heading is conditional.
+
+
+**Version:** 1.4 — the v1.3 run scored 20/20 but still logged three recoverable errors; all three are now closed at the point of use rather than in prose an agent meets too late. (1) `shared.md` §1's code block still *led* with `helpmetest artifact list`, so an agent copied the command and only then reached the onboarding carve-out added in v1.1 — the ban is now a comment inside the block itself. (2) A run did `cd /tmp/tf` to reach its payload files and lost three upserts to a login prompt — the second run to lose a batch that way — so the rule now sits beside a worked example using the real `--file <path>` flag (there is no `@file` syntax) and shows the `cd` anti-pattern explicitly. (3) Phase 2 had no live-site step at all, despite every high-scoring run driving the real app; it now carries a verified batch (`Go To` / `Fill Text` / `Press Keys` / `Get Element Count`) and names `Input Text` as the Appium-only keyword that reports the thoroughly misleading `No application is open` in a web session. That message comes from the third-party AppiumLibrary, not this repo, so it is documented rather than patched.
+
+**Version:** 1.3 — fixes the item-19 failure from the v1.2 run (19/20), two schema rejections, one of them self-inflicted by this file. (1) `relevant_files` is an array of objects on `Tasks` but an array of plain strings on `Feature`; the agent carried the Tasks shape it had learned in Phase 0 into a Feature and got `relevant_files.0 Input should be a valid string`. (2) `status` is a different enum in three places inside `ProjectOverview` alone — `JourneyStep` is `found|missing|partial|blocked`, `ProjectFeatureRef` is `working|broken|partial|missing|untested`, and a journey's own is `complete|partial|blocked` — so a `status` known to be a string was still an illegal value. The schema rule now states that field names repeat across types with different shapes and enums, lists these real values, and requires printing allowed enum values before writing. Also made Phase 5 a reconciliation step: it previously could be satisfied by doing nothing when Phase 3's predicted ids happened to be right, which silently lists non-existent artifacts the first time an upsert fails; it now requires re-fetching every id and writing only the ones that came back. Item 12 passed this run — the Phase 3c ladder worked.
+
+**Version:** 1.2 — fixes the item-12 failure from the v1.1 run (19/20): 2 of 7 Features shipped happy-path-only scenarios. `Complete Todo` and `Delete Todo` got toggle-one/toggle-all and delete-one/delete-completed — all happy variants — because toggle and delete features have no obvious *invalid input*, and the rule ("at least 1 validation/error scenario") gave no help once an agent concluded none existed. Phase 3c now carries a 6-step ladder (invalid input → empty collection → boundary → stale state → active-filter interaction → survives reload) with worked examples for exactly those two shapes, and the Rules line points at it. Also closed a Phase 7 contradiction the grader flagged: the "no recognized local framework" branch skips runner setup, but the verification line immediately below told the agent to run `npm test -- --run` regardless — in a project with no `package.json` that fails, and the failure means nothing. Verification is now scoped to the branch taken.
+
+
+**Version:** 1.1 — three fixes from the 20/20 run that still logged real errors. (1) The `artifact list` contradiction is resolved rather than left for the agent to arbitrate: `shared.md` §1 now defers to onboard.md's pre-flight ban and says why (multi-tenant workspaces), and the `HELPMETEST.md` template's Session Start Checklist no longer tells future sessions to run the command onboarding forbids — it uses `--tags "project:<slug>"` instead. (2) Verifying a batch of writes by re-fetching was emergent good behavior in that run and is now a rule; it is what proved six feature upserts had silently failed. (3) The cwd trap that caused that failure is fixed in the CLI, which now finds `.helpmetest/config.yaml` by walking up from the current directory like git/npm, so a subdirectory works; a *sibling* path such as `/tmp` still cannot, so the project-root requirement is stated explicitly in `shared.md` §1.
 
 **Version:** 1.0 — closes the last failure from the v0.9 eval (19/20), item 19. Two causes, one in the skill and one in the CLI. Skill side: "read the whole schema" was satisfiable by dumping only *which* fields are required, so the agent sent `notes` as a string where the schema wanted a list and took a 422 — the rule now demands field *types* alongside names, and warns that a required-names-only dump passes the "I fetched the schema" check while still getting the write rejected. CLI side: the two identical `Missing required fields: id, name, type, content` errors were not a payload problem at all — `upsertArtifactData` only selected partial mode when a content key contained `.` or `-1`, so a plain top-level key fell through to a full upsert that cannot succeed without `--name`/`--type`. Fixed in the CLI (partial is now `--id` + `--content` with no `--name`/`--type`) and documented here, including the warning that passing `--name`/`--type` "just in case" turns a patch into a full replace.
 

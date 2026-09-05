@@ -8,9 +8,25 @@ Before creating any test, artifact, or running any exploration:
 
 ```bash
 helpmetest status                        # what tests exist and their current state
+# NOT during onboarding pre-flight — see the exception below. Until a slug is
+# resolved from local files, these two return OTHER projects' artifacts.
 helpmetest artifact list                 # what features, personas, project overviews exist
 helpmetest artifact list --type Tasks    # any in-progress work you should resume
 ```
+
+**Exception — onboarding pre-flight.** `onboard.md` "Before you start" forbids
+`artifact list` and `search` until the project slug is resolved from local files,
+and that ban wins. Workspaces are multi-tenant: a bare `list` in a fresh project
+returns *other* projects' artifacts, and a real run adopted a stranger project's
+identity into its `HELPMETEST.md` that way. Before a slug exists, use scoped
+`helpmetest artifact get <slug>` lookups only. Once onboarding has resolved the
+slug, `list` is fine.
+
+Every `helpmetest` command must run from the project root or a subdirectory of
+it. The CLI finds `.helpmetest/config.yaml` by walking up from the current
+directory, so a sibling path like `/tmp` has no config: the command exits 1 with
+a login prompt and writes nothing. A real run wrote six feature payloads to
+`/tmp`, `cd`'d there to upsert them, and lost all six.
 
 Use what you find:
 - **ProjectOverview exists** → project discovered, don't re-discover
