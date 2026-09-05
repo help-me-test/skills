@@ -111,7 +111,21 @@ Before touching anything else, give the user a real, short orientation — this 
 > *You don't need to remember these — `/helpmetest <describe what you want>` routes to the right one, or just say `/helpmetest` with nothing else and I'll read the current state and recommend a next step.*
 > *Right now I'm going to run discovery on `<name>` (`<url>`), then create the Feature/Persona artifacts, then start writing the first tests RED. Want me to walk you through each step, or move fast and just show you results as they land?"*
 
-Wait for the answer — it decides how much you narrate for the rest of this session (step-by-step confirmation vs. narrate-and-proceed). Record the choice in the Tasks artifact `0.1` `notes` alongside the confirmed identity, so a resumed session doesn't ask again.
+**Printing this block is mandatory; waiting for a reply is not.** They are two
+separate actions and only the second one is ever skipped:
+
+- **Always print it**, in every run, including fully autonomous/headless ones. It
+  is output, not a question. "Move fast", "don't block", "no human present" and a
+  pre-supplied answer all mean *don't wait for a reply* — none of them mean *don't
+  show the orientation*. Skipping the menu because nobody is there to read it is
+  the exact failure this phase was added to prevent.
+- **Then wait for the answer only if a human is present and hasn't already
+  answered.** If the narration preference was pre-supplied or no human is
+  present, print the menu, state which option you're proceeding with and why,
+  and continue in the same turn.
+
+Either way, record the choice in the Tasks artifact `0.1` `notes` alongside the
+confirmed identity, so a resumed session doesn't ask again.
 
 
 ---
@@ -326,6 +340,16 @@ Then add one task per feature, in priority order:
 }
 ```
 
+Append each one with `-1` — one call per task, never a numeric index:
+
+```bash
+helpmetest artifact upsert --id tasks-onboarding-<slug> --content '{"tasks.-1": {"id": "3.1", "title": "TDD — <Feature Name>", "description": "...", "status": "pending", "priority": "high"}}'
+```
+
+`tasks.-1` appends. A numeric index (`tasks.5`) only overwrites an element that
+already exists and is rejected when it doesn't — appending by guessing the next
+index is the mistake to avoid.
+
 ---
 
 ## Phase 5 — Update HELPMETEST.md with final artifact IDs
@@ -432,7 +456,7 @@ Present what was created:
 
 **If called from dev mode: do not yield. Immediately load `modes/tdd.md` and proceed to write tests** — no menu, no wait; dev mode already decided the sequence.
 
-**If called standalone with a human present: this is the second half of the 1c orientation, not a rubber-stamp "say continue".** Present the created-artifacts block above, then a real menu of what happens next — don't default to silently starting TDD:
+**Otherwise: this is the second half of the 1c orientation, not a rubber-stamp "say continue".** Print the created-artifacts block above, then a real menu of what happens next — don't default to silently starting TDD:
 
 > *"Onboarding's done. Everything above is now live in HelpMeTest. A few ways to go from here:*
 > *1. **Start TDD now** — I write every test for `<first feature>` RED, show you the list, then implement until green (the default path).*
@@ -441,7 +465,18 @@ Present what was created:
 > *4. **Just health-check for now** — run `/helpmetest report` and stop here; no tests written yet.*
 > *What do you want?"*
 
-Default to option 1 only if the user's 1c answer was "move fast" — otherwise wait for an explicit pick. Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the per-feature TDD tasks (`3.N`) are intentionally left `pending` at this handoff — they're picked up by `/tdd` next, not abandoned. Every other task (`0.1`, `0.2`, `1.0`, `2.0`) must still be terminal (done/cancelled) before this phase ends.
+**Print the 4-option menu unconditionally.** As in Phase 1c, printing and waiting
+are two separate actions: "move fast" / "don't block" / no human present changes
+only whether you *wait for a pick*, never whether you *show the options*. A
+handoff that lists what was created but not what can happen next leaves the
+reader with no idea what to do — that is a failed handoff even if every artifact
+is correct.
+
+If the 1c answer was "move fast" (or nobody is there to pick), print the menu,
+then state which option you are taking and why, and proceed. Otherwise wait for
+an explicit pick.
+
+Exception to `modes/agent.md` Postflight's "every subtask terminal" rule: the per-feature TDD tasks (`3.N`) are intentionally left `pending` at this handoff — they're picked up by `/tdd` next, not abandoned. Every other task (`0.1`, `0.2`, `1.0`, `2.0`) must still be terminal (done/cancelled) before this phase ends.
 
 ---
 
@@ -452,10 +487,30 @@ Default to option 1 only if the user's 1c answer was "move fast" — otherwise w
 - Never create a Feature artifact without at least one happy path and one error scenario.
 - If the user can't answer the source-of-truth question, read the codebase and infer — then confirm.
 - If this is a greenfield project with no code and no PRD: ask the user to describe the first feature. Create one Feature artifact. Stop. Tell them to run `/tdd` with that feature.
+- **Read the whole schema, including `$defs`.** Grepping only the top-level
+  `required` list misses nested object requirements and produces a rejected
+  upsert. Concretely: a Feature's `bugs[]` entries are `Bug` objects that require
+  `actual` and `severity` beyond the Scenario shape, and `TasksContent` takes
+  `name`/`description` at the top level while each entry in `tasks[]` takes
+  `title` (not `name`). When a write is rejected, re-read the schema for the
+  nested type named in the error — don't guess a field.
+- **To append an array element, always use `-1` as the final path component**
+  (`'{"tasks.-1": {...}}'`). A numeric index only *modifies* an element that
+  already exists; an out-of-range index is rejected with the correct syntax in
+  the message. Dot-notation on an existing index (`tasks.1.status`,
+  `tasks.1.notes`) is for updating fields in place.
+- **A rejected write is a 4xx with a reason — read it, don't re-roll the payload.**
+  If two attempts fail with the *same* error, stop permuting the payload: the
+  reason is in the response. If the status is 5xx or the message mentions a
+  connection/timeout rather than your data, it is a service fault, not your
+  payload — say so and stop retrying instead of burning turns. Never fabricate
+  progress (e.g. marking a task `done`) for a write that did not return success.
 
 ---
 
-**Version:** 0.8 — direct user complaint: onboarding wasn't asking questions or presenting the available workflows/modes, running silently on inference and autopiloting straight into TDD. Phase 1b now defaults to actually asking the source/stage/goal questions whenever a human is present (was: infer first, only ask "if unclear") — inference stays reserved for genuinely autonomous/headless runs. Added new Phase 1c: a real orientation step before any work starts, presenting the mode menu (tdd/discover/interactive/fix/coverage/validate/improve/report/ci/pre-push/pr-review) pulled from `SKILL.md`'s own mode reference, explaining the TDD contract in plain terms, and asking whether the user wants step-by-step narration or fast/results-only — recorded in Tasks `0.1.notes` so a resumed session doesn't re-ask. Phase 8's handoff no longer autopilots into "say continue to start TDD" — it now presents a real 4-option menu (start TDD / explore first / different feature / health-check only) and waits for a pick, defaulting to TDD only if the user explicitly asked to move fast in 1c.
+**Version:** 0.9 — fixed the three failures found by the isolated onboarding eval that scored v0.8 at 17/20. (1) Phases 1c and 8 both said "present the menu **and wait**", and Phase 8 was additionally gated on "if called standalone with a human present" — so an autonomous run with "don't block" read that as licence to skip the orientation and the handoff menu entirely, dropping both. Printing and waiting are now stated as two separate actions: the menus are unconditional *output*, and only the blocking wait is gated on a human being present. This was the single root cause of two of the three failures. (2) The schema-first rule now says to read nested `$defs`, not just the top-level `required` list — grepping only the top level is what let a Feature upsert be rejected for a `Bug` missing `actual`/`severity`, and it now also warns that `TasksContent` takes `name`/`description` while each `tasks[]` entry takes `title`. (3) Added the canonical append syntax (`tasks.-1`) with an explicit example, since guessing the next numeric index does not append; plus a rule to stop permuting a payload after two identical errors and to treat a 5xx/connection message as a service fault rather than a data problem, and never to mark a task `done` for a write that didn't succeed.
+
+**Version 0.8** — direct user complaint: onboarding wasn't asking questions or presenting the available workflows/modes, running silently on inference and autopiloting straight into TDD. Phase 1b now defaults to actually asking the source/stage/goal questions whenever a human is present (was: infer first, only ask "if unclear") — inference stays reserved for genuinely autonomous/headless runs. Added new Phase 1c: a real orientation step before any work starts, presenting the mode menu (tdd/discover/interactive/fix/coverage/validate/improve/report/ci/pre-push/pr-review) pulled from `SKILL.md`'s own mode reference, explaining the TDD contract in plain terms, and asking whether the user wants step-by-step narration or fast/results-only — recorded in Tasks `0.1.notes` so a resumed session doesn't re-ask. Phase 8's handoff no longer autopilots into "say continue to start TDD" — it now presents a real 4-option menu (start TDD / explore first / different feature / health-check only) and waits for a pick, defaulting to TDD only if the user explicitly asked to move fast in 1c.
 
 **Version 0.7** — fixed a real 422 found in the eval run that verified v0.6: the agent fetched `helpmetest artifact schema Feature` correctly (the schema-first rule worked) but still hit a 422 for missing `name`/`description`, because it copied this skill's own inline Feature JSON template instead of the schema it had just fetched — and that template's `content` block never had `name`/`description` fields, only `goal`/`functional`/`edge_cases`/`bugs`. Added the two missing fields to the template so it matches the real schema.
 
