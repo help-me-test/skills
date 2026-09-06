@@ -79,6 +79,29 @@ Never create a test, artifact, or run silently. Every significant action has thr
 
 Silence means the user has no idea what you did or why. That is not acceptable.
 
+## 2a. Never truncate `helpmetest` output — the fix is in the part you cut
+
+Do not pipe any `helpmetest` command through `tail`, `head`, or `grep`. Its
+output is already structured (Keywords / Network / Interactive sections), and
+its rejections carry the remedy in the body, not the first line:
+
+```
+❌ Uneven comment distribution.
+
+Section 3 runs 8 steps in a row with no comment — that's more than every other
+step in the test combined (3 steps across the rest of it).
+```
+
+The first line only says *that* it failed; the second says exactly what to
+change. A real onboarding run piped every `test create` through `| tail -12`,
+discarded that explanation, and then retried blind against the same validator
+seven times in one session. The same applies to `✗ Tag validation failed`, which
+lists the valid categories and the known values, and to
+`no Feature artifact found with id "X"`, which prints the full list of real ids.
+
+If output is genuinely long, read it whole and then quote the part you acted on —
+truncating at the source destroys the diagnostic before you've seen it.
+
 ## 3. Tests verify outcomes, not presence
 
 A test that just checks an element is visible is not a test. Tests must **perform an action and assert the result** — minimum 5 meaningful steps. See `tdd` mode for structure, documentation, and selector rules.

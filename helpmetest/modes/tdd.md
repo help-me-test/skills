@@ -273,7 +273,7 @@ Feature exists (or was just built by someone else). Your job is tests only.
 helpmetest test create \
   --id "<feature-slug>-<scenario-slug>" \
   --name "User can <action>" \
-  --tags "feature:<feature-id>,priority:<level>,persona:public,project:<project-id>" \
+  --tags "feature:<feature-id>,project:<project-id>,priority:<level>,persona:<persona-slug>,url:<app-host>" \
   --no-run \
   --content '# Given — <precondition>
 Go To  <url>

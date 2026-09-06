@@ -4,13 +4,16 @@
 
 ## What onboarding delivers
 
-Onboarding is not done when the paperwork is written. It is done when **the project is tested**. Three deliverables, all required:
+Onboarding is not done when the paperwork is written. It is done when **the project is tested and you can name something that is broken**. Four deliverables, all required:
 
 1. **Deep understanding** of the project — the code read, and the running app actually driven (Phase 2).
 2. **Artifacts that record what you found** — the mandatory four, plus any additional type that genuinely earns its place, which you *pitch* rather than silently skip (Phases 0–4).
 3. **Tests for every Feature artifact, in full** — every scenario of every feature, created, run, and linked back into `scenario.test_ids` (Phase 8).
+4. **At least one real bug, reproduced live** — something that does not work as it should, in `bugs[]` with what you actually observed (Phase 2 §hunt, Phase 8).
 
 A run that produces perfect artifacts and no tests has failed. There is no "tests are the next mode" hand-wave: writing them is *this* mode's job, and you finish it before you yield.
+
+**Why the bug is a deliverable and not a bonus:** an onboarding that reports "everything works" has told the user nothing they didn't already believe, and it is nearly always wrong — real software has rough edges, and finding none means the probes were too gentle, not that the app is flawless. The bug is the proof that the tests are worth having: it demonstrates they'd have caught a regression rather than just rubber-stamping the happy path.
 
 ## Be self-driven
 
@@ -227,6 +230,46 @@ instead of guessing a second time.
 
 A bug you reproduce here goes in the Feature artifact's `bugs[]` with what you
 observed in `actual`; a bug you only inferred from source does not.
+
+### Hunt for the bug — deliberately, not incidentally
+
+You are required to find at least one thing that doesn't work as it should. Do
+not wait for one to fall out of the happy-path walkthrough; go looking. Two
+search strategies, and you should use both:
+
+**1. Read the source for the seams.** You already have the code open. Look for:
+
+- Commented-out logic, `TODO`/`FIXME`/`XXX`/`HACK`, and anything labelled broken, temporary, or "for now". A real run found the planted defect this way: the Clear-completed handler called `render()` with its filter commented out (`// INTENTIONALLY BROKEN for demo`) — two tests then failed live at `ul.todo-list li == 1` returning `2`.
+- Handlers that update state but never re-render, or re-render without updating state.
+- Events wired to the wrong trigger — the same run recorded that filtering runs off `hashchange`, so loading `#/active` *directly* never applies the filter. (It called that a gotcha rather than a bug, which is the right call when the app is only reachable one way in practice. Note the distinction and make it explicitly.)
+- Anything with no error path: a failure that silently does nothing is a bug even when the code "can't fail".
+
+**2. Probe the live app past the happy path.** Work down this ladder until something misbehaves — each rung is a real class of defect, not a formality:
+
+| Probe | What it catches |
+|---|---|
+| Empty and whitespace-only input | Blank records, phantom rows |
+| Duplicate submission of the same value | Missing dedup, double-add |
+| Very long input, and `<`/`&`/quotes/emoji | Layout blowout, escaping bugs |
+| Bulk action, then a single action | State desync between the two paths |
+| Reload after every mutation | Persistence that silently doesn't |
+| Action while a filter/view is active | The classic: works on "all", wrong on a filtered subset |
+| Counter/badge after each of the above | Counts drifting from the actual list |
+| Deep-link straight to a non-default view | Init that only runs on transition |
+| Undo/cancel paths — Escape, blur, navigate away mid-edit | Half-committed edits |
+
+**Every reported bug must have been reproduced live**, with the observed result
+in `actual` and the selector/step that showed it. A bug read out of the source
+but never triggered is a *suspicion* — either reproduce it or say plainly that
+you couldn't. Never invent, exaggerate, or promote a cosmetic nitpick to fill
+this requirement; a fabricated bug is far worse than none, because it destroys
+the credibility of every other finding in the report.
+
+**If you genuinely find nothing after working both strategies**, say so
+explicitly and list what you probed and what the app did — that is a reportable
+outcome, and the list is what makes it believable. But treat it as a strong
+signal you probed too gently: go back and try the harder rungs before concluding
+the app is clean.
 
 ---
 
@@ -512,6 +555,12 @@ Sitemap` fails with `✗ Failed to fetch schema for Sitemap` even though
 `Page` (requires `name`, `description`, `url`) both fetch fine. A pitch for a type
 whose schema won't load is a guaranteed dead end.
 
+**The `name` must not contain the type — this applies to these types too, not
+just `Tasks`.** A real run named them "Todo App Memory" and "Todo App Page" and
+took two 400s back to back: `Artifact name should not contain the artifact type
+'Memory'. Use a descriptive name instead`. Name them for what they hold —
+"Todo App Selectors & Quirks", "Todo List View" — and keep the type in `--type`.
+
 Two failure modes, both real: creating an empty artifact of an impressive-sounding
 type to look thorough, and saying nothing because the mandatory four were done.
 State the decision either way, then mark `1.1` `done` (with what you created) or
@@ -647,9 +696,24 @@ Per scenario, per `tdd.md`:
 helpmetest test create \
   --id "<feature-slug>-<scenario-slug>" \
   --name "<Scenario name>" \
-  --tags "feature:<feature-id>,priority:<level>,project:<slug>" \
+  --tags "feature:<feature-id>,project:<slug>,priority:<level>,persona:<persona-slug>,url:<app-host>" \
   --file /tmp/<id>.robot
 ```
+
+**All five tag categories are required on a test, and two of them are checked
+against real artifacts.** Getting this wrong costs a rejected create every time,
+and it bit a real run twice. Verified live:
+
+- Omitting `url:` → `✗ Missing required tag: url:X` (it then lists the known urls).
+- Omitting `persona:` → `✗ Missing required tag: persona:X`.
+- `feature:<id>` and `project:<slug>` must name artifacts **that already exist** — `feature:feature-zz` is rejected with `no Feature artifact found with id "feature-zz"` plus the full list of real ones. Use the exact ids you created in Phase 4, and note this is stricter than artifact tagging, where a `project:` tag is accepted with no matching ProjectOverview.
+- The allowed categories are exactly `priority, feature, project, persona, url` — anything else (`type:e2e`, `tag:smoke`) is rejected with `unknown category`.
+
+`url:` takes the bare host, no scheme: `url:todo.playground.helpmetest.com`.
+
+**Read the rejection whole — never `| tail` it.** These validators explain the
+fix in the body of the message, not the first line; see `shared.md` §2a, which a
+real run learned the hard way with seven blind retries against one validator.
 
 `test create` **auto-runs the test immediately** unless you pass `--no-run`, so a
 create with content already gives you the pass/fail. Take that result seriously
@@ -709,7 +773,8 @@ artifacts but no test results is reporting paperwork, not outcomes:
 **What you can now trust works:**
 - <one line per verified capability, in user terms>
 
-**Bugs found:** <N> (in `<feature>.bugs[]`) — <one line each>
+**Bugs found:** <N> (in `<feature>.bugs[]`) — <one line each: what you did, what happened instead, where in the source>
+  <if N is 0: what you probed and what the app did, rung by rung — an unexplained zero is not an acceptable handoff>
 
 **Not covered:** <anything deliberately left, with the reason>
 ```
@@ -740,6 +805,12 @@ been reached yet. Go finish Phase 8.
   at Phase 9, with test results in the handoff. Do not seed `3.N` tasks and point
   at `/helpmetest tdd` as a substitute for doing the work — that mode exists for
   *later* features, not for the ones you just discovered.
+- **You must be able to name at least one thing that doesn't work** (Phase 2
+  §hunt). Reproduce it live, record what you observed in `actual`, and pin it
+  with a test that stays red. Zero bugs is only reportable alongside the list of
+  probes you ran — and it usually means you probed too gently, not that the app
+  is clean. Never fabricate or inflate one to satisfy this: a made-up bug
+  discredits every other finding in the report.
 - **Application source is still out of scope.** Test code, test config, and
   artifacts are in; components, hooks, stores and app entry points are not. If a
   feature doesn't exist yet, the test for it stays red and that is the correct
@@ -872,6 +943,25 @@ been reached yet. Go finish Phase 8.
   ```
 
 ---
+
+**Version:** 2.3 — moves the no-truncation rule to where it actually gets read. v2.2 cut real CLI rejections from 12 to 2 and runtime from 1046s to 737s, but the run still piped `helpmetest` through `| tail` seven times: the rule was buried in Phase 8 prose, so it was written and ignored. It now lives in `shared.md` §2a, which every mode loads, with the concrete payoff spelled out — the first line of a rejection only says *that* it failed, the body says what to change, and the same holds for `Tag validation failed` (lists valid categories and known values) and `no Feature artifact found with id "X"` (prints the real ids). Phase 8 keeps a one-line pointer instead of a duplicate.
+
+**Version:** 2.2 — the v2.1 run scored 28/28 and found three bugs, but logged ~11 avoidable CLI rejections; all three causes are now closed at the point of use, each verified live.
+
+- **Tests require five tag categories, not three.** The Phase 8 example I added in v2.1 showed `feature`/`priority`/`project`, and the run took `✗ Missing required tag: url:X` and `Missing required tag: persona:X`. Verified by probe: the allowed set is exactly `priority, feature, project, persona, url`, all five required, `url:` as a bare host with no scheme. Two are checked against real data — `feature:feature-zz` is rejected with `no Feature artifact found with id "feature-zz"` and the full list of real ids — which is *stricter than artifact tagging*, where a `project:` tag is accepted with no matching ProjectOverview (documented in v1.6). `tdd.md`'s example was missing `url:` too and is fixed in the same change.
+- **Never pipe `helpmetest` output through `tail`/`head`/`grep`.** The run piped every create through `| tail -12`, which cut the body off `❌ Uneven comment distribution.` — and the body is the entire fix: `Section N runs 8 steps in a row with no comment — that's more than every other step in the test combined (3 steps across the rest of it)`. Having discarded the explanation it retried blind against the same validator seven times. The message was already actionable (`app/server/test.js:149-155`); this was self-inflicted and is not a product bug.
+- **`Memory` and `Page` names must not contain their type either.** The run named them "Todo App Memory"/"Todo App Page" and took two 400s. The rule existed for `Tasks` only, because 3f introduced those two types in v2.1 without it.
+
+Worth noting what the v2.1 hunt actually produced, since it validates the ladder rather than just the requirement: three bugs, two of them new. The planted clear-completed defect (`li is '1' should be '0'`), plus **deep-link cold load ignores the filter** (`'2' should be '1'` — `filter` is assigned only inside the `hashchange` handler, `index.html:517`), and **Escape mid-edit commits instead of discarding** (`'DISCARDME' should be 'CHANGED'` — Escape drops the `editing` class, the hidden input blurs, and the capture-phase blur handler commits). Those came from ladder rungs 8 and 9; the v2.0 run had dismissed the first as a gotcha and never probed the second.
+
+**Version:** 2.1 — finding a bug is now a **deliverable**, not a lucky by-product. The v2.0 run (26/26) did report a real defect — Clear-completed removing nothing, `ul.todo-list li == 1` returning `2`, traced to a commented-out filter at `index.html:510-513` labelled `// INTENTIONALLY BROKEN for demo` — but only because that feature happened to be in scope. Nothing in the skill asked it to look, so the next run could just as easily report "everything works" and be graded clean.
+
+- **Fourth deliverable:** at least one thing that doesn't work as it should, reproduced live, in `bugs[]` with the observed result in `actual`. Rationale stated in the skill, because a requirement without a reason gets rationalized away: an onboarding that reports no bugs has told the user nothing they didn't already believe, and it is nearly always wrong. The bug is what proves the tests would catch a regression instead of rubber-stamping the happy path.
+- **A hunt technique, not just an instruction.** "Find a bug" with no method produces fabricated bugs. Phase 2 gains two strategies to work in parallel: read the source for seams (commented-out logic, TODO/FIXME, handlers that mutate without re-rendering, events on the wrong trigger, missing error paths — this is exactly how the planted defect was caught), and a 9-rung live probe ladder past the happy path (empty/whitespace input, duplicates, long and `<`/`&`/emoji input, bulk-then-single actions, reload after each mutation, actions under an active filter, counter drift, deep-link to a non-default view, cancel/blur mid-edit).
+- **Anti-fabrication is explicit, in the skill and in the grader.** Every reported bug must have been reproduced live; a defect read out of the source but never triggered is a suspicion to be labelled as such. Checklist item 25 is graded on evidence — the grader must find the tool_result where the app misbehaved and check it against the workspace source — and an invented or inflated bug is a **FAIL**, not a pass, because it discredits every other finding. Zero bugs is reportable only alongside the list of probes run.
+- **The gotcha/bug distinction is preserved as correct behavior.** The same run found that filtering is `hashchange`-driven, so loading `#/active` directly never applies the filter, and recorded it as a gotcha rather than a bug since the app is only reachable one way in practice. That judgement is now documented as the right call, so the new requirement doesn't pressure agents into promoting every oddity to a defect.
+
+Checklist 26 → 28 items (bug found, and hunted deliberately rather than stumbled into).
 
 **Version:** 2.0 — the contract changed, on direct user instruction: onboarding now **writes tests for every Feature artifact** and is self-driven. The old Rules line "Never create test code during onboarding. Onboarding ends at Phase 7." was incoherent — the prompt asks for a project set up for TDD, the mode produced artifacts and stopped, and the grader had to carry a standing "known spec conflict" clause to avoid scoring the gap. Removed, inverted, and the conflict clause deleted from the checklist.
 
