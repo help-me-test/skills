@@ -100,7 +100,7 @@ Mark task `0.1` `in_progress`. The slug was already resolved in "Before you star
 2. **Only if genuinely absent** (e.g. onboard was invoked standalone, skipping the llms.txt install flow), infer in this order: README first heading or manifest `name` field (skip generic words like `app`/`web`/`api`) → working directory folder name; app URL from `package.json` `homepage`, `.env` (`VITE_APP_URL`/`NEXT_PUBLIC_URL`/`APP_URL`/`BASE_URL`), or a live-looking `https://` link in the README. Leave URL blank rather than inventing one.
 3. **Still nothing** — only then ask, and only this: *"What's this project called, and what's the URL to the deployed app or the path to the code?"* This is the one identity question worth blocking on, because a wrong name is baked into every artifact id and a wrong slug can collide with someone else's project. Do not ask before attempting 1–2.
 
-**State the resolved identity before writing it into any artifact — as a statement, not a request for approval:** *"Building this out for `<name>` (`<url>`), inferred from `<the file you read>`. Tell me if that's wrong."* Then continue in the same turn. Never silently commit to a guessed name, and never sit idle waiting for someone to confirm a name you read out of their own README.
+**State the resolved identity before writing it into any artifact — as a statement, not a request for approval:** *"Building this out for `<name>` (`<url>`), inferred from `<the file you read>`."* Then continue in the same turn. Do not add "tell me if that's wrong" or any other invitation to confirm — that phrasing was in this instruction for several versions and every run dutifully echoed it, which is exactly the blocking-wait posture the "Be self-driven" section forbids. Never silently commit to a guessed name either: state the evidence, then proceed.
 
 Mark `0.1` `done` with the confirmed name/URL/path recorded in `notes` once confirmed.
 
@@ -215,6 +215,14 @@ batch, because both cost a round-trip:
   then `Click … left 2`. The keyword is `Click With Options`:
   `"Click With Options  ul.todo-list li:first-child label  clickCount=2"`
   (verified — it puts the row into edit mode, `li.editing` count becomes 1).
+- **A selector starting with `#` is read as a comment**, so `#toggle-all`
+  silently becomes nothing. Escape it: `\#toggle-all`. And escaping isn't always
+  enough — a `1x1px`, `opacity:0` checkbox still refuses a normal click. Click
+  its label instead, with force:
+  `"Click With Options  label[for=toggle-all]  force=True"`.
+- **`force=True` is not an argument to `Click`.** `Click` takes a mouse button
+  and nothing else; the option belongs to `Click With Options`. A run lost three
+  browser round-trips to the `#`-as-comment problem and this one together.
 - **Selectors are strict: matching more than one element is an error**, not a
   "use the first" convenience. `ul.todo-list li label` fails with
   `strict mode violation: … resolved to 2 elements` as soon as a second todo
@@ -336,6 +344,12 @@ Create in this order. Do not skip any. Each one is a prerequisite for the next.
 **Always fetch the schema first, for every artifact type below** (`helpmetest artifact schema ProjectOverview`, then again `helpmetest artifact schema Persona`, `helpmetest artifact schema Feature` when you reach each — a schema fetched for one type does not cover another) — per `modes/shared.md` §9, required fields and shapes change, don't memorize them. This is a first-attempt requirement, not a fallback after a 422 — a real run fetched the schema reactively (only after each type's first attempt failed) and hit three separate 422s in the same session, one per type, because it treated this note as applying only to ProjectOverview instead of to every type it was about to create. The `features` field in particular is `ProjectFeatureRef` objects (`{feature_id, name, status, priority, reason}`), not plain id strings — a real run that used the plain-string shape shown below got a 422; the shape below is illustrative only, the schema is authoritative. The artifact `id` must equal the `<slug>` from Phase 0/1a, and must carry `--tags "project:<slug>"` — the API derives project scoping from this tag and rejects other artifacts tagged `project:<slug>` until this one exists with a matching id:
 
 ```bash
+# Fetch this type's schema FIRST — including for ProjectOverview. A run that
+# scored 23/24 fetched Persona, Feature, Memory and Page schemas correctly and
+# wrote ProjectOverview blind, because the prose rule above reads as generic
+# while the Persona and Feature steps below each show their own fetch command.
+helpmetest artifact schema ProjectOverview
+
 helpmetest artifact upsert \
   --id "<slug>" \
   --type "ProjectOverview" \
@@ -714,6 +728,40 @@ and it bit a real run twice. Verified live:
 **Read the rejection whole — never `| tail` it.** These validators explain the
 fix in the body of the message, not the first line; see `shared.md` §2a, which a
 real run learned the hard way with seven blind retries against one validator.
+
+**Comments in the test body are validated in both directions, and the rule that
+matters is relative, not a fixed count.** The rejection spells it out:
+`❌ Uneven comment distribution. Section 1 runs 7 steps in a row with no comment
+— that's more than every other step in the test combined (5 steps across the
+rest of it)`. So **no single comment section may hold more steps than all the
+other sections added together.** Over-correct and you hit the opposite wall:
+`❌ Test comments don't meet the quality standard. Violations: Per-line comments:
+N of M sections have only 1 keyword — group related steps under one comment`.
+
+Target **2-3 steps per comment**, and never let the setup sit under one comment:
+`Go To` + `Local Storage Clear` + `Reload` + two seeded todos is 7 steps, which
+alone exceeds everything else in a short test and is rejected on its own.
+
+```robot
+# Open the app on a clean list
+Go To    ${URL}
+Local Storage Clear
+Reload
+
+# Seed a todo
+Fill Text    input.new-todo    walk dog
+Press Keys    input.new-todo    Enter
+
+# Seed a second one and finish it
+Fill Text    input.new-todo    buy milk
+Press Keys    input.new-todo    Enter
+Check Checkbox    ul.todo-list li:first-child input.toggle
+```
+
+Three runs in a row spent their only rejected commands on this, twice as a
+repeat 30 turns apart — because the rule was described in prose while the
+examples in this file and in `tdd.md` still showed setup as one block. Copy the
+shape above, not the prose.
 
 `test create` **auto-runs the test immediately** unless you pass `--no-run`, so a
 create with content already gives you the pass/fail. Take that result seriously

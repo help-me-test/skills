@@ -275,18 +275,28 @@ helpmetest test create \
   --name "User can <action>" \
   --tags "feature:<feature-id>,project:<project-id>,priority:<level>,persona:<persona-slug>,url:<app-host>" \
   --no-run \
-  --content '# Given — <precondition>
+  --content '# Open the app
 Go To  <url>
 
-# When — <user action>
+# <user action>
 Fill Text  <selector>  <value>
 Press Keys  <selector>  ENTER
 
-# Then — <expected outcome>
+# <expected outcome>
 <assertion keyword>  <selector>  <expected>'
 ```
 
-Required tags: `feature:X`, `priority:X`, `persona:X`, `project:X`. Comments are required and must be evenly distributed — one section comment per 1–3 keywords. Use `--no-run` on create; run separately.
+Required tags: all five of `feature:`, `project:`, `priority:`, `persona:`,
+`url:` — `feature:` and `project:` must name artifacts that already exist, and
+`url:` is a bare host with no scheme.
+
+Comments are required, and the distribution rule is relative: **no comment
+section may hold more steps than every other section combined**, which is what
+`❌ Uneven comment distribution` means. The opposite wall is real too — mostly
+one-keyword sections get rejected with `Per-line comments: N of M sections have
+only 1 keyword`. Target 2-3 steps per comment, and split setup (`Go To` +
+`Local Storage Clear` + `Reload` + seeding) across two or three comments rather
+than one.
 
 - 5+ meaningful steps
 - Verify business outcomes (data saved, state changed) — not just that an element is visible
