@@ -216,6 +216,14 @@ helpmetest test run "#priority:critical" --network-requests  # = --filter OpenRe
 
 Only one shorthand (or an explicit `--filter`) at a time — combining them errors instead of silently merging. `--schema` prints the full NDJSON event schema for building custom `--select` expressions.
 
+### Replay events (`--include-replay`)
+
+By default `test run` streams only robot/keyword events — rrweb/openreplay replay events (full DOM snapshots, mutation batches) are large and most CI/scripting consumers don't need them, so they're excluded. Pass `--include-replay` to get them inline in the same NDJSON stream, e.g. for an agentic workflow that wants to inspect what the browser actually rendered without opening the run in a browser:
+
+```bash
+helpmetest test run "Checkout Flow" --json --include-replay | grep '"source":"rrweb"'
+```
+
 ---
 
 ## Mark Deployments in the Timeline

@@ -109,26 +109,7 @@ Authenticate With 2FA
 
 ## Passkey
 
-```robotframework
-Passkey    action=register       # register a passkey for the current user
-Passkey    action=authenticate   # authenticate with passkey (default)
-```
-
-Supported protocols: `ctap2` (default), `ctap2_1`. Supported transports: `internal` (platform authenticator, default), `usb`, `nfc`.
-
-```robotframework
-Register And Login With Passkey
-    Go To    ${BASE_URL}/register
-    Fill Text    id=email    test@example.com
-    Click    id=register-passkey
-    Passkey    action=register
-    Save As    PasskeyUser
-
-    As    PasskeyUser
-    Go To    ${BASE_URL}/login
-    Click    id=login-with-passkey
-    Passkey    action=authenticate
-```
+Removed 2026-09-12: the `Passkey` keyword's own docstring example was already broken (`No keyword with name 'Setup Passkey Authenticator' found` — it called 5 keywords that never existed anywhere in the library). No working passkey/WebAuthn support exists in HelpMeTest today. If you need it, implement real CDP virtual-authenticator support (`WebAuthn.enable`/`WebAuthn.addVirtualAuthenticator` via Playwright's CDP session) rather than assuming this keyword works.
 
 ---
 

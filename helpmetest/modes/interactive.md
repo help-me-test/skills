@@ -46,9 +46,11 @@ When a command in a batch fails, subsequent commands are skipped (shown as `⊘`
 | `--session <runId>` | Resume a specific named session (bypasses auto-resume) |
 | `--timeout <duration>` | Per-command timeout. A bare number is SECONDS (default 10s — raised from 5s 2026-08-11: the old default was shorter than legitimate slow selector/navigation waits, so it discarded the real RF error and misreported it as "the session ended unexpectedly" even when the browser was still alive and working). A string with units is parsed via `parse-duration` syntax for sub-second/compound precision — e.g. `--timeout 100ms`, `--timeout 1m10s`. Set via `Browser.set_browser_timeout(...)` — a plain Python call inside the RF `start_test` hook, never an RF keyword — so it's silent: it never appears in the keyword timeline/history, no matter how many commands run (fixed 2026-08-15; a prior version injected a synthetic `Set Browser Timeout` keyword on a session's first command, which leaked into `start_test`'s keyword list). |
 | `--dom-diff` | Show DOM mutations (adds/removes/attribute/text changes) that happened during the command — sourced from the session's existing rrweb recording, added as a "DOM Diff" output section |
-| `--debug` | Full diagnostics: OpenReplay events, perf metrics, network timings |
+| `--debug` | Currently a no-op for `interactive` — accepted and threaded through the CLI/app-server/vm-manager, but nothing on the guest side reads it. The one function that could deliver "full diagnostics" (`CollectDiagnostics()` — OpenReplay events/WebVitals/FPS/resource timings) is explicitly skipped for interactive sessions in `vm/guest/listener.py` regardless of this flag. Confirmed live 2026-09-11: identical output with/without `--debug`. Don't rely on it; use `--dom-diff` for mutation data or `interactive history` for the full persisted event record instead. |
 | `--json` | Output as JSON (for scripting/agents) |
 | `--stream` | Emit newline-delimited JSON events (one JSON object per line: `keyword`, `keyword_result`, `phase_done`, final `{"type":"done",...}`) instead of TTY pretty-print or a single JSON blob — for agents that want to process events as they arrive rather than waiting for the full result |
+| `--select <path>` | Select fields from the JSON output — e.g. `--select "[].type"` against `--json` output (a flat event array; see `--schema`) |
+| `--schema` | Print the NDJSON event schema (field shapes per event type) as JSON and exit — no command is sent. Use it to know what `--select` can address |
 
 
 ### Watching the session live
@@ -69,7 +71,7 @@ Then add `--open` to the current command. Don't ask again in future sessions —
 
 **Sessions persist automatically between commands** via `.helpmetest/sessions/`. Each successful command updates the session file's mtime. The next `helpmetest interactive` call resumes the most recent active session — no `--session` flag needed.
 
-Sessions expire after **20 minutes of inactivity**. Stale sessions are cleaned up automatically; the next command starts a fresh browser.
+Sessions expire after **3 minutes of inactivity** (`vm/config.yaml`'s `interactive_lru_ttl_s: 180` — confirmed live 2026-09-11; this doc and the CLI's own client-side staleness check previously assumed 20 minutes, which was wrong by >6x). Stale sessions are cleaned up automatically; the next command starts a fresh browser.
 
 Use `--session <runId>` only when you want to resume a specific past session by its ID (visible in the session URL at the bottom of each response).
 
@@ -226,17 +228,19 @@ helpmetest interactive "Exit"
 
 ```bash
 helpmetest test create \
+  --id login-redirects-to-dashboard \
   --name "Login redirects to dashboard" \
-  --tags "feature:auth" \
-  --content '*** Test Cases ***
-Login Redirects To Dashboard
-    As    Guest
-    Go To    https://myapp.com/login
-    Fill Text    input[name=email]    ${TEST_USER_EMAIL}
-    Fill Text    input[name=password]    ${TEST_USER_PASSWORD}
-    Click    button[type=submit]
-    Get Url    contains    /dashboard'
+  --tags "feature:auth,priority:high,persona:test-user,project:myapp,url:myapp.com" \
+  --content '# Log in with valid credentials and confirm the redirect to the dashboard
+As    Guest
+Go To    https://myapp.com/login
+Fill Text    input[name=email]    ${TEST_USER_EMAIL}
+Fill Text    input[name=password]    ${TEST_USER_PASSWORD}
+Click    button[type=submit]
+Get Url    contains    /dashboard'
 ```
+
+`--id` is required (URL-safe, no spaces, no "test" suffix — becomes the permanent identifier). `--content` is bare RF keywords, not a full `*** Test Cases ***` block — `test create` wraps it into a real test case itself. Every keyword group needs a leading `#` comment or creation is rejected (run `/helpmetest comment` to auto-fix). Tags must satisfy the full schema — a real `feature:`/`priority:`/`persona:`/`project:`/`url:` set, not placeholders; run `helpmetest test create --help` with no valid tags to see the exact existing values accepted for your project.
 
 Then run it: `helpmetest test run <id>`. If green, add the test id to the Feature artifact's `scenarios[].test_ids`.
 
@@ -297,10 +301,13 @@ Look at **Network** — a 4xx or 5xx there explains most "the page did nothing" 
 
 ## Authentication
 
-Before any auth flow, check if a saved state exists:
+Before any auth flow, check if a saved state exists — `As` with any bogus name lists every
+real saved state for your company in its error message (confirmed live: no dedicated
+"list states" command exists, this is the actual discovery mechanism):
 
 ```bash
-helpmetest status  # look for auth state names in test data
+helpmetest interactive "As  ?"
+# FAIL: No state found for name '?' ... Available states: 'Admin', 'DevAuth', ...
 ```
 
 Restore an existing state — don't re-authenticate:
@@ -331,19 +338,40 @@ Future sessions: `As  Admin` restores without re-authenticating.
 | Read input value | `Browser.Get Property  input  value` |
 | Read URL | `Get Url` |
 | Check element states | `Browser.Get Element States  button` |
-| Wait for element | `Wait For Elements State  .spinner  hidden  timeout=10000` |
+| Wait for element | `Wait For Elements State  .spinner  hidden  timeout=10s` |
 | Select dropdown | `Select Options By  select  label  Germany` |
-| Check a checkbox | `Check  [data-testid=checkbox-testing]` |
-| Select a radio | `Radio  [data-testid=radio-email]` |
+| Check a checkbox or radio button | `Check Checkbox  [data-testid=checkbox-testing]` |
 | Scroll to element | `Scroll To Element  footer` |
 | Screenshot | `Take Screenshot` (or `--screenshot` flag) |
-| Run JS | `Evaluate Javascript  document.title` |
+| Run JS | `Javascript  return document.title` |
 | Save auth state | `Save As  Admin` |
 | Restore auth state | `As  Admin` |
 | Close session | `Exit` |
+| Upload a file from local content (no filesystem path needed on the VM — see below) | `Upload File By Selector  input[type=file]  ${buffer}` |
 
 When unsure: `helpmetest search "<intent>"`.
 When getting ambiguity errors: prefix with library — `Browser.Get Text`, `Browser.Get Element States`.
+
+### Uploading a file (no local file on the VM)
+
+`Upload File By Selector` normally takes a filesystem path — but that path is resolved **on
+the remote VM**, not your machine, so a bare local path (`/tmp/my-file.txt`) always fails with
+`Nonexistent input file path`. Instead, build a buffer dict **in the same command batch** using
+the classic `Create Dictionary` keyword (RF's newer `VAR` syntax is parser-level, not an
+invokable keyword, and does not work through the interactive one-command-at-a-time dispatcher):
+
+```bash
+helpmetest interactive \
+  "Go To  https://myapp.com/upload" \
+  "\${buffer}=  Create Dictionary  name=report.txt  mimeType=text/plain  buffer=aGVsbG8gd29ybGQ=" \
+  "Upload File By Selector  input[type=file]  \${buffer}"
+```
+
+`buffer` is base64-encoded file content (`base64 -i file` or `python3 -c "import base64;
+print(base64.b64encode(open('file','rb').read()).decode())"` to produce it). The `${buffer}`
+variable does **not** persist across separate `helpmetest interactive` invocations of the same
+session (only the browser/page state does) — the `Create Dictionary` call and the
+`Upload File By Selector` call must be in the same command batch.
 
 ---
 
