@@ -1,6 +1,6 @@
 ---
 name: helpmetest
-description: "Router for HelpMeTest QA work, mode picked by keyword. tdd: write/fix tests. mobile: Android/iOS/APK/IPA. desktop: Mac/Linux/Electron. fakemail: verification code/inbox. ssl: cert/TLS/DNS/WHOIS/SPF/DKIM. doc2html: PDF/DOCX/EPUB→HTML. auth: Save As/2FA/TOTP. api: REST/GraphQL/endpoint. proxy: localhost/tunnel/port. terminal: Jest/pytest/bun test. ci: GitHub/GitLab CI. ui: screenshot/visual/viewport. interactive: explore/debug selector. discover: map app/PRD. report: health check. c...
+description: "Router for HelpMeTest QA work, mode picked by keyword. tdd: write/fix tests. mobile: Android/iOS/APK/IPA. desktop: Mac/Linux/Electron. fakemail: verification code/inbox. ssl: cert/TLS/DNS/WHOIS/SPF/DKIM. doc2html: PDF/DOCX/EPUB→HTML. auth: Save As/2FA/TOTP. api: REST/GraphQL/endpoint. proxy: localhost/tunnel/port. terminal: Jest/pytest/bun test. ci: GitHub/GitLab CI. ui: screenshot/visual/viewport. interactive: explore/debug selector. discover: map app/PRD. report: health check. coverage: gap analysis. change-impact: did I break anything. pre-push/pr-review: can I push/PR review. onboard: new project. improve/comment: rewrite tests. Also: full QA, nightly, validate, exploratory. Full list in body."
 argument-hint: "[tdd | mobile | desktop | auth | fakemail | ssl | doc2html | api | proxy | terminal | ci | ui | interactive | discover | fix | coverage | regression | validate | improve | comment | report | change-impact | pre-push | pr-review | nightly | onboard | <task description>]"
 ---
 
