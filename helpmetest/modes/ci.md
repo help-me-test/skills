@@ -1,3 +1,5 @@
+<!-- llms-description: Set up HelpMeTest in GitHub Actions, GitLab, CircleCI or Bitbucket. -->
+
 # HelpMeTest CI Integration
 
 Run HelpMeTest tests as part of your CI pipeline — on every push, PR, or scheduled run.

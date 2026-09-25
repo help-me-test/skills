@@ -1,3 +1,5 @@
+<!-- llms-description: Run shell commands — Jest, pytest, bun test, go test, cargo test — inside the test runner. -->
+
 # HelpMeTest Terminal Mode
 
 Run shell commands inside the HelpMeTest test runner using the `Bash` keyword. Use this to run unit tests (Jest, pytest, Go test, Cargo…), lint, build, or any CLI tool as part of a HelpMeTest test.

@@ -1,3 +1,5 @@
+<!-- llms-description: Drive a real cloud browser one command at a time — explore pages, debug selectors, prototype a flow. -->
+
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 ---

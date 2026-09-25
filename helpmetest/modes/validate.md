@@ -1,3 +1,5 @@
+<!-- llms-description: Score every test against 13 quality rules (R1–R13). Outputs a grade distribution and a rewrite queue. -->
+
 # Mode: validate — test quality review
 
 **What this mode does:** read one or more tests and score them against the `/tdd` quality rules. Produce a specific, actionable critique — which rules each test breaks, which rewrites would fix them. This is the "should this test exist?" review, not the "is this test green?" check.

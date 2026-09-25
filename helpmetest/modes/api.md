@@ -1,3 +1,5 @@
+<!-- llms-description: REST and GraphQL API tests in Robot Framework, through the authenticated browser session. -->
+
 > ### 🔴 YOU WRITE THE TEST FIRST.
 > Changed code → run the tests.
 > New feature → write the test before the code.

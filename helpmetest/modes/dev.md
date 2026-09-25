@@ -1,3 +1,5 @@
+<!-- llms-description: Orchestrator for all code work: map the project, tests RED, build GREEN, validate, improve, coverage. -->
+
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 ---
@@ -12,20 +14,26 @@ Triggers: "build X", "add feature X", "change X", "refactor X", "I want to devel
 
 ## Step 0 — Orient
 
-Check for `HELPMETEST.md` first — it determines the situation immediately:
+Orient from artifacts. They are the only state — there is no project contract file, and a
+`.helpmetest/config.yaml` proves the CLI can authenticate, not that this project has been
+mapped.
+
+Resolve `<slug>` from local files first (README first heading, manifest `name`, else the
+folder name) — `shared.md` §1 explains why an unscoped list is banned before you have one.
 
 ```bash
-ls HELPMETEST.md 2>/dev/null && cat HELPMETEST.md
-helpmetest artifact list
-helpmetest artifact list --type Tasks
+helpmetest status
+helpmetest artifact get <slug>                      # ProjectOverview — does this project exist?
+helpmetest artifact list --tags "project:<slug>"    # scoped: this project only
+helpmetest artifact list --tags "project:<slug>" --type Tasks
 ```
 
 Then read the situation:
 
 | What you find | Situation | Go to |
 |---|---|---|
-| No `HELPMETEST.md`, no app code | Greenfield — nothing exists yet | § Greenfield |
-| `HELPMETEST.md` exists, no Feature artifact for this work | New feature on existing project | § New Feature |
+| No ProjectOverview for `<slug>`, no app code | Greenfield — nothing exists yet | § Greenfield |
+| ProjectOverview exists, no Feature artifact for this work | New feature on existing project | § New Feature |
 | Feature artifact exists, tests exist, tests green | Changing/refactoring existing behavior | § Change or Refactor |
 | Feature artifact exists, tests exist, tests failing | Suite is broken — fix before adding | § Fix First |
 
@@ -36,7 +44,7 @@ Then read the situation:
 Announce the situation and plan in one paragraph, then **immediately continue** — do not wait for a response. If the user specified scope (e.g. "full"), use it. Default is full scope.
 
 **Greenfield:**
-> "Greenfield — no code, no tests, no HELPMETEST.md. Building [X] test-first: onboard → Feature artifacts → all tests RED → implement to GREEN → interactive check → discover → validate. Starting now."
+> "Greenfield — no code, no tests, no artifacts for this project. Building [X] test-first: map it → Feature artifacts → all tests RED → implement to GREEN → interactive check → validate. Starting now."
 
 **New feature:**
 > "Adding [feature] to existing project. Writing all tests RED against the spec first, then implementing. Starting now."
@@ -52,29 +60,31 @@ Announce the situation and plan in one paragraph, then **immediately continue** 
 
 Nothing exists. Start from zero.
 
-### 1. Onboard — HARD GATE
+### 1. Map the project — HARD GATE
 
 **STOP. Before writing any code or creating any files:**
 
 ```
-Read: .claude/skills/helpmetest/modes/onboard.md
+Read: modes/discover.md
 ```
 
-Run every phase of onboard.md. Do not interpret "onboard" as "scaffold a Vite project". Onboard means:
-1. Write `HELPMETEST.md`
-2. Create `ProjectOverview`, `Persona`, `Feature` artifacts via `helpmetest artifact upsert`
+Map the project into artifacts first. That means:
+1. Create `ProjectOverview`, `Persona`, `Feature` artifacts via `helpmetest artifact upsert`
+   — fetch `helpmetest artifact schema <Type>` before each type's first upsert
+2. Create the `Tasks` artifact (`tasks-<slug>`) that carries the roadmap
 3. Set up test runner config files ONLY (`package.json`, `vitest.config.ts`, `src/test/setup.ts`)
 4. **No `src/App.tsx`, `src/main.tsx`, `index.html`, or any application source file**
 
-You are not done with onboard until:
-- `HELPMETEST.md` exists
-- `helpmetest artifact list` shows a `ProjectOverview`, at least one `Persona`, at least one `Feature`
+You are not done with this gate until:
+- `helpmetest artifact list --tags "project:<slug>"` shows a `ProjectOverview`, at least
+  one `Persona`, and at least one `Feature`
+- `tasks-<slug>` exists
 - `npm test -- --run` exits with "No test files found"
 
-**When onboard Phase 8 completes: do not yield. Immediately continue to §2.**
+**When the mapping gate is satisfied: do not yield. Immediately continue to §2.**
 
 ### 2. Write tests RED (via `tdd` mode)
-Load `modes/tdd.md` immediately after onboard. Follow "I need to build something". Write ALL tests for every Feature artifact scenario. Every test must fail — no app code exists yet. That is correct.
+Load `modes/tdd.md` immediately after the mapping gate. Follow "I need to build something". Write ALL tests for every Feature artifact scenario. Every test must fail — no app code exists yet. That is correct.
 
 **Do not write a single line of application code until every test exists and is confirmed failing.**
 
@@ -193,4 +203,4 @@ Create at the start of every `dev` session:
 }
 ```
 
-Omit phases that don't apply (e.g. no onboard for an existing project, no discover if scope is tiny). Track subtasks per `modes/agent.md`.
+Omit phases that don't apply (e.g. no mapping gate for an already-mapped project, no discover if scope is tiny). Track subtasks per `modes/agent.md`.

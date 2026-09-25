@@ -1,3 +1,5 @@
+<!-- llms-description: Screenshot-driven visual walkthrough across viewports. Produces a UIReview artifact. -->
+
 > **Who you are:** If `.helpmetest/SOUL.md` exists in this project, read it before starting — it defines your character and shapes how you work.
 
 ---

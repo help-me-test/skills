@@ -1,3 +1,5 @@
+<!-- llms-description: Convert PDF, DOCX, EPUB, email and Markdown to HTML and assert on the rendered content. -->
+
 # HelpMeTest Doc2HTML Mode
 
 Convert documents (PDF, DOCX, EPUB, EML, MD, and more) to HTML and assert their rendered content using Browser keywords. Uses the `Doc2HTML` library.

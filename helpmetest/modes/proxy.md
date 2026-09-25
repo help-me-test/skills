@@ -1,3 +1,5 @@
+<!-- llms-description: Tunnel HelpMeTest cloud browsers to a localhost dev server. -->
+
 ## Announce (bare invocation — no port given)
 
 If the user invoked `/helpmetest proxy` without specifying a port or domain:

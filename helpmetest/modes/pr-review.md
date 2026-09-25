@@ -1,3 +1,5 @@
+<!-- llms-description: Branch diff to annotation map to coverage gap report. No test runs. -->
+
 # Mode: pr-review
 
 Gap analysis for a branch before merge. Reads the diff, maps changed files to test coverage via `@helpmetest` annotations, and flags files with no coverage as gaps. **Does NOT run tests** — this is analysis only.

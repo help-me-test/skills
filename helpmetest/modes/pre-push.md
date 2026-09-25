@@ -1,3 +1,5 @@
+<!-- llms-description: Run all priority:critical tests plus annotation-covered changed files, then BLOCKED or CLEAR TO PUSH. -->
+
 # Mode: pre-push
 
 Runs the minimum set of tests needed to gate a push: all `priority:critical` tests plus tests covering files changed since the last push. Binary output — BLOCKED or CLEAR TO PUSH. Does NOT push, does NOT fix anything.

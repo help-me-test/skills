@@ -1,3 +1,5 @@
+<!-- llms-description: Mac and Linux native desktop app automation via Appium (mac2 / atspi2). -->
+
 # HelpMeTest Desktop Mode
 
 Test Mac and Linux native desktop apps using the `Desktop` library (Appium mac2 / atspi2 drivers). **Desktop = Mac + Linux only** — for Android/iOS use `mobile` mode.

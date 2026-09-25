@@ -1,3 +1,5 @@
+<!-- llms-description: Audit all tests against the quality rules, then rewrite and re-run each failing test in place. -->
+
 # Mode: improve — audit and rewrite all tests to quality standard
 
 **What this mode does:** list every test in scope, run `validate` on each one to score it against R1–R13, then immediately fix every failing rule in-place. Unlike `validate` which only critiques, `improve` does the work. It also applies two additional style passes (comment structure and inline comments) that validate does not cover.

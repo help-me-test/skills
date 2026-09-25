@@ -24,10 +24,9 @@ Installs as a single skill (`helpmetest`) with 27 internal modes. Your AI agent 
 
 ## Modes (27)
 
-- **onboard** — new project setup: interview, explore, create all foundational artifacts, write HELPMETEST.md
+- **agency** (bare `/helpmetest`) — the brain, and the default. Reads the project, probes it live, reports what it found, asks one question about intent, then prescribes the work and dispatches the other modes as doers. New projects start here.
 - **discover** — map what exists into Feature artifacts, whether the source is a live app, PRD, API spec, tickets, or codebase
 - **tdd** — test-first development: plan coverage → write all tests (they fail) → implement until green
-- **full-qa** (bare `/helpmetest`) — full QA pass: discover pages, set up auth, enumerate features, generate and run tests, report bugs
 - **fix-tests** — everything wrong with your tests: one broken, suite broken, stale after refactor, or quality review. Detects the situation, picks the mode.
 - **ui-review** — visual inspection from a quick "does this look right?" to a full UX audit across all pages and viewports. Always produces a UIReview artifact.
 - **api-testing** — test REST endpoints via authenticated browser session
@@ -37,10 +36,10 @@ Installs as a single skill (`helpmetest`) with 27 internal modes. Your AI agent 
 ## Which mode to use
 
 ```
-NEW PROJECT              → /helpmetest onboard
+NEW PROJECT              → /helpmetest            (bare — the brain maps it and prescribes)
+ANYTHING, UNSURE         → /helpmetest            (same: it diagnoses before it asks)
 HAVE SPECS / LIVE APP    → /helpmetest discover
 WRITING CODE / TESTS     → /helpmetest tdd
-FULL QA PASS             → /helpmetest
 TESTS BROKEN / STALE     → /helpmetest fix-tests
 VISUAL QUESTION          → /helpmetest ui-review
 API TESTING              → /helpmetest api-testing

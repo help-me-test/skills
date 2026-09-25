@@ -1,3 +1,5 @@
+<!-- llms-description: Diagnose a failing test — selector, timing, auth or backend — and repair it. -->
+
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 ---

@@ -1,3 +1,5 @@
+<!-- llms-description: Given changed files, run only the tests those changes affect. -->
+
 # Mode: regression — change-targeted testing
 
 **What this mode does:** given a list of changed source files, find tests that cover those files (via `@helpmetest` annotations or explicit Feature artifact links), run them, report pass/fail. Bounded by the blast radius of the change — faster than a full run, focused on what actually could have broken.

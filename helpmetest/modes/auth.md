@@ -1,3 +1,5 @@
+<!-- llms-description: Save As / As session management — establish auth once and reuse it across tests. Also 2FA/TOTP and secrets. -->
+
 # HelpMeTest Auth Mode
 
 Set up and reuse browser session state in Robot Framework tests using the `HelpMeTest` library. Establish auth once in Suite Setup, reuse with `As` in every test case — never re-login inside individual tests.

@@ -1,3 +1,5 @@
+<!-- llms-description: Android and iOS real-device testing via appium-device-farm. -->
+
 # HelpMeTest Mobile Mode
 
 Test Android and iOS apps on real devices via the `Mobile` library (appium-device-farm). Write, push, and run mobile tests using Robot Framework keywords.

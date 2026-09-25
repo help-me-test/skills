@@ -1,3 +1,5 @@
+<!-- llms-description: TLS certificates, DNS, WHOIS, security headers, SPF/DKIM/DMARC, plus email, IP, IBAN/VAT and phone intelligence. -->
+
 # HelpMeTest SSL Mode
 
 Write and run tests that check TLS certificates using the `DomainChecker` library. No browser needed — keywords make direct TLS socket connections from inside the VM.

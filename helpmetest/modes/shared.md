@@ -1,3 +1,5 @@
+<!-- llms-description: Rules that apply to every HelpMeTest workflow. Always loaded, never invoked directly. -->
+
 # Shared context — read this before entering any mode
 
 These rules apply to every HelpMeTest workflow. Load this once; every mode assumes it.
@@ -42,6 +44,13 @@ Never assume the project is empty. Never create what already exists.
 ## 1b. Present before acting — mandatory, every mode, every invocation
 
 After orient, before any tool call, present to the user. This is not optional narration — it is the moment the user decides whether to redirect.
+
+**Exception — the `agency` mode.** Bare `/helpmetest` runs `modes/agency.md`, which has
+its own shape for this moment: a statement of what it found, then one lettered intent
+question with an escape hatch, capped at three levels. That wins for that mode. The rule
+below is for doers invoked directly by a human (`/helpmetest tdd`, `/helpmetest ui`),
+where a binary scope choice is the right size of question. A doer spawned by the brain
+with a brief presents nothing and asks nothing — see §13.
 
 **Format — three things, in this order:**
 1. **What the user will have after this** — one sentence in user-value terms, not agent-action terms
@@ -189,7 +198,24 @@ The enclosing `Tasks` artifact (from modes/agent.md lifecycle) is the **lifecycl
 
 Every artifact inherits `links: List[str]` at its content root. Populate this on every artifact you create. List every parent/source/sibling artifact id that matters: the enclosing Tasks artifact, each Feature artifact you scanned, the ProjectOverview you derived from, etc.
 
-**Write only one side.** The server resolves edges in both directions automatically. If `CoverageReport.links = [tasks-abc, feature-x, feature-y]`, the Tasks artifact detail page will show the CoverageReport as a linked chip without you patching `Tasks.links`. Don't do redundant upserts on the parent.
+**Write both sides.** `links[]` is undirected in intent but *not* auto-resolved by the
+server. This rule previously said the opposite — "write only one side, the server
+resolves edges in both directions automatically" — which directly contradicted the live
+`helpmetest artifact schema Tasks` output ("Undirected — if A points at B, B should also
+point at A. Agents must populate both sides.").
+
+Settled empirically on 2026-09-25 rather than by picking the nicer-sounding source.
+Controlled test: created a fresh `Tasks` artifact whose `links` contained exactly one
+entry, `quill-notes`, and wrote nothing into `quill-notes` itself.
+
+```
+quill-notes.links BEFORE: ['tasks-quill-notes', 'feature-capture-note-quill-notes']
+quill-notes.links AFTER : ['tasks-quill-notes', 'feature-capture-note-quill-notes']
+reciprocal auto-created : False
+```
+
+So a one-sided link is simply a missing edge from the other artifact's point of view.
+Patch both, or accept that navigation only works in one direction.
 
 The one exception: if a long-lived artifact (Feature, ProjectOverview) genuinely points FORWARD to something new you created — e.g. you added a scenario to a Feature and want that feature to list the new test — update that artifact's own content (its scenarios[].test_ids, for example), not its `links[]`. `links[]` is for cross-artifact navigation, not for relational data inside the artifact.
 
@@ -251,3 +277,78 @@ This applies to all work, not just QA: writing a feature, debugging a bug, revie
 - Something looks broken → open it, look at Network for 4xx/5xx, look at the page state
 
 The Interactive section of every response lists ready-to-paste RF commands for every element on the page. Use those — don't invent selectors.
+
+---
+
+## 13. The brief — how the brain hands work to a doer
+
+Bare `/helpmetest` runs `modes/agency.md`, the brain. Every other mode in this skill is a
+**doer**. The brain talks to the human; doers do not.
+
+### If you are a doer, you were given a brief
+
+**Proceed on it. Never ask the human anything.** You were not spawned into a conversation
+— there is no human reading your output in real time, so a question from you is not a
+question, it is a hang.
+
+A brief has exactly these fields:
+
+| Field | What it is |
+|---|---|
+| `goal` | One sentence. What is true when this is finished. |
+| `surface` | web / api / mobile / desktop / email / documents / domain / localhost / ci / monitoring |
+| `target` | The URL, endpoint, package path, or domain you are working against. |
+| `tasks` | The `Tasks` artifact id plus the task numbers you own — e.g. `tasks-acme`, tasks `3.1`–`3.4`. |
+| `artifacts` | Related artifact ids you should read first (ProjectOverview, Features, Personas). |
+| `constraints` | Anything you must not assume, plus known quirks (auth state name, selectors, timing). |
+| `done` | Observable definition of done. A command and its expected result, not a feeling. |
+| `do_not_touch` | Files, tests, or task numbers owned by someone else. |
+
+### If you are blocked, report to the brain — never to the user
+
+Genuinely blocked means: a credential you cannot find, a target that does not respond, a
+contradiction between the brief and what you observe, or a destructive action you are not
+authorised to take. Retrying differently is not blocked.
+
+When blocked, write the blocker into your own task in the `Tasks` artifact and return:
+
+```bash
+helpmetest artifact upsert --id tasks-<slug> \
+  --content '{"tasks.N.status": "blocked", "tasks.N.notes": "<what you tried, what happened, what you need>"}'
+```
+
+Then hand it back to the brain. **The human talks to one entity only** — that is the
+entire point of this arrangement, and a doer that addresses the user directly breaks it.
+
+Two ways to hand back, and the cheap one is usually right:
+
+- **Ask the brain and wait**, over whatever messaging the harness gives you, when a
+  one-line ruling unblocks you. A real run hit exactly this: `test create` hard-requires
+  a `feature:<id>` tag naming an **existing** Feature artifact, and creating one was
+  forbidden by its brief's `do_not_touch`. It proposed a tenancy-safe id and asked. One
+  round trip, brief amended, work continued. Respawning would have cost far more.
+- **Write `blocked` and return** when the answer is not a one-liner, when the brain is
+  gone, or when the blocker needs to survive this session — a missing credential, a dead
+  target, a destructive action nobody authorised.
+
+Either way the blocker is *recorded*, not just spoken: if you asked and got unblocked,
+say so in `tasks.N.notes` too. A ruling that exists only in a chat message is lost the
+moment the process exits.
+
+### If you are the brain, these are your obligations
+
+**Write the `Tasks` artifact before spawning anything.** It is both the roadmap and the
+handoff medium. A doer spawned before the artifact exists has nothing to read, nothing to
+update, and no way to report a blocker. Fetch `helpmetest artifact schema Tasks` first
+(per §9 and `agency.md` rule 2), then upsert, then spawn.
+
+**Own the shared boundary.** Independent surfaces run in parallel — a web doer and an API
+doer have no reason to wait for each other. But two doers must never hold the same task
+range in the same `Tasks` artifact, or write tests with the same names. You assign those
+ranges; nobody negotiates them at runtime.
+
+**Refuse to advance a stage while tests are red.** This is the only enforcement in the
+system — there is deliberately no git hook. Before moving from tests-written to
+implementation, and again from implementation to done, run the tests yourself and read
+the result. A doer's claim that something passes is not a result; a test run with output
+is. Red means the stage does not advance, and you say so plainly.

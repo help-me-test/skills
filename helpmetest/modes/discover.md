@@ -1,3 +1,5 @@
+<!-- llms-description: Map a live app, PRD, API spec, tickets or codebase into Feature artifacts. Also fast bug-triage sweeps. -->
+
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 ---
@@ -536,7 +538,7 @@ Common keyword mistakes (these will error — use the right-hand side):
 ### Auth First
 
 ```
-how_to({ type: "authentication_state_management" })
+Read: modes/auth.md
 ```
 
 Check for existing Persona artifacts. If none:

@@ -1,3 +1,5 @@
+<!-- llms-description: Write tests scenario by scenario — create, run, fix, next. The test is the spec. -->
+
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
 ---

@@ -1,3 +1,5 @@
+<!-- llms-description: Read-only project health diagnosis across test stability, coverage, sync and drift. -->
+
 # Mode: report — project health diagnosis
 
 Read-only, layered diagnosis of the current project's HelpMeTest state across 9 phases: triage, auth, tests (with 10-run history + aggregated errors), sync, coverage, code↔test linkage, bugs, artifacts, drift. Produces a tiered 🔴/🟠/🟡 report and ends by asking the user a single binary question that walks them from "what's broken" to "the highest-leverage fix is X — start there?"

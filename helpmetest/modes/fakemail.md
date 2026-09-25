@@ -1,3 +1,5 @@
+<!-- llms-description: Disposable email addresses for signup, verification codes, password reset and attachments. -->
+
 # HelpMeTest FakeMail Mode
 
 Test email flows using the `FakeMail` library — disposable email addresses, verification codes, magic links, attachments. Always clean up after tests.

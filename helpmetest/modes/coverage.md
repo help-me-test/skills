@@ -1,3 +1,5 @@
+<!-- llms-description: Gap analysis: which Feature scenarios have no tests, and which tests are orphans. -->
+
 # Mode: coverage — gap analysis
 
 **What this mode does:** read every Feature artifact and every test, produce the coverage matrix, flag the gaps. No test runs, no browser automation — this is pure analysis that answers "what isn't tested?"

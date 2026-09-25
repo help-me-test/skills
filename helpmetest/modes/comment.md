@@ -1,3 +1,5 @@
+<!-- llms-description: Rewrite test comments only: group per-line narration into intent-based section headings. -->
+
 # Mode: comment — rewrite test comments to quality standard
 
 **What this mode does:** audit every comment in a test (or set of tests) and rewrite them so the test reads as a coherent narrative — grouped by intent, written for a reader who understands the product but not the implementation.

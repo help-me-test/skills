@@ -1,3 +1,5 @@
+<!-- llms-description: Run all Feature tests, mark broken ones, discover new URLs and create stub Features. -->
+
 # Mode: nightly
 
 Scheduled health check. Does two things: (1) runs tests for all existing Features and marks broken ones, (2) discovers new URLs in test tags that have no Feature artifact yet and creates stub Features for them. Run on a schedule or manually to keep the artifact library fresh.
@@ -12,7 +14,7 @@ helpmetest artifact list --type Tasks
 
 Check auth state before anything:
 ```
-how_to({ type: "authentication_state_management" })
+Read: modes/auth.md
 ```
 
 You need a valid auth state (`As <StateName>`) for the discovery sub-flow. If none exists, skip Step 3 and note it in the summary.

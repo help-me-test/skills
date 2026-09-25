@@ -1,3 +1,5 @@
+<!-- llms-description: git diff to @helpmetest annotations to affected test runs to a verdict. -->
+
 # Mode: change-impact
 
 Maps a git diff to the tests that cover the changed code. Runs only those tests. Reports coverage gaps for changed files with no `@helpmetest` annotation. Read-and-run — does NOT modify code, tests, or artifacts.
