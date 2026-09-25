@@ -129,6 +129,15 @@ Each bubble is read in isolation — a reviewer scrolling the page does not read
 ## Preflight — must be true before any action
 
 1. **Tasks artifact exists.** Before reading a test, running a command, or writing any code: create (or resume) a `Tasks` artifact. This is not optional for any mode reachable from `/helpmetest` — see "Tasks artifact — full schema" below. A run with no Tasks artifact has no durable receipt; narration alone disappears once the chat scrolls.
+
+   **Exception — the `agency` mode (bare `/helpmetest`) probes first.** `agency.md`
+   Phase 3 makes creating any artifact before a probe has produced real output a *failure
+   condition*, because an artifact written before you have looked is fiction, and every
+   run that wrote one had to rewrite it once the probe contradicted it. For that mode the
+   order is: orient → probe → *then* the `Tasks` artifact, before any doer is spawned.
+   The receipt still exists before any work is delegated, which is what this rule is
+   actually protecting. A live run flagged these two instructions as directly conflicting;
+   this is the resolution.
 2. **Orient.** `helpmetest status`, `helpmetest artifact list` — know what already exists before creating anything new.
 3. **Open the run.** First line of output after orientation: state what you understood the task to be, and print `[link]` to the Tasks artifact you just created/resumed.
 4. **Post the plan.** For any task with 2+ steps, print a numbered checklist to stdout matching the Tasks artifact's top-level tasks — the two must stay in sync, not diverge into separate lists.
