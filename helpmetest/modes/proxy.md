@@ -4,9 +4,23 @@
 
 If the user invoked `/helpmetest proxy` without specifying a port or domain:
 
+**Derive the port before you ask for it.** Check, in order: the manifest's dev/start
+script (`"dev": "vite --port 5173"`, `python3 -m http.server 4321`), `.env`
+(`PORT`, `VITE_PORT`), `docker-compose.yml` / `Dockerfile` `ports:`/`EXPOSE`, then a
+running process on a common port. A real run found the port sitting in `package.json`
+while this file was telling it to ask — which violates the brain's core rule that a
+question about a fact is an admission you didn't look.
+
+If you derived it, say so and proceed:
+
+> "Your dev server is on port 4321 (from `package.json`'s `dev` script). Tunnelling it so
+> the cloud runner can reach your local code as if it were deployed."
+
+Only if it genuinely isn't discoverable, ask once:
+
 > "After this your local dev server will be reachable by HelpMeTest's test runner — so every test you write can hit your local code as if it were deployed. What port is it running on? (e.g. 3000, 5173, 8080)"
 
-Once you have the port, set up the tunnel, verify it with an interactive command, and confirm it works before the user writes any tests.
+Then set up the tunnel, verify it with an interactive command, and confirm it works before the user writes any tests.
 
 **If port is given upfront:** skip the question, go straight to setup + verification, then report:
 > "Tunnel is live on `dev.local`. I verified it with a `Go To` — your app loaded. You can now write tests using `http://dev.local` as the URL."
@@ -37,22 +51,38 @@ HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:
 
 **The proxied URL (e.g. http://dev.local) is NOT accessible from your local browser or curl.** It only works inside HelpMeTest test commands (`Go To`, `helpmetest interactive`, etc.).
 
-## ❌ The #1 Mistake — Using localhost in test URLs
+## ❌ The #1 Mistake — a test URL the tunnel does not cover
 
-Setting up the proxy and then using `localhost` in tests accomplishes nothing. The cloud runner cannot reach localhost.
+The cloud runner cannot reach your machine on its own. It reaches whatever **domain and
+external port you registered**, and nothing else. So the rule is not "never use
+localhost" — it is "the URL in the test must be the one you tunnelled".
 
-```robot
-# WRONG — cloud runner can't reach localhost, proxy is useless
-Go To  http://localhost:3000
+`helpmetest proxy start --help` is authoritative here, and it documents localhost
+explicitly:
 
-# WRONG — same problem
-Go To  http://127.0.0.1:3000
-
-# RIGHT — use the proxy domain you configured
-Go To  http://dev.local
+```
+$ helpmetest proxy start localhost:3001:3001   # tests access localhost:3001
+$ helpmetest proxy start :3000                 # tests hit localhost:3000 — they reach your machine
 ```
 
-**After starting the proxy, every test URL must use the proxy domain, not localhost.**
+An earlier version of this file said using `localhost` in tests "accomplishes nothing".
+That is wrong, and a real run caught the contradiction against the CLI's own help. If you
+registered a localhost tunnel, a `localhost` URL is correct.
+
+```robot
+# RIGHT — you ran: helpmetest proxy start dev.local:80:3000
+Go To  http://dev.local
+
+# RIGHT — you ran: helpmetest proxy start :3000
+Go To  http://localhost:3000
+
+# WRONG — you tunnelled dev.local, then asked for a host nothing forwards
+Go To  http://localhost:3000
+```
+
+**Every test URL must match the tunnel you actually registered.** Check with
+`helpmetest proxy list` if you are unsure — note it displays the *external* port, not the
+source port.
 
 ## ⚠️ Service must be reachable from the proxy
 

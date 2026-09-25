@@ -60,6 +60,20 @@ present, concluded "HelpMeTest is already set up for this project", and reported
 unrelated project's test counts as this project's status. The only thing that proves this
 project has been mapped is a scoped artifact lookup returning this project's artifacts.
 
+**And a scoped lookup is not self-validating.** Artifacts stored under *your own* slug can
+still describe a different application — a previous engagement may have mapped the slug
+onto the wrong target, and its tests can be green against software you do not own. This
+happened for real: a run found a `ProjectOverview` for its slug claiming
+`url: https://todo.playground.helpmetest.com`, with two passing tests and a recorded
+conclusion of "no product bug found". Probing that URL returned a TodoMVC app whose every
+selector was absent from the local `index.html`; the local app had two real bugs,
+including the exact one the green test claimed was guarded.
+
+So treat a stored `url` as a **claim to verify, not a fact**: fetch it, and compare what
+comes back — title, headings, the selectors that matter — against the code in front of
+you. If they disagree, the artifacts are wrong and the local code wins. Say so plainly,
+and do not build on the stale mapping.
+
 **4. Artifact ids are `<kind>-<slug>`, tagged `project:<slug>`, never bare.**
 `project-overview` and `tasks-onboarding` as literal ids clobbered a different project in
 a shared workspace. Every id you write carries the slug.

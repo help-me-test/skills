@@ -85,10 +85,12 @@ Load these files in this order, always:
 2. `modes/agent.md` — Tasks-artifact lifecycle (the accountability contract — read every time, not optional)
 3. `modes/<mode>.md` — the mode-specific workflow
 
-For `agency` (bare `/helpmetest`): load `modes/agency.md` only. It decides which doers to
-run from what it finds — it does not pre-load them, because loading `discover` + `tdd` +
-`fix` up front is the old `full-qa` behaviour of committing to a plan before looking at
-the project. The brain dispatches doers after the first probe, not before.
+For `agency` (bare `/helpmetest`), that is exactly three files: `shared.md`, `agent.md`,
+and `agency.md`. **Do not additionally pre-load the doer modes** (`discover`, `tdd`,
+`fix`) — that was the old `full-qa` behaviour of committing to a plan before looking at
+the project. The brain loads a doer's mode file when it dispatches that doer, after the
+first probe. (An earlier draft of this paragraph said "load `modes/agency.md` only",
+which contradicted the numbered list above; a real run flagged it as unsatisfiable.)
 
 These files live next to this SKILL.md. Use the `Read` tool with relative paths:
 
