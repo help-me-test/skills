@@ -16,8 +16,9 @@ Click    css=button[type="submit"]
 # request screenshot via CLI to inspect error state
 # ASSERT: error messages appeared, form not submitted
 
-# Long input (500+ chars)
-${long}=    Evaluate    'a' * 500
+# Long input (500+ chars). `Evaluate` is BANNED by the platform validator — it rejects the
+# whole run with "'Evaluate' is not allowed — it executes arbitrary Python expressions."
+${long}=    Javascript    'a'.repeat(500)
 Fill Text    css=#name    ${long}
 # request screenshot — ASSERT: layout not broken, text truncated or scrolled, no crash
 
@@ -25,7 +26,7 @@ Fill Text    css=#name    ${long}
 Fill Text    css=#name    <script>alert('xss')</script>
 Fill Text    css=#email    '; DROP TABLE users;--
 Click    css=button[type="submit"]
-${body}=    Get Text    body
+${body}=    Browser.Get Text    body
 Should Not Contain    ${body}    <script>
 # ASSERT: input sanitized, no raw HTML rendered
 
@@ -99,7 +100,7 @@ Should Be Equal    ${url_back}    ${url_before}
 # Empty list state
 Go To    ${BASE_URL}/items
 Wait For Load State    networkidle
-${body}=    Get Text    css=main
+${body}=    Browser.Get Text    css=main
 Should Not Be Empty    ${body}
 # request screenshot — ASSERT: designed message + CTA visible, not blank space
 
@@ -127,7 +128,7 @@ Click    css=body
 
 # Tab once and check what's focused
 Keyboard Key    press    Tab
-${focused}=    Evaluate    JSON.stringify({tag:document.activeElement?.tagName,text:document.activeElement?.textContent?.trim().slice(0,40),role:document.activeElement?.getAttribute('role'),hasFocusRing:(()=>{const s=window.getComputedStyle(document.activeElement);return s.outlineStyle!=='none'||s.boxShadow!=='none';})()})
+${focused}=    Javascript    JSON.stringify({tag:document.activeElement?.tagName,text:document.activeElement?.textContent?.trim().slice(0,40),role:document.activeElement?.getAttribute('role'),hasFocusRing:(()=>{const s=window.getComputedStyle(document.activeElement);return s.outlineStyle!=='none'||s.boxShadow!=='none';})()})
 Log    ${focused}
 # request screenshot — ASSERT: hasFocusRing=true, element is interactive (not BODY, not DIV)
 
@@ -146,17 +147,32 @@ Keyboard Key    press    Enter
 ```robot
 # Set some state (e.g. add item, change setting)
 Fill Text    css=.new-todo    Buy milk
-Keyboard Key    press    Enter
+Press Keys    css=.new-todo    Enter
+
+# Prove the state was actually created BEFORE reloading.
+# Without this line a broken "add" makes the whole test pass on 0 == 0.
 ${count_before}=    Get Element Count    css=.todo-item
+Should Be Equal As Integers    ${count_before}    1
 
 # Reload
 Reload
 Wait For Load State    networkidle
 
 ${count_after}=    Get Element Count    css=.todo-item
-Should Be Equal As Integers    ${count_before}    ${count_after}
+Should Be Equal As Integers    ${count_after}    ${count_before}
 # ASSERT: data persisted across reload
 ```
+
+> **Two traps this recipe used to contain, both real.**
+>
+> **1. `Keyboard Key  press  Enter` after `Fill Text` does nothing, and still reports `✓`.**
+> Measured on `todo.playground.helpmetest.com`, 2026-09-25:
+> `Fill Text  input.new-todo  X` → `Keyboard Key  press  Enter` → `Get Element Count  ul.todo-list li` = **0**, with both keywords green.
+> The same sequence using `Press Keys  input.new-todo  Enter` = **1**. Adding `Click  input.new-todo` before the `Keyboard Key` also = **1**.
+> Cause: `Fill Text` does not leave the element focused, and `Keyboard Key` is page-level, not element-targeted — the key reaches nothing. Use the element-targeted `Press Keys  <selector>  Enter` for committing a form field. Reserve `Keyboard Key` for genuinely page-level keys (Escape, Tab) where focus is the thing under test.
+>
+> **2. Comparing before to after, with nothing asserting before is non-zero.**
+> `Should Be Equal As Integers  ${count_before}  ${count_after}` is satisfied by `0 == 0`. Combined with trap 1, the original recipe passed while proving that an item which was never created stayed not-created. Always pin the pre-state to a literal.
 
 ---
 
@@ -184,7 +200,7 @@ Wait For Load State    networkidle
 ## Copy quality scan
 
 ```robot
-${hits}=    Evaluate    (()=>{const t=document.body.innerText;const bad=['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'];const found=bad.filter(p=>t.toLowerCase().includes(p.toLowerCase()));return found.length?JSON.stringify(found):'clean';})()
+${hits}=    Javascript    (()=>{const t=document.body.innerText;const bad=['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'];const found=bad.filter(p=>t.toLowerCase().includes(p.toLowerCase()));return found.length?JSON.stringify(found):'clean';})()
 Should Be Equal    ${hits}    clean
 # ASSERT: no leaked debug values or placeholder text visible to users
 ```

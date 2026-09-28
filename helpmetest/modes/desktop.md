@@ -46,7 +46,11 @@ Element Should Be Visible        locator
 
 ## Example test
 
-```robotframework
+> **Format note.** The block below shows the keyword sequence. `test create --content`
+> takes bare keywords, no `*** Settings ***` and no `Library` line — see
+> `modes/shared.md` §3f.
+
+```text
 *** Settings ***
 Library    Desktop
 

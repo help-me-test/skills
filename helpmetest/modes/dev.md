@@ -187,8 +187,10 @@ Create at the start of every `dev` session:
 ```json
 {
   "type": "Tasks",
-  "name": "Tasks: dev — [what you're building]",
+  "name": "dev — [what you're building]",
   "content": {
+    "name": "dev — [what you're building]",
+    "description": "[one paragraph: what this delivers and why it matters]",
     "overview": "What this implements and why",
     "tasks": [
       { "id": "1.0", "title": "Onboard / Feature artifact", "status": "pending", "priority": "critical" },

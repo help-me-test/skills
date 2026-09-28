@@ -8,8 +8,8 @@ Scheduled health check. Does two things: (1) runs tests for all existing Feature
 
 ```bash
 helpmetest status
-helpmetest artifact list
-helpmetest artifact list --type Tasks
+helpmetest artifact list --tags "project:<slug>"                # scoped — a bare list spans every project
+helpmetest artifact list --type Tasks --tags "project:<slug>"
 ```
 
 Check auth state before anything:
@@ -46,7 +46,7 @@ Nightly has no scope ambiguity — proceed immediately after presenting the plan
 
 1. From `helpmetest artifact list --type Feature`, collect all Feature artifact IDs
 2. For each Feature, call `helpmetest artifact get <feature-id>` to read its scenarios
-3. Collect all test IDs from `scenarios[].test_ids` across all features
+3. Collect all test IDs from `functional[].test_ids`, `edge_cases[].test_ids` and `non_functional[].test_ids` — **there is no top-level `scenarios` array** (verified against `artifact schema Feature`, 2026-09-25; a Feature's scenario lists are those three fields)
 4. For each test ID, call `helpmetest test run <test-id>` to get a fresh result
 
 Classify each Feature after running its tests:
@@ -101,12 +101,13 @@ For each URL found:
     "id": "feature-stub-<slug>",
     "name": "<Page Title> (stub)",
     "content": {
+      "name": "<Page Title> (stub)",
+      "description": "Page found by the nightly crawl with no Feature covering it.",
       "goal": "Discovered via nightly — needs full discovery pass",
-      "source": "nightly",
       "status": "untested",
       "functional": [],
       "edge_cases": [],
-      "gaps": ["Full discovery needed — run /helpmetest discover on this URL"],
+      "notes": ["Created by nightly", "Full discovery needed — run /helpmetest discover on this URL"],
       "bugs": []
     }
   }
@@ -123,6 +124,8 @@ Produce a `Tasks` artifact as the run receipt (use `helpmetest artifact schema T
   "type": "Tasks",
   "id": "nightly-<date>",
   "content": {
+    "name": "Nightly audit — <date>",
+    "description": "Ran every Feature's tests, marked broken ones, created stubs for uncovered URLs.",
     "overview": "Nightly audit — <date>",
     "tasks": [
       { "id": "1.0", "title": "Health check", "status": "done",

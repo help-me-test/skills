@@ -138,14 +138,14 @@ Each bubble is read in isolation — a reviewer scrolling the page does not read
    The receipt still exists before any work is delegated, which is what this rule is
    actually protecting. A live run flagged these two instructions as directly conflicting;
    this is the resolution.
-2. **Orient.** `helpmetest status`, `helpmetest artifact list` — know what already exists before creating anything new.
+2. **Orient.** `helpmetest status`, `helpmetest artifact list --tags "project:<slug>"` — know what already exists before creating anything new. **Scope the list**: bare `artifact list` returns every project in a shared workspace, and a run once adopted a stranger's project because of it (`agency.md` rule 1).
 3. **Open the run.** First line of output after orientation: state what you understood the task to be, and print `[link]` to the Tasks artifact you just created/resumed.
 4. **Post the plan.** For any task with 2+ steps, print a numbered checklist to stdout matching the Tasks artifact's top-level tasks — the two must stay in sync, not diverge into separate lists.
 
 ## The loop
 
 ```
-1.  Orient   → helpmetest status, helpmetest artifact list (check what already exists)
+1.  Orient   → helpmetest status, helpmetest artifact list --tags "project:<slug>"
             print [phase] line  (announce understanding of the task)
 2.  Plan     → decompose into 3–8 concrete steps; create/resume the Tasks artifact with one subtask per step
             print numbered checklist to stdout
@@ -254,10 +254,47 @@ The shape of a well-structured initial artifact:
     ],
     "notes": [
       "<constraint, gotcha, or rule the future reader should know>"
-    ]
+    ],
+    "deliverables": [],
+    "summary": null
   }
 }
 ```
+
+**Verified 2026-09-25** against `helpmetest artifact schema Tasks --json`: every field above
+is real, content requires exactly `name` and `description`, `Task` and `Subtask` each
+require `id` and `title`, and `RelevantFile` requires `path` and `description`. Unlike the
+`Memory` and `TestValidation` shapes in `references/cli-contracts.md`, this one had not
+drifted.
+
+**Re-verified 2026-09-26**, all four claims still exact: content requires `["name",
+"description"]`; `Task` and `Subtask` both require `["id","title"]`; `RelevantFile`
+requires `["path","description"]`. `Task.status` is an enum —
+`pending | in_progress | done | blocked | cancelled` — so every status this file tells you
+to write is valid.
+
+**One asymmetry the template does not show: `priority` exists on `Task`, not on
+`Subtask`.** Task props are `id, title, description, status, priority, subtasks, notes`;
+Subtask props are `id, title, description, status, notes`. Copying a task's shape down into
+a subtask is rejected:
+
+```
+✗ 422: tasks.0.subtasks.0.priority
+  Extra inputs are not permitted [type=extra_forbidden, input_value='high']
+```
+
+Unknown fields are fatal here, not ignored (`shared.md` §9), so this costs a write.
+
+Two real fields this example previously omitted, both worth using:
+
+- **`deliverables`** — ids of the substantive artifacts this run *produced* (a
+  `CoverageReport`, a `UIReview`, a `Bug`). This is the link between a finished run and the
+  thing it yielded; without it a reader has the task list but no route to the output.
+- **`summary`** — a short closing paragraph: what got done, what changed. `null` until the
+  run ends. Distinct from `overview`, which states the intent up front and is written first.
+
+`notes` is an **array** at the top level, but `Task.notes` is a **string or null** — a task's
+per-item note is one string, not a list.
 
 Call: `helpmetest artifact upsert --id "<your id>" --type Tasks --name "<name>" --content '<json>'`.
 
@@ -268,16 +305,33 @@ Call: `helpmetest artifact upsert --id "<your id>" --type Tasks --name "<name>" 
 The `Tasks` artifact supports dot-notation partial updates. Use these, not full rewrites — they're atomic and don't clobber other fields. Legal paths:
 
 ```
-tasks.<i>.status                 = "in_progress" | "done" | "blocked" | "cancelled"
+tasks.<i>.status                 = "pending" | "in_progress" | "done" | "blocked" | "cancelled"
+tasks.<i>.priority               = "critical" | "high" | "medium" | "low" | null
 tasks.<i>.description            = "..."
-tasks.<i>.notes                  = "test id: abc123"
+tasks.<i>.notes                  = "test id: abc123"            (a string, not a list)
 tasks.<i>.subtasks.<j>.status    = ...
 tasks.<i>.subtasks.<j>.notes     = ...
 overview                         = "..."
-links              = ["feature-user-registration", ...]   (replaces full array)
-relevant_files                   = [...]                                (replaces full array)
-notes                            = [...]                                (replaces full array)
+summary                          = "..."                        (closing paragraph, written at the end)
+deliverables                     = ["coverage-report-acme", ...]  (replaces full array)
+links                            = ["feature-user-registration", ...]   (replaces full array)
+relevant_files                   = [...]                        (replaces full array)
+notes                            = [...]                        (replaces full array)
 ```
+
+**Append with `-1`.** `helpmetest artifact upsert --help` documents `"-1"` as the last path
+part to append to an array — so a task discovered mid-run is added without rewriting the
+list:
+
+```bash
+helpmetest artifact upsert --id "<your task artifact id>" \
+  --content '{"tasks.-1": {"id": "4.0", "title": "Fix the 404 the probe found", "status": "pending", "priority": "high"}}'
+```
+
+Verified 2026-09-25: `status` and `priority` enums are exactly as listed above (`status`
+defaults to `pending`, `priority` defaults to `null`), and patching by dot-notation is a
+documented CLI behaviour — *"Keys may be top-level ("description") or dot-notation
+("tasks.0.status")"*.
 
 **Start a subtask:**
 ```bash

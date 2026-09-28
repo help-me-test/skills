@@ -42,6 +42,32 @@ Response Status Should Be    200
 
 Never re-authenticate inside a test. Never manually copy tokens. The browser already has them.
 
+## `Fetch failed` from a verb keyword is usually transient — re-run before believing it
+
+Relative paths work. Measured 2026-09-26, and worth recording because the first
+measurement said the opposite:
+
+```
+✗ GET  /get        Error: Fetch failed: Failed to fetch      (twice, ~2 min apart)
+✓ GET  /get        {"status":200,…}                          (3/3, minutes later)
+✓ GET  get         {"status":200,…}
+✓ GET  /status/404 {"status":404,…}
+```
+
+The first two failures were real — one in an `interactive` session, one in a saved test
+that was created and run. Both looked like a definite defect, and a warning telling you to
+use absolute URLs everywhere was briefly written into this file on the strength of them.
+Then the identical call passed three times in a row.
+
+So: **a `Fetch failed: Failed to fetch` from `GET`/`POST`/etc. is not proof the path form
+is wrong.** Re-run it, and check the test's history (`helpmetest test view <id> --errors`)
+before changing a single example. See `shared.md` §1 — same rule, and this is the second
+time in one day it caught me.
+
+Verb signatures, verified the same day and unrelated to the above: `API.GET` takes 1–2
+arguments, `POST`/`PUT`/`PATCH` 1–3, `DELETE` 1–2, `CURL` exactly 1. Every example in this
+file fits.
+
 ## HTTP Verbs
 
 ### GET
@@ -55,6 +81,33 @@ Field Should Exist    url
 GET    /get    headers={"X-Custom-Header": "hello"}
 Field Should Exist    headers.X-Custom-Header
 ```
+
+**A relative path runs inside the current page, so the page you are on matters.** Measured
+2026-09-25, same host, same keyword:
+
+| landed on | `GET  /get` |
+|---|---|
+| `https://httpbin.playground.helpmetest.com/` (the Swagger UI page) | ✗ `Error: Fetch failed: Failed to fetch` |
+| `https://httpbin.playground.helpmetest.com/get` | ✓ `200` |
+| absolute `GET  https://httpbin.playground.helpmetest.com/get` from either page | ✓ `200` |
+
+I did not establish *why* the Swagger page blocks it — CSP and a service worker are both
+plausible and neither was confirmed. What is established: `Failed to fetch` after a
+successful `Go To` is **not** an API failure, it is the page refusing the request. Re-run it
+as an absolute URL before diagnosing the endpoint; if that works, the endpoint is fine and
+the page is the problem.
+
+**`Get Response Field` assumes JSON and reports a raw parser error when it is not.** A `GET`
+that returns HTML gives:
+
+```
+✗ Get Response Field  headers
+  SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+```
+
+The `GET` itself passed — the `content-type` in its output says `text/html`. Read the
+status/headers from the `GET`'s own output rather than assuming a field extraction failure
+means the request failed.
 
 ### POST
 
@@ -297,7 +350,12 @@ Log    ${body}
 
 The typical shape for testing any CRUD resource:
 
-```robot
+> **Format note.** The `*** Test Cases ***` blocks below show the keyword *sequence*, not
+> what you submit. `test create --content` takes bare keywords with `#` comment headings
+> and no indentation — see `modes/shared.md` §3f. Zero of the 143 tests in a live
+> workspace use a section header (measured 2026-09-25).
+
+```text
 *** Test Cases ***
 Create Read Update Delete User
     As    Admin
@@ -373,7 +431,7 @@ Test from the **consumer's perspective** — only assert what the consumer actua
 
 Use type placeholders to lock the shape without hardcoding values:
 
-```robot
+```text
 *** Test Cases ***
 User API contract — consumer perspective
     As    Admin
@@ -392,7 +450,7 @@ User API contract — consumer perspective
 
 ### Backward Compatibility: Fields Must Not Disappear
 
-```robot
+```text
 *** Test Cases ***
 GET /api/orders — backward compatibility
     As    User
@@ -413,7 +471,7 @@ GET /api/orders — backward compatibility
 
 Error responses have a contract too — clients parse them:
 
-```robot
+```text
 *** Test Cases ***
 Error responses follow contract
     As    User
@@ -435,7 +493,7 @@ Error responses follow contract
 
 ### Testing API Evolution (Adding Fields is Safe, Removing is Not)
 
-```robot
+```text
 *** Test Cases ***
 Adding optional field does not break existing consumers
     As    Admin
@@ -456,7 +514,7 @@ Adding optional field does not break existing consumers
 
 Test the full consumer workflow — not just individual endpoints:
 
-```robot
+```text
 *** Test Cases ***
 Checkout flow API contract
     As    User
@@ -495,7 +553,7 @@ Checkout flow API contract
 
 For services with an OpenAPI spec, validate responses against the schema to catch contract drift:
 
-```robot
+```text
 *** Test Cases ***
 GET /users — matches OpenAPI schema
     As    User
@@ -534,7 +592,7 @@ GET /users — matches OpenAPI schema
 
 Consumer-driven contracts: tests validate what the **consumer actually uses**, not the full API surface.
 
-```robot
+```text
 *** Test Cases ***
 Cart consumer contract — what frontend actually needs
     As    WebApp

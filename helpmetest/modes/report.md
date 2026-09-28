@@ -54,8 +54,19 @@ Cheap checks that catch the worst states:
 
 ```bash
 helpmetest status                        # any tests in FAIL right now?
-helpmetest artifact list --type Feature  # any Feature with bugs[].severity=critical, unresolved?
+helpmetest artifact list --type Feature --tags "project:<slug>"  # any Feature with bugs[].severity=critical, unresolved?
 ```
+
+**A red line in `status` is a claim, not a finding — and so is one green re-run.** Re-run
+the test, then read `helpmetest test view <id> --errors` for its pass/fail ratio and the
+error body. Measured 2026-09-26: `playground-forms` showed `1 passed, 499 failed` since
+2026-09-19, and that one pass was a manual re-run. Reporting either the stale red or the
+lucky green as the verdict sends someone to debug nothing, or hides a failure recurring
+every ten minutes.
+
+Also: `status` is workspace-wide and has no project filter. Measured 2026-09-26 —
+`143 total`, `59❌`, across 6 projects. Filter the lines by `#project:<slug>` before
+counting anything, or the report describes strangers' software.
 
 **Stop-the-line:** if any of these are true, surface to the user *immediately* — one line, then offer to bail out:
 
@@ -95,6 +106,27 @@ Findings:
 helpmetest status --history 10
 ```
 
+**Read that output as text, not JSON.** Verified 2026-09-25: `--history` inlines the runs
+under each row in the human-readable output (232 lines → 356 lines with `--history 3`), but
+**`--json` ignores it entirely** — the row keys are identical with and without the flag:
+`id, name, status, last_run, duration, stability, stability_runs, tags, content, emoji`.
+There is no per-run array in the JSON. An agent that reaches for `--json` here gets one
+aggregate `stability` number and no error history, and would have to invent the per-run
+analysis this phase asks for.
+
+The text rows look like this — status, timestamp and the error, per run:
+
+```
+❌ 🔴   0/100    10s  Lite-mode multi-tab replay loads without duplicate tab containers  #priority:critical …
+    ❌ 2026-09-25 17:50:20  Go To: TimeoutError: page.goto: Timeout 10000ms exceeded.
+    ❌ 2026-09-25 17:45:27  Go To: TimeoutError: page.goto: Timeout 10000ms exceeded.
+    ❌ 2026-09-25 17:40:17  Go To: TimeoutError: page.goto: Timeout 10000ms exceeded.
+```
+
+Note what that particular pattern means before filing three findings: the same error, on
+several tests, minutes apart, is one broken dependency — not N broken tests. Cluster by
+error text and timestamp first (see `modes/shared.md` §1 on re-running before diagnosing).
+
 For each test, extract:
 - **Status**: passing, failing, never-run, stale (>14 days)
 - **Pass rate**: from last 10 runs (e.g., "7/10" = 70%)
@@ -108,8 +140,20 @@ For each test, extract:
 
 **Group tests by stability class:**
 
-- **🔴 Chronically Broken** (pass rate <30%): Tests failing majority of time
-  - Evidence: Error patterns, error count per type, min/max timestamps across runs
+| Class | Pass rate over the last N runs | Evidence to cite |
+|---|---|---|
+| 🔴 **Chronically Broken** | < 30% | error patterns, error count per type, min/max timestamps across runs |
+| 🟠 **Flaky** | 30-70% | mixed pass/fail pattern, error types vary per run |
+| 🟠 **Recently Recovered** | last 1-2 pass, 3+ before failed | a dishonest green — recent success over a prior failure streak |
+| ⚪ **Stale** | last run > 14 days ago | timestamp of last run, current status |
+| 🟢 **Stable** | ≥ 90% | consistent passing trend, no failure streaks |
+
+This table used to appear **twice**, split by the Flakiness Score section below, with the
+two copies disagreeing on every icon (🟡 vs 🟠 for Flaky, 🟢 vs ✅ for Stable, ⚪ vs 🟡 for
+Stale) — and the second copy had lost its "Chronically Broken" heading entirely, grafting
+that class's `< 30%` definition onto Stable's evidence line. A report is graded on its
+severity icons; two contradictory legends make the output unreadable and unreviewable.
+One table now, and the severity ladder matches the 🔴/🟠/🟡 rubric used in the snapshot.
 
 ---
 
@@ -138,24 +182,6 @@ For each test with ≥5 runs of history, compute:
 - Score ≥0.5 on `priority:critical` → immediate fix required
 - Score ≥0.8 any priority → quarantine or delete (not worth maintaining)
 - Score 0.2-0.5 → document root cause, schedule fix
-
-- **🟡 Flaky** (pass rate 30-70%): Unreliable signal, unpredictable behavior
-  - Evidence: Mixed pass/fail pattern, error types vary per run
-- **🟡 Recently Recovered** (last 1-2 pass, 3+ before failed): Dishonest green
-  - Evidence: Last N runs show recent success but pattern shows prior failures
-- **⚪ Stale** (last run >14 days ago): Test not exercised recently
-  - Evidence: Timestamp of last run, current status
-- **🟢 Stable** (pass rate ≥90%): Reliable, green
-  - Evidence: Consistent passing trend, no failure streaks (pass rate <30%): Tests failing majority of time
-  - Evidence: Error patterns, error count per type, min/max timestamps across runs
-- **🟠 Flaky** (pass rate 30-70%): Unreliable signal, unpredictable behavior
-  - Evidence: Mixed pass/fail pattern, error types vary per run
-- **🟠 Recently Recovered** (last 1-2 pass, 3+ before failed): Dishonest green
-  - Evidence: Last N runs show recent success but pattern shows prior failures
-- **🟡 Stale** (last run >14 days ago): Test not exercised recently
-  - Evidence: Timestamp of last run, current status
-- **✅ Stable** (pass rate ≥90%): Reliable, green
-  - Evidence: Consistent passing trend, no failure streaks
 
 **Per failing test, classify each error using the fixed categories in `references/failure-categories.md`, summarize with flakiness score:**
 ```
@@ -187,7 +213,7 @@ Every test referenced in `scenario.test_ids[]` actually exists in `helpmetest st
 Every test in `helpmetest status` is referenced by at least one Feature scenario?
 
 ```bash
-helpmetest artifact list --type Feature   # every feature
+helpmetest artifact list --type Feature --tags "project:<slug>"   # every feature in THIS project
 helpmetest status                          # every test
 # for each feature → helpmetest artifact get <id> to read scenarios
 ```
@@ -246,7 +272,7 @@ Findings:
 ### Phase 7 — bugs (Feature artifact `bugs[]` audit)
 
 ```bash
-helpmetest artifact list --type Feature
+helpmetest artifact list --type Feature --tags "project:<slug>"
 # for each → helpmetest artifact get <id> to read content.bugs[]
 ```
 
@@ -263,14 +289,14 @@ Findings:
 
 ### Phase 8 — artifacts (hygiene)
 
-- Memory artifact present? For each entry (see `references/cli-contracts.md` scoped shape), is `last_verified` within 30 days and `confidence` not `low`? Don't judge the whole artifact by one aggregate timestamp — a project-scope entry from a year ago and a feature-scope entry from last week can coexist in the same artifact.
+- Memory artifact present, and do its entries still hold? Each entry has `category` + `lesson` (+ optional `tags`, `linked_artifact_ids`, `added_at`) — see `references/cli-contracts.md`. **There is no `confidence` or `last_verified` field**; this step used to tell you to check both, verified absent against the live schema 2026-09-25. With no freshness signal recorded, spot-check the entries that would do damage if wrong — selectors and timings — against the live app, and report those by name.
 - ProjectOverview present?
 - ≥1 Persona defined?
 - Any Tasks artifacts >7 days old still `in_progress` (abandoned runs)?
 
 Findings:
 - 🟠 ProjectOverview missing
-- 🟡 Memory artifact missing, or ≥1 entry with `confidence: low` / `last_verified` >30 days stale, no Persona, abandoned Tasks — name the specific stale entries, not just a count
+- 🟡 Memory artifact missing, or entries whose selector/timing claims no longer match the live app — name the specific entries and what you observed instead, not just a count. (Do not grade on `confidence`/`last_verified`: those fields do not exist.)
 
 ### Phase 9 — drift (style/discipline)
 
@@ -340,6 +366,25 @@ Then create with `helpmetest artifact upsert`:
 - `content.snapshot:` the aggregate counts block (matches the Snapshot section of the in-chat report)
 - `content.recommendation:` `{mode, scope, why}` — the same content used in the closing remediation question. If `severity == HEALTHY`, set `mode: "none"` and `scope: null`.
 - `content.links:` `[<enclosing-tasks-id>, <every feature id you read>]`. The server resolves reverse edges — don't double-upsert Tasks.
+
+**`recommended_mode` and `recommendation.mode` are a closed enum, and it is not the mode
+names you write in chat.** Measured 2026-09-26:
+
+```
+✗ 422: findings.0.recommended_mode
+  Input should be 'fix-tests', 'tdd', 'discover', 'validate', 'coverage',
+  'ui-review', 'api-testing', 'regression', 'onboard', 'manual' or 'none'
+```
+
+So the remediation line says `/helpmetest fix <test-id>` while the artifact field must say
+**`fix-tests`**; likewise `ui-review` and `api-testing`, not `ui` and `api`. Writing the
+chat name into the artifact is rejected, and it is the natural mistake because the section
+above tells you to recommend `/helpmetest fix`. Verified both ways: `fix` rejected,
+`fix-tests` saved.
+
+Two notes on that list: it still contains `onboard`, which is no longer a mode in this
+skill (bare `/helpmetest` handles new projects) — do not use it. And `manual` / `none` are
+the escape hatches when no mode owns the finding.
 
 Subsequent runs produce new artifacts; comparing them over time is how drift is tracked (out of scope for this mode, but the data shape supports it).
 

@@ -1,7 +1,7 @@
 ---
 name: helpmetest
-description: "Router for HelpMeTest QA work. Bare /helpmetest is the brain: it reads the project, probes it live, and prescribes what to attack. tdd: write/fix tests. mobile: Android/iOS/APK/IPA. desktop: Mac/Linux/Electron. fakemail: verification code/inbox. ssl: cert/TLS/DNS/WHOIS/SPF/DKIM. doc2html: PDF/DOCX/EPUB→HTML. auth: Save As/2FA/TOTP. api: REST/GraphQL/endpoint. proxy: localhost/tunnel/port. terminal: Jest/pytest/bun test. ci: GitHub/GitLab CI. ui: screenshot/visual/viewport. interactive: explore/debug selector. discover: map app/PRD. report: health check. coverage: gap analysis. change-impact: did I break anything. pre-push/pr-review: can I push/PR review. improve/comment: rewrite tests. Also: nightly, validate, exploratory. Full list in body."
-argument-hint: "[<nothing — runs the brain> | tdd | mobile | desktop | auth | fakemail | ssl | doc2html | api | proxy | terminal | ci | ui | interactive | discover | fix | coverage | regression | validate | improve | comment | report | change-impact | pre-push | pr-review | nightly | <task description>]"
+description: "Router for HelpMeTest QA work. Bare /helpmetest is the orchestrator: it reads the project, probes it live, explains what it finds, and works through the fix with you, presenting at each step. auto/autonomous: the same work hands-off, no checkpoints, one report at the end — only when the user asks for it. tdd: write/fix tests. mobile: Android/iOS/APK/IPA. desktop: Mac/Linux/Electron. fakemail: verification code/inbox. ssl: cert/TLS/DNS/WHOIS/SPF/DKIM. doc2html: PDF/DOCX/EPUB→HTML. auth: Save As/2FA/TOTP. api: REST/GraphQL/endpoint. proxy: localhost/tunnel/port. terminal: Jest/pytest/bun test. ci: GitHub/GitLab CI. ui: screenshot/visual/viewport. interactive: explore/debug selector. discover: map app/PRD. report: health check. coverage: gap analysis. change-impact: did I break anything. pre-push/pr-review: can I push/PR review. improve/comment: rewrite tests. Also: nightly, validate, exploratory. Full list in body."
+argument-hint: "[<nothing — runs the orchestrator> | auto | tdd | mobile | desktop | auth | fakemail | ssl | doc2html | api | proxy | terminal | ci | ui | interactive | discover | fix | coverage | regression | validate | improve | comment | report | change-impact | pre-push | pr-review | nightly | <task description>]"
 ---
 
 # /helpmetest — QA workflow router
@@ -26,11 +26,14 @@ The user's request may or may not start with `/helpmetest` as a literal prefix. 
 "write login test"                   →  first mode token: NONE,   rest: "write login test"
 ```
 
-This lets the same pasted text work from a terminal (`helpmetest agent claude "/helpmetest tdd ..."`) and from a slash-command context (`/helpmetest tdd ...`).
+This lets the same pasted text work from a terminal (`helpmetest agent "/helpmetest tdd ..."`) and from a slash-command context (`/helpmetest tdd ...`).
 
 ## 2. Determine the mode
 
-Parse the first remaining token:
+Parse the first remaining token. **If the request began with the literal `/helpmetest`, the
+only rows that can match are the mode-name rows below — `anything else` cannot. Describing
+the work ("my app needs testing", "write some tests") is not a mode name, so it falls to the
+`(empty / bare)` row: agency.**
 
 | First token | Mode |
 |------------|------|
@@ -41,7 +44,7 @@ Parse the first remaining token:
 | `fix-tests` or `fix` | **fix-tests** — diagnose and repair broken tests |
 | `coverage` | **coverage** — gap analysis: what scenarios have no tests |
 | `regression` | **regression** — run tests affected by a named set of changed files |
-| `validate` | **validate** — score existing tests against R1-R13 quality rules. Outputs `ValidationReport` artifact with grade distribution (A/B/C/D/F), R11-R13 failures, and action queue (ship/rewrite/delete).
+| `validate` | **validate** — score existing tests against R1-R13 quality rules: grade distribution (A/B/C/D/F), R11-R13 failures, and action queue (ship/rewrite/delete). Emits a `Tasks` artifact today (see `modes/validate.md` §5); a `TestValidation` artifact type also exists server-side. **`ValidationReport` is not a type** — its schema fetch 500s. |
 | `improve` | **improve** — audit every test against I2-I6 criteria (section comments, inline comments, assertions, selectors, tags), then rewrite and re-run each failing test in place. The only mode that both critiques and fixes.
 | `comment` | **comment** — audit and rewrite test comments only (C1–C7 rules): group per-line comments into intent-based sections, remove numbering and decorations, replace implementation narration with product-context headings, name invariants instead of describing assertions. No keywords, selectors, or assertions are changed.
 | `proxy` | **proxy** — tunnel localhost |
@@ -55,7 +58,8 @@ Parse the first remaining token:
 | `mobile` | **mobile** — Android and iOS app testing on real devices via device-farm |
 | `fakemail` or `email` | **fakemail** — disposable email addresses, verification codes, attachments |
 | `doc2html` or `document` | **doc2html** — convert PDF/DOCX/EPUB/email to HTML and assert rendered content |
-| `onboard` | **agency** — there is no separate onboard mode; the brain handles a new project. Read `modes/agency.md` |
+| `onboard` | **agency** — there is no separate onboard mode; the orchestrator handles a new project. Read `modes/agency.md` |
+| `auto` or `autonomous` | **autonomous** — hands-off: same spine as agency, checkpoints removed, one written report at the end. Read `modes/autonomous.md`. Only when the user asks for hands-off work |
 | `interactive` | **interactive** — drive a real browser one command at a time: explore pages, debug selectors, prototype a flow before writing a test, or verify something ad-hoc |
 | `change-impact` or `impact` | **change-impact** — git diff → find @helpmetest annotations → run affected tests → RegressionRun artifact with verdict |
 | `pre-push` or `push` | **pre-push** — run all priority:critical tests + annotation-covered changed files → BLOCKED or CLEAR TO PUSH |
@@ -63,12 +67,26 @@ Parse the first remaining token:
 | `nightly` | **nightly** — run all Feature tests, mark broken ones, discover new URLs, create stub Features |
 | `report` | **report** — read-only project health diagnosis: triage → auth → tests → stability → sync → coverage → code → bugs → artifacts → drift → tiered report → recommended next fix. Sub-phase: `report <phase>`. |
 | `continue` | **resume** — task mentions an existing Tasks artifact id; fetch it, find the first open subtask, resume |
-| (empty / bare `/helpmetest`) | **agency** — read `modes/agency.md`. The brain: orients from the repo and the API, probes live, reports what it found, asks one intent question, then prescribes and dispatches doers. This is the default and the front door. |
-| anything else | **NL routing** — see §2a below |
+| (empty / bare `/helpmetest`) | **agency** — read `modes/agency.md`. The orchestrator and the front door: diagnoses from live facts, does the work in visible increments, explains each capability as it uses it, and presents at every checkpoint. Works *with* the user — it never runs more than one phase without presenting. For hands-off, see `auto`. |
+| anything else — **only when the request did NOT start with `/helpmetest`** | **NL routing** — see §2a below |
+
+**`/helpmetest` followed by prose is still `agency`, not NL routing.** Measured in a real
+run 2026-09-26: the prompt `/helpmetest my todo app needs testing. Focus on the happy path
+— go ahead and write and run the tests` routed to **`tdd`**. It read `tdd.md` and never
+opened `agency.md`, so none of the presentation contract applied: no checkpoint, no
+command handed over, and two silent stretches of eight tool calls. The user typed the
+front door and got a doer, because the sentence after it mentioned tests.
+
+So the precedence is: **an explicit `/helpmetest` prefix pins `agency` unless the very next
+token is a mode name** (`/helpmetest tdd …`, `/helpmetest auto …`). §2a applies to requests
+that arrive *without* the prefix. Describing the work you want is not a mode token —
+`/helpmetest` always means "orchestrate this with me", and agency dispatches `tdd` as a
+doer in Phase 5 anyway, so nothing is lost by honouring it.
 
 ### §2a — Natural-language mode routing
 
-When no explicit mode token matches, find the right mode dynamically:
+When no explicit mode token matches **and the request did not start with `/helpmetest`**,
+find the right mode dynamically:
 
 1. Each mode file starts with a description and trigger phrases. Read the first ~20 lines of candidate `modes/*.md` files (or scan the inline system-prompt sections if already loaded) to find the best match for the request.
 2. Pick the mode whose description and triggers best fit the intent. Prefer **specific** over generic — `mobile` beats `tdd` for "debug my android app".
@@ -92,6 +110,9 @@ the project. The brain loads a doer's mode file when it dispatches that doer, af
 first probe. (An earlier draft of this paragraph said "load `modes/agency.md` only",
 which contradicted the numbered list above; a real run flagged it as unsatisfiable.)
 
+`autonomous` is the one mode that loads a fourth file: it loads `agency.md` as well,
+because it *is* agency mode with the checkpoints removed and every other rule intact.
+
 These files live next to this SKILL.md. Use the `Read` tool with relative paths:
 
 ```
@@ -104,10 +125,10 @@ Read  modes/<mode>.md
 
 HelpMeTest only enforces TDD discipline for as long as this skill is actively loaded. The next session — possibly a different agent, possibly you without this context — won't know HelpMeTest exists unless it's written into the files every agent reads at session start.
 
-Check `CLAUDE.md` and `AGENTS.md` (repo root) for the marker `<!-- helpmetest:start vN -->`. If either file is missing the marker, or has a version older than the block below (currently v5), write/replace it (idempotent — strip the old `start`...`end` range first, don't duplicate). **A repo still carrying v4 or older is telling its agent to read a `HELPMETEST.md` that no longer exists — replacing the block is the fix, and it only happens when the user re-runs `helpmetest install skills`.**
+Check `CLAUDE.md` and `AGENTS.md` (repo root) for the marker `<!-- helpmetest:start vN -->`. If either file is missing the marker, or has a version older than the block below (currently v6), write/replace it (idempotent — strip the old `start`...`end` range first, don't duplicate). **A repo still carrying v4 or older is telling its agent to read a `HELPMETEST.md` that no longer exists; v5 tells it to check `confidence`/`last_verified` fields the `Memory` schema does not have, and to find that artifact with a full-text search that returns unrelated ones. Replacing the block is the fix, and it only happens when the user re-runs `helpmetest install skills`.**
 
 ```markdown
-<!-- helpmetest:start v5 -->
+<!-- helpmetest:start v6 -->
 ## HelpMeTest — testing & TDD contract
 
 This project has HelpMeTest installed. There is no project contract file — artifacts are the only state. Orient with `helpmetest status` and `helpmetest artifact list --tags "project:<slug>"`, then run `/helpmetest`.
@@ -129,9 +150,9 @@ Use `helpmetest interactive` / `helpmetest test` for:
 4. Done = all tests green + user sign-off. Not "looks right."
 
 ### Findings persist to the Memory artifact, not this file
-Selectors, auth flows, timing quirks discovered mid-session go in the project's `Memory` artifact (`helpmetest search Memory`, `helpmetest artifact get <id>`) — not into this block. Each entry is scoped (`project`/`feature:<id>`/`test:<id>`) with a `confidence` and `last_verified` date (see `references/cli-contracts.md`); treat low-confidence or stale (>30 days) entries as needing a quick re-check, not settled fact. This block is static and only self-installs the workflow contract above.
+Selectors, auth flows, timing quirks discovered mid-session go in the project's `Memory` artifact — not into this block. Find it by type, scoped to the project: `helpmetest artifact list --type Memory --tags "project:<slug>"`, then `helpmetest artifact get <id>`. (Not `helpmetest search Memory` — that is a full-text search and returns anything whose prose contains the word.) Each entry has a `category` and a `lesson`; there is no confidence or last-verified field, so the artifact records no freshness signal — re-confirm a selector or timing claim against the live app before relying on it. This block is static and only self-installs the workflow contract above.
 
-Run `/helpmetest` — bare, no mode — at the start of anything non-trivial. It reads the project, probes it live, tells you what it found, and prescribes the next move. Name a mode directly (`/helpmetest tdd`) when you already know what you want.
+Run `/helpmetest` — bare, no mode — at the start of anything non-trivial. It reads the project, probes it live, tells you what it found, and works through it with you, presenting at each step rather than disappearing into a silent run. Name a mode directly (`/helpmetest tdd`) when you already know what you want, or `/helpmetest auto` when you want it done hands-off with one report at the end.
 <!-- helpmetest:end -->
 ```
 
@@ -231,17 +252,17 @@ interactive   Drive a real cloud browser one command at a time with Robot Framew
               Use to explore pages, debug failing tests step by step, prototype a flow before writing a test,
               or verify something ad-hoc without running a full suite.
               Bare: announces intent, asks "what do you want to explore or debug?"
-agency        The brain, and the default. Bare /helpmetest. Orients from repo + artifacts,
-              probes live, reports findings, asks one intent question, prescribes, writes
-              the Tasks artifact, dispatches doers. New projects start here.
+agency        The orchestrator, and the default. Bare /helpmetest. Diagnoses from live
+              facts, does the work in visible increments, explains each capability as it
+              uses it, presents at every checkpoint. Works with the user, never for them:
+              it may not run more than one phase without presenting. New projects start here.
+autonomous    Hands-off. Same spine as agency with the checkpoints removed and one written
+              report at the end. Only when the user asks for it — "just do it", "don't ask
+              me anything", "I'm going to bed". Alias: auto
 ssl           Write and run DomainChecker SSL keyword tests against any domain.
               Pass a domain: generates cert validity, expiry, issuer, algorithm, and SAN assertions instantly.
               Bare: asks "which domain to check?"
               Alias: domain
-              Bare: runs the structured 3-question interview (source of truth, stage, goal).
-agency        The brain. Orient from repo + API, probe live, report findings, one intent
-              question, prescribe, write the Tasks artifact, dispatch doers. Runs by
-              default on bare /helpmetest. Every other mode is a doer it hands work to.
 change-impact git diff → @helpmetest annotations → run affected tests → RegressionRun verdict.
               Bare/no commit: announces intent, defaults to HEAD~1 diff, offers to use specific commit.
 pre-push      All priority:critical tests + changed-file coverage → BLOCKED or CLEAR TO PUSH.
@@ -268,10 +289,10 @@ Load these from `references/` when relevant:
 - `references/rf-recipes.md` — deterministic Robot Framework checks (axe-core, console errors, performance, web vitals, broken links/images, SSL). Load this opportunistically during normal test-writing and `interactive` exploration too, not only when a11y is explicitly requested — see `modes/tdd.md` and `modes/interactive.md`.
 - `references/adversarial-patterns.md` — attack patterns for forms, modals, keyboard nav, persistence.
 - `references/ux-heuristics.md` — Laws of UX, Nielsen's 10, a11y — for evaluating screenshots / writing UX findings.
-- `references/cli-contracts.md` — consolidated schema/flag reference: `helpmetest config` keys, `Feature.bugs[]` shape, `ValidationReport`/`CoverageReport` schemas, scoped `Memory` artifact shape. The `Tasks` artifact schema itself lives in `modes/agent.md`.
+- `references/cli-contracts.md` — consolidated schema/flag reference: `helpmetest config` keys, `Feature.bugs[]` shape, `TestValidation`/`CoverageReport` schemas, scoped `Memory` artifact shape. The `Tasks` artifact schema itself lives in `modes/agent.md`.
 - `references/failure-categories.md` — fixed taxonomy for classifying a failing test (`fix` mode's classify step).
 - `references/evidence-rules.md` — anti-fabrication discipline for any mode that diagnoses failures or reports findings.
 
 ### Output Artifacts
 
-See `references/cli-contracts.md` for `ValidationReport` and `Feature.bugs[]` shapes. `RegressionRun` is created by `change-impact` mode — see `modes/regression.md`. `CoverageReport` is created by `coverage` and `pr-review` modes — see `modes/coverage.md`.
+See `references/cli-contracts.md` for `TestValidation` and `Feature.bugs[]` shapes. `RegressionRun` is created by `change-impact` mode — see `modes/regression.md`. `CoverageReport` is created by `coverage` and `pr-review` modes — see `modes/coverage.md`.

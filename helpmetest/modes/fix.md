@@ -50,11 +50,16 @@ One skill for everything wrong with your test suite. Reads the situation, picks 
 2. **Orient**:
    ```bash
    helpmetest status
-   helpmetest artifact list
-   helpmetest search Memory
+   helpmetest artifact list --tags "project:<slug>"
+   helpmetest artifact list --type Memory --tags "project:<slug>"
    git log --oneline -10
    git diff --stat HEAD
    ```
+   Look the `Memory` artifact up **by type**, not with `helpmetest search Memory` — that
+   is a full-text search and returned two unrelated `ProjectHealthReport` artifacts when
+   measured 2026-09-25. And read `status` as a **workspace** view: it has no project filter
+   (see `modes/shared.md` §1), so filter its rows on `#project:<slug>` yourself before
+   concluding anything about this project's health.
 3. **Announce** — present before classifying or acting (see templates below). Always say what the user will know after this, not what you will do. Recommend one starting point.
 4. **Classify the signal and route to a submode** using the table below. If the signal itself is vague ("something broke"), run Triage first (below the table) to get to a specific classification before routing.
 5. **Execute the routed submode** (`Mode: Debug` / `Mode: Heal` / `Mode: Sync` / `Mode: Validate` below) — each ends in either a fix, a documented bug, or a report. Use `references/failure-categories.md` for the actual error category once you have a specific failing test, and `references/evidence-rules.md` for how to record findings — don't invent evidence.
@@ -116,7 +121,7 @@ The Tasks artifact was already created in `## Workflow` step 1 — update its su
 
 ### Phase 1: Understand
 
-1. `helpmetest test view <id>` to read the test body; `helpmetest test run <id> --json` to get last run details
+1. `helpmetest test view <id>` to read the test body, then `helpmetest test run <id>` to see it fail **now**, then `helpmetest test view <id> --errors` for the pass/fail ratio and the error *body*. A single green re-run is one sample: `playground-forms` was 1-pass/499-fail on 2026-09-26 and the one pass was a manual re-run. The `--errors` body is also where the real cause appears — `status` showed `Invalid keyword Get Text`, the body said `Multiple keywords with name 'Get Text' found`, which is a collision, not a missing keyword. Add `--json` for the structured result.
 2. Read the error. Classify using `references/failure-categories.md` — pick exactly one category (`element_not_found`, `timing`, `assertion_failure`, `auth_or_state`, `api_or_backend`, `environment`, `test_isolation`, `unknown`), grounded in the run's evidence (`references/evidence-rules.md`).
 3. Check recent git changes — map changed files to likely failure causes
 4. Load the Feature artifact the test belongs to
@@ -149,6 +154,26 @@ Map to the category chosen in Phase 1 (`references/failure-categories.md`):
 3. **MUST run**: `helpmetest test run <id>` — wait for green. "Should work" is not evidence.
 4. **MUST update the Tasks artifact created in `## Workflow` step 1**: mark the subtask done, set `notes` to the run URL as evidence (per `modes/agent.md` §Evidence). Don't create a second artifact here.
 
+**Expect the update to be rejected for the test's *existing* comment structure, not for
+your fix.** The structure and comment-style validators run on every `update`, and tests
+written before those rules exist cannot be re-saved unchanged. Measured 2026-09-26, fixing
+one word in `playground-forms`:
+
+```
+✗ Test structure validation failed:
+  • Uneven comment distribution.
+  Section 2 runs 10 steps in a row with no comment — that's more than every other
+  step in the test combined (6 steps across the rest of it).
+```
+
+Nothing to do with the change. The fix is to add a comment splitting the long run, in the
+same edit — which is an improvement, but budget for it: a one-word fix took three attempts.
+The rule is **relative to the test's own shape**, so there is no step count to stay under;
+read the numbers in the message. Both validators are described in `modes/tdd.md`.
+
+Do not work around it by reverting to `--no-run` and hoping, and do not strip the test down
+to satisfy the validator. Split the section, keep every keyword.
+
 ### Phase 4B: Document Bug
 
 Add to `Feature.bugs[]` — shape in `references/cli-contracts.md`. Update `Feature.status` → `"broken"` or `"partial"`.
@@ -166,8 +191,10 @@ Heal handles bulk failures, so its Tasks artifact needs one subtask per failing 
 ```json
 {
   "type": "Tasks",
-  "name": "Tasks: Heal Session [date]",
+  "name": "Heal session [date]",
   "content": {
+    "name": "Heal session [date]",
+    "description": "[what was failing and what healing it should achieve]",
     "overview": "Healing [N] failing tests.",
     "tasks": [
       { "id": "1.0", "title": "[test-id]: [test name]", "status": "pending", "priority": "critical",
@@ -181,7 +208,13 @@ Heal handles bulk failures, so its Tasks artifact needs one subtask per failing 
 ### Startup: Fix All Existing Failures
 
 1. Get all failing tests from `helpmetest status`
-2. For each failing test:
+2. **Re-run each one, then check its history before classifying.** `status` shows the last
+   result; a re-run shows one more sample. Neither is the picture. `helpmetest test view
+   <id> --errors` gives the ratio and the error body — measured 2026-09-26,
+   `playground-forms` was **1 passed, 499 failed** since 2026-09-19, and the single pass
+   was a manual re-run that would have cleared it. Drop only what the history shows
+   healthy, and say how many you dropped.
+3. For each test still failing:
    - Classify failure type
    - **Fixable** (selector change, timing, form structure): investigate → fix → verify → document in SelfHealing artifact
    - **Not fixable** (auth broken, 500 errors, missing pages): document as bug in Feature artifact
@@ -201,27 +234,51 @@ When a test fails: classify → fix if fixable → document if not → resume li
 
 ### SelfHealing Artifact
 
+**Rewritten 2026-09-26 — the previous template could not be submitted.** It modelled a
+single bulk log (`{fixed: [...], not_fixed: [...], summary: {...}}`) with an id of
+`self-healing-log`. None of those three fields exists, all four required fields were
+missing, and the name `"SelfHealing: Test Maintenance Log"` is itself rejected for
+containing the type. The real artifact is **one per test**, not one per run:
+
 ```json
 {
   "type": "SelfHealing",
-  "id": "self-healing-log",
-  "name": "SelfHealing: Test Maintenance Log",
+  "id": "healing-<test-id>",
+  "name": "<test name> — healing log",
   "content": {
-    "fixed": [
-      { "test_id": "test-login", "pattern_detected": "selector_change",
+    "name": "<test name> — healing log",
+    "description": "<what keeps breaking and what was done about it>",
+    "test_id": "<test-id>",
+    "test_name": "<test name>",
+    "total_fixes": 1,
+    "successful_fixes": 1,
+    "failed_fixes": 0,
+    "current_status": "healthy",
+    "attempts": [
+      { "timestamp": "<ISO>",
+        "error_message": "<the real failure text>",
+        "error_type": "selector",
         "fix_applied": "Updated selector to [data-testid='submit-btn']",
-        "verification_result": "Test passed on re-run", "timestamp": "..." }
+        "selectors_tried": ["..."],
+        "test_content_before": "...", "test_content_after": "...",
+        "success": true,
+        "notes": "<optional>" }
     ],
-    "not_fixed": [
-      { "test_id": "test-checkout", "issue_type": "server_error",
-        "error_message": "500 on POST /api/checkout",
-        "why_not_fixable": "Application bug, not a test issue",
-        "recommendation": "Investigate checkout API endpoint" }
-    ],
-    "summary": { "total_processed": 5, "fixed": 3, "not_fixable": 2, "last_run": "..." }
+    "last_error": null,
+    "last_fix_timestamp": "<ISO>"
   }
 }
 ```
+
+Required: `name`, `description`, `test_id`, `test_name`. Two closed enums, both measured:
+`current_status` is `healthy | flaky | broken`, and `attempts[].error_type` is
+`selector | syntax | timing | proxy | other` — **not** the `selector_change` /
+`server_error` strings the old template used. `SelfHealingAttempt` requires
+`error_message`, `error_type`, `fix_applied`, `success`.
+
+A test you could not fix does not go in a `not_fixed` array — it gets its own artifact with
+`success: false` on the attempt and `current_status: "broken"`, plus the bug written to the
+Feature per Phase 4B. Verified: the shape above saved; the old one did not.
 
 ---
 

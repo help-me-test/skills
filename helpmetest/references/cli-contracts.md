@@ -13,9 +13,19 @@ helpmetest config                               # show all settings (file value 
 helpmetest config get <key>                     # show one value
 helpmetest config set <key> <value>              # write one value
 helpmetest config unset <key>                    # remove key, revert to default
+helpmetest config env                            # set the default environment for secret commands
 ```
 
+Every one of these takes `--json`, `--select <path>` and `--schema` for machine-readable
+output.
+
 Known keys: `apiBaseUrl` (default `https://helpmetest.com`, set automatically by `register`/`login` — don't hand-edit unless pointing at a non-default server), `apiToken` (prefer `helpmetest login` over setting this directly; masked in output), `autoOpenSession` (`true`/`false`, default `true` — opens the live interactive session in a browser), `debug` (`true`/`false`, default `false`), `env` (default environment for `helpmetest secret`/`helpmetest otp`, default `default`), `timeout` (request timeout in seconds, default `30`), `retries` (default `3`). Boolean/number keys are validated on `set`. Unknown keys are still stored and shown under "Other settings".
+
+**Verified 2026-09-25** against `helpmetest config --help` and live output: all seven keys
+exist with exactly these defaults (`timeout` 30, `retries` 3, `autoOpenSession` true), and
+the unknown-key behaviour is real — `helpmetest config set madeUpKey somevalue` in a scratch
+directory produced an `Other settings:` section listing `madeUpKey: somevalue`. Unlike the
+`TestValidation` section below, nothing here had drifted.
 
 Distinct from `helpmetest secret` (test passwords), `helpmetest otp` (2FA seeds), and `helpmetest token` (workspace API tokens) — `config` covers CLI behavior only.
 
@@ -34,42 +44,61 @@ Used by `fix` (Phase 4B), `discover`, and any mode that finds a bug during explo
   "actual": "What actually happens",
   "severity": "blocker|critical|major|minor",
   "url": "http://example.com/page",
-  "tags": []
+  "tags": [],
+  "auth": ["admin", "user"],
+  "test_ids": ["todo-create-new-item"]
 }
 ```
+
+**Verified 2026-09-25** against `helpmetest artifact schema Feature --json` (`$defs.Bug`).
+Required exactly: `name`, `given`, `when`, `then`, `actual`, `severity`. `severity` is an
+enum — `blocker`, `critical`, `major`, `minor`, nothing else. `url`, `tags`, `auth`
+(required auth states) and `test_ids` (linked automated test ids) are optional; the last two
+were missing from this doc.
 
 After adding a bug, update the owning Feature's `status` field to `"broken"` or `"partial"` — never leave it `"working"` alongside an open bug.
 
 ---
 
-## `ValidationReport` artifact
+## `TestValidation` artifact — NOT `ValidationReport`
 
 Created by `validate` mode after reviewing one or more tests.
 
-```json
-{
-  "type": "ValidationReport",
-  "id": "validation-[timestamp]",
-  "name": "ValidationReport: [N] tests reviewed",
-  "content": {
-    "overview": "Reviewed [N] tests. [X] passed (A/B grade), [Y] failed (C/D/F grade).",
-    "summary": {
-      "total": "<int>",
-      "grade_distribution": { "A": "<int>", "B": "<int>", "C": "<int>", "D": "<int>", "F": "<int>" },
-      "r11_mutagen_failures": ["<test_ids>"],
-      "r12_framework_tests": ["<test_ids>"],
-      "r13_overmocking": ["<test_ids>"],
-      "bullshit_score_avg": "<float>|null"
-    },
-    "tests": [
-      { "test_id": "...", "name": "...",
-        "grade": "A|B|C|D|F",
-        "r_scores": { "r1": "PASS|FAIL", "r2": "PASS|FAIL" },
-        "r11_mutation_resistance": "PASS|FAIL" }
-    ]
-  }
-}
+**The type is `TestValidation`.** `ValidationReport` does not exist, and this file used to
+say it did, along with a `content` shape that was invented end to end. Measured 2026-09-25 —
+of ten artifact types the skill names, this was the only one that failed:
+
 ```
+$ helpmetest artifact schema ValidationReport
+✗ API Error: Failed to fetch schema for ValidationReport
+  Status Code: 500
+```
+
+`Tasks`, `Persona`, `ProjectOverview`, `UIReview`, `RegressionRun`, `CoverageReport`,
+`Memory`, `Feature` and `Bug` all return schemas. The real class is `TestValidationContent`
+in `ai/artifact_types.py`, documented there as *"output of `/helpmetest validate`"*.
+
+Real fields, from `helpmetest artifact schema TestValidation --json`:
+
+| field | type | meaning |
+|---|---|---|
+| `name` | string | **required** — human-readable artifact name |
+| `description` | string | **required** — one-line summary |
+| `scope` | string | **required** — what was reviewed: `all tests`, `tests tagged X`, … |
+| `tests_reviewed` | integer | **required** — count of tests evaluated |
+| `grade_distribution` | object | counts keyed by letter grade (A/B/C/D/F) |
+| `validations` | array | per-test entries, one per reviewed test |
+| `rewrite_queue` | array | test ids graded D or F — the actionable rewrite queue |
+| `fixable_queue` | array | test ids graded B or C — smaller fixes |
+| `links` | array | ids of related artifacts (undirected) |
+
+The old documented keys — `overview`, `summary`, `summary.r11_mutagen_failures`,
+`bullshit_score_avg`, `tests[]` — exist nowhere in the schema. An upsert using them is
+rejected.
+
+**Fetch the schema yourself before the first upsert of a type** rather than trusting any
+copy of it, including this table. That rule exists because of exactly this: a hand-written
+schema in a doc drifted from the server and nobody noticed until someone ran the command.
 
 Full R1–R13 rules and grading in `modes/validate.md`.
 
@@ -90,27 +119,54 @@ Replaces a single free-text blob. Each entry records one piece of project knowle
   "type": "Memory",
   "id": "memory-<project>",
   "content": {
+    "name": "<project> testing knowledge",
+    "description": "Project-specific testing knowledge",
     "entries": [
       {
-        "text": "Login form's submit button is `button[data-testid=login-submit]`, not `button[type=submit]` — there are two submit-typed buttons on that page.",
-        "scope": "feature:auth",
-        "confidence": "high",
-        "last_verified": "2026-08-20"
+        "category": "Selectors",
+        "lesson": "Login form's submit button is `button[data-testid=login-submit]`, not `button[type=submit]` — there are two submit-typed buttons on that page.",
+        "tags": ["auth"],
+        "linked_artifact_ids": ["feature-auth"],
+        "added_at": "2026-08-20"
       },
       {
-        "text": "Staging environment takes ~8s to cold-start after 15 min idle — first request of a session often times out at the default 10s.",
-        "scope": "project",
-        "confidence": "medium",
-        "last_verified": "2026-07-02"
+        "category": "Flaky areas",
+        "lesson": "Staging takes ~8s to cold-start after 15 min idle — the first request of a session often times out at the default 10s.",
+        "added_at": "2026-07-02"
       }
-    ]
+    ],
+    "notes": "…"
   }
 }
 ```
 
-Field meaning:
-- `scope` — `project` (true anywhere in this project), `feature:<id>` (only relevant to one Feature), or `test:<id>` (only relevant to one test). Narrower scope = safer to trust without re-checking; `project`-scope claims age faster as the app changes.
-- `confidence` — `high` (directly observed and re-confirmed at least once), `medium` (observed once, plausible), `low` (inferred, not directly observed — flag for re-verification before relying on it).
-- `last_verified` — the date this was last confirmed true, not the date it was first written. Update it every time an agent re-confirms the entry still holds; don't touch it on entries left untouched.
+**Verified 2026-09-25** against `helpmetest artifact schema Memory --json`. Entry fields are
+exactly `category`, `lesson`, `tags`, `linked_artifact_ids`, `added_at`, of which
+**`category` and `lesson` are required**. Top-level content is `type`, `name`,
+`description`, `links`, `entries`, `notes`.
 
-An agent reading Memory should treat entries with `confidence: low` or `last_verified` older than ~30 days as needing a quick re-check before being trusted, not as settled fact — see `modes/shared.md` §"Also look for a Memory artifact" and `modes/report.md`'s staleness check.
+**This doc previously described a different shape entirely** — `text`, `scope`,
+`confidence`, `last_verified` — none of which exist in the schema. That is the second
+invented schema found in this file in one audit (see `TestValidation` above), which is the
+case for fetching the schema yourself rather than trusting a written copy.
+
+`category` is a grouping label the schema documents as one of `Auth`, `Selectors`, `Flows`,
+`UI quirks`, `Data dependencies`, `Flaky areas`. There is no confidence or verification-date
+field, so **staleness is not recorded by the artifact** — `added_at` is when the note was
+written, not when it was last checked. Re-verify an old selector before relying on it.
+
+Field meaning:
+- `category` — grouping label: `Auth`, `Selectors`, `Flows`, `UI quirks`, `Data dependencies`, `Flaky areas`.
+- `lesson` — the note itself, written so a future agent can act on it without context.
+- `tags` / `linked_artifact_ids` — how an entry is narrowed to a Feature or test. **These are
+  the only scoping mechanism**; there is no `scope` field.
+- `added_at` — when the note was written. Not a verification date.
+
+**There is no `confidence` and no `last_verified` field.** This doc used to describe both,
+along with a three-level confidence scale and a "re-check anything older than ~30 days"
+rule, and told `modes/shared.md` and `modes/report.md` to act on them. None of it is in the
+schema, so no agent could have read those values and no staleness check could have fired.
+
+Since the artifact records no freshness signal, judge an entry on its own terms: a selector
+or timing claim should be re-confirmed against the live app before you build on it,
+regardless of how confident the wording sounds.

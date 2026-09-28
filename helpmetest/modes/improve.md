@@ -146,7 +146,7 @@ Rename to follow `<Feature> — <user-facing action>` or `User can <action>`:
 After `Click submit` or equivalent, verify the actual data change:
 ```robot
 # instead of just: Wait For Elements State  [data-testid="banner"]  visible
-${name}=  Get Text  [data-testid="profile-name"]
+${name}=  Browser.Get Text  [data-testid="profile-name"]
 Should Be Equal  ${name}  New Name
 ```
 
@@ -180,7 +180,7 @@ The test body must be divided into intent-based section comments. Rules:
   Reload
 
 # Verify list is empty
-  ${items_before}=  Get Text  css=.todo-count
+  ${items_before}=  Browser.Get Text  css=.todo-count
   Should Contain  ${items_before}  0
 
 # Add todo with valid text
@@ -188,11 +188,11 @@ The test body must be divided into intent-based section comments. Rules:
   Press Keys  input.new-todo  Enter
 
 # Todo appears in list
-  ${todo_text}=  Get Text  css=.todo-list li label
+  ${todo_text}=  Browser.Get Text  css=.todo-list li label
   Should Contain  ${todo_text}  Buy milk
 
 # Counter shows correct item count
-  ${counter}=  Get Text  css=.todo-count
+  ${counter}=  Browser.Get Text  css=.todo-count
   Should Contain  ${counter}  1 item left
 
 # Input clears and is ready for next todo
@@ -259,3 +259,20 @@ All [Y] rewritten tests are green. ✅
 - **Do not skip the re-run** — "should work" is not evidence
 - **Do not batch rewrites** without verifying each one passes
 - **Do not invent selectors** — always discover via `helpmetest interactive`
+- **Do not drop an assertion because another step "already covers it"** — verify that it
+  does, against the real system, before removing anything. A rewrite that asserts less than
+  the original is a coverage regression, and it is invisible afterwards because the test
+  stays green.
+
+  Measured 2026-09-26, the near-miss that produced this rule: a test asserted a downloaded
+  attachment's PDF magic bytes, then called `Open Document` on it. Dropping the magic-byte
+  check looked safe — surely converting the file proves it is a PDF. It does not:
+
+  ```
+  Open Document  …/dummy.pdf           ✓  exit 0
+  Open Document  https://example.com/  ✓  exit 0
+  ```
+
+  An HTML page converts exactly as happily. The "redundant" assertion was the only thing
+  checking the type. **Before deleting an assertion, run the step you believe subsumes it
+  against an input that should fail it.** If it passes, it never covered anything.

@@ -54,29 +54,37 @@ HelpMeTest tests run on remote infrastructure. Your local dev server (localhost:
 ## ❌ The #1 Mistake — a test URL the tunnel does not cover
 
 The cloud runner cannot reach your machine on its own. It reaches whatever **domain and
-external port you registered**, and nothing else. So the rule is not "never use
-localhost" — it is "the URL in the test must be the one you tunnelled".
+external port you registered**, and nothing else. The URL in the test must be the one you
+tunnelled.
 
-`helpmetest proxy start --help` is authoritative here, and it documents localhost
-explicitly:
+**`localhost` is rejected as a proxy domain.** Measured 2026-09-25, both forms:
 
 ```
-$ helpmetest proxy start localhost:3001:3001   # tests access localhost:3001
-$ helpmetest proxy start :3000                 # tests hit localhost:3000 — they reach your machine
+$ helpmetest proxy start localhost:37331
+$ helpmetest proxy start localhost:37331:37331
+✗ Cannot use "localhost" as a proxy domain — it is the external name tests navigate to,
+  not the local address.
+Use a project-named domain instead, e.g.: myapp.local:37331
 ```
 
-An earlier version of this file said using `localhost` in tests "accomplishes nothing".
-That is wrong, and a real run caught the contradiction against the CLI's own help. If you
-registered a localhost tunnel, a `localhost` URL is correct.
+This section previously argued the opposite, citing `proxy start --help`, which still lists
+`localhost:3001:3001` among its examples. **The CLI's help and the CLI's validation
+disagree, and validation wins** — that example cannot run. Do not "fix" a working tunnel
+back to `localhost` on the strength of the help text.
+
+The bare-port form does work, but not the way you might assume: `helpmetest proxy start
+:37331` prints `Starting tunnel: dev.local:37331`. It defaults the **domain** to
+`dev.local`; tests then navigate to `http://dev.local`, not to `localhost`.
 
 ```robot
 # RIGHT — you ran: helpmetest proxy start dev.local:80:3000
 Go To  http://dev.local
 
-# RIGHT — you ran: helpmetest proxy start :3000
-Go To  http://localhost:3000
+# RIGHT — you ran: helpmetest proxy start :3000  (domain defaults to dev.local)
+Go To  http://dev.local
 
-# WRONG — you tunnelled dev.local, then asked for a host nothing forwards
+# WRONG — nothing forwards localhost to the cloud runner, and the tunnel could not
+# have been registered under that name in the first place
 Go To  http://localhost:3000
 ```
 
@@ -122,7 +130,7 @@ If auto-install fails (e.g., network error), re-run `helpmetest proxy start` or 
 
 **Start a proxy:**
 ```
-helpmetest proxy start localhost:3000
+helpmetest proxy start dev.local:3000        # tests navigate to http://dev.local
 ```
 
 **Verify it works (use HelpMeTest, NOT curl):**
@@ -130,6 +138,30 @@ helpmetest proxy start localhost:3000
 helpmetest interactive "Go To  http://dev.local"
 ```
 Should load your local app. If it doesn't, fix the proxy before writing tests.
+
+**No app to point at yet? The CLI ships a throwaway one** — `helpmetest proxy
+run-fake-server` (default port 37331, `--port` to change). It was undocumented here until
+2026-09-25. The full loop, verified end to end that day:
+
+```bash
+helpmetest proxy run-fake-server --port 37331   # terminal 1 — serves a demo page
+helpmetest proxy start zzprobe.local:37331      # terminal 2 — KEEP RUNNING
+helpmetest interactive run "Go To  http://zzprobe.local" "Get Title"
+```
+
+Real output from that run — the cloud browser reaching a server on this laptop:
+
+```
+✓ Go To  http://zzprobe.local        200
+✓ Get Title                          Demo App - HelpMeTest Tutorial
+✓ Browser.Get Text  body             This is a demo app running on localhost:37331
+```
+
+`proxy start` is a **long-running foreground process** — it holds the tunnel open and
+prints `KEEP THIS PROCESS RUNNING while tests execute`. Run it in its own terminal or as a
+managed background process; if you launch it from a script and the script waits on it, you
+will wait forever. Tear down with `helpmetest proxy stop <domain>` and confirm with
+`helpmetest proxy list` → `No active tunnels found`.
 
 **Check active proxies:**
 ```bash
@@ -148,7 +180,7 @@ helpmetest proxy stop dev.local
 **When:** Your dev server already proxies some routes internally (e.g., Vite's `server.proxy` sends `/api` to backend port)
 
 ```
-helpmetest proxy start localhost:5001
+helpmetest proxy start dev.local:5001
 ```
 
 Tests use `http://dev.local` — both UI and API calls work through one tunnel.
@@ -160,8 +192,8 @@ Tests use `http://dev.local` — both UI and API calls work through one tunnel.
 **When:** Services need different hostnames (cookies, CORS), or no internal proxy configured.
 
 ```
-helpmetest proxy start localhost:5001  # maps to frontend.local
-helpmetest proxy start localhost:3001  # maps to backend.local
+helpmetest proxy start frontend.local:5001
+helpmetest proxy start backend.local:3001
 ```
 
 Tests use `http://frontend.local` for UI and `http://backend.local` for API.
@@ -173,7 +205,7 @@ Tests use `http://frontend.local` for UI and `http://backend.local` for API.
 **When:** You have tests running against production URLs and want to test local changes without modifying test code.
 
 ```
-helpmetest proxy start localhost:3000  # routes my.awesome.app traffic to local port 3000
+helpmetest proxy start my.awesome.app:80:3000   # tests hit my.awesome.app → local port 3000
 ```
 
 Tests use `http://my.awesome.app` — routes to localhost:3000 instead of production.
@@ -219,7 +251,9 @@ If your server is bound to `127.0.0.1` (loopback only), restart it with `0.0.0.0
 
 If starting a proxy fails with "proxy already exists":
 - Stop the proxy first: `helpmetest proxy stop dev.local`
-- Or stop all: `helpmetest proxy stop --all`
+- Or stop all: `helpmetest proxy stop-all` — **`proxy stop --all` does not exist**; it
+  fails with `error: unknown option '--all'` (verified 2026-09-25). `stop` takes a required
+  domain argument; `stop-all` is its own subcommand.
 
 ### Custom hostname not resolving
 
@@ -232,13 +266,13 @@ Custom hostnames (like `frontend.local`) are handled entirely by the proxy — n
 
 ```
 # Local frontend on port 5001
-helpmetest proxy start localhost:5001  # frontend.local
+helpmetest proxy start frontend.local:5001
 
 # Local backend API on port 3001
-helpmetest proxy start localhost:3001  # api.local
+helpmetest proxy start backend.local:3001
 
-# Production service running locally on port 8000
-helpmetest proxy start localhost:8000  # prod.myapp.com
+# Production hostname served from a local port 8000
+helpmetest proxy start prod.myapp.com:80:8000
 ```
 
 Tests can now use all three domains inside HelpMeTest commands.
@@ -249,6 +283,6 @@ Tests can now use all three domains inside HelpMeTest commands.
 2. **Always verify with HelpMeTest** — use interactive commands, not curl or browser
 3. **Choose simplest strategy** — if frontend already proxies backend, use Strategy 1
 4. **Use consistent domains** — if you use `frontend.local` in one test, use it in all tests for that service
-5. **Stop proxies when done** — `helpmetest proxy stop --all` cleans up everything
+5. **Stop proxies when done** — `helpmetest proxy stop-all` cleans up everything (not `stop --all`)
 
 **Version:** 0.2

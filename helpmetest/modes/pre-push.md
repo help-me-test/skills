@@ -35,6 +35,14 @@ Starting now.
 
 Pre-push has no scope ambiguity — proceed immediately after presenting the plan.
 
+**Set B is usually empty, and that must not soften the verdict.** Measured 2026-09-25 on
+this repo: one `@helpmetest` annotation exists in the entire codebase, and it points at a
+Feature and two tests that do not exist. On a codebase that never adopted annotations, the
+union is just Set A — so a `CLEAR TO PUSH` means "the critical suite is green", **not**
+"your change is covered". Say which of the two you actually verified; a verdict that reads
+as the second while meaning the first is the kind of false green this mode exists to
+prevent.
+
 ---
 
 ## Step 1 — Find changed files

@@ -13,11 +13,23 @@ ${output}=    Bash    <command>
 ```
 
 - Runs the command in a persistent bash session inside the VM
-- Returns **stdout as a plain string** — captured, not printed
-- The session persists across `Bash` calls in the same test — environment variables, working directory, and installed packages carry over
+- Returns the command's output as a plain string — captured, not printed
+- The session persists across `Bash` calls in the same test — environment variables, working directory, and installed packages carry over. Verified 2026-09-25: `export FOO=persisted; cd /tmp` in one call, then `echo $FOO; pwd` in the next returned `persisted` and `/tmp`.
 - Default timeout: 30s. Override with the `timeout` argument: `Bash    npm install    timeout=120s`
 
-**Critical:** `Bash` only captures stdout. To capture stderr too, append `2>&1` to the command.
+**`Bash` captures stderr as well as stdout — `2>&1` is not required for that.** This section
+used to say the opposite. Measured 2026-09-25, three ways, all returning the stderr text
+with no redirect:
+
+| command | returned |
+|---|---|
+| `echo to-stderr 1>&2` | `to-stderr` |
+| `ls /definitely-not-here` | `ls: cannot access '/definitely-not-here': No such file or directory` |
+| `node -e "console.error('E');console.log('O')"` | `E` then `O` |
+
+`2>&1` still matters for **ordering** — it merges the two streams so interleaved output
+arrives in the order the program produced it, which is what you want when reading a test
+runner's log. It is not what makes stderr visible.
 
 ---
 
@@ -31,6 +43,11 @@ Should Contain    ${result}    EXIT=0
 ```
 
 This works even when the command itself fails — the `echo` always runs.
+
+Verified 2026-09-25: `Bash  ls /definitely-not-here` reported **`✓`** in the run output
+while returning the error text. A failing command is a passing keyword, so without the
+`EXIT=$?` pattern a red build reads as green — the §3b silent-success shape, at process
+level.
 
 ---
 

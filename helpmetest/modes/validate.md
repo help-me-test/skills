@@ -74,6 +74,13 @@ Read:
 
 For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Document the evidence (the specific line or the absence of a specific thing).
 
+**There is no R3.** The numbering jumps R2 → R4, and the grading table below correctly
+counts "R1-R10 (9 rules)". Grepped the whole skill 2026-09-26: `R3` appears nowhere, so
+nothing references a rule that does not exist. Left as-is rather than renumbered — every
+existing Tasks artifact, rewrite queue and run log cites these numbers, and shifting them
+would silently re-point old evidence at different rules. If you are scoring and cannot find
+R3, this paragraph is the answer.
+
 **R1 — Asserts an outcome, not presence.**
 - FAIL if the test only clicks/navigates without a final assertion on data, state, or visible outcome.
 - FAIL if the only assertion is `Should Be Visible` or `Wait For Element` on a selector — those prove presence, not function.
@@ -85,9 +92,16 @@ For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Do
 
 **R4 — Uses FakeMail for emails.**
 - N/A if no email field involved.
-- FAIL if test hardcodes `test@example.com` or similar — these fail on second run (account already exists).
-- FAIL if test constructs emails like `user_${timestamp}@example.com` instead of using `Create Fake Email` / `Create Email And Fill`.
-- PASS when `Create Fake Email` or `Create Email And Fill` is used AND `Delete Email` is in teardown or explicit cleanup.
+- FAIL if test hardcodes `test@example.com` or similar. The usual consequence is a second
+  run failing because the account already exists — but that depends on the app under test,
+  so cite what you actually observed, not that sentence. The rule stands regardless: a
+  shared fixed address collides across runs and across whoever else uses it.
+- FAIL if test constructs emails like `user_${timestamp}@example.com` instead of using
+  `Create Fake Email` / `Create Email And Fill`.
+- PASS when `Create Fake Email` or `Create Email And Fill` is used AND `Delete Email` or
+  `Cleanup Emails` is in teardown. Arities measured 2026-09-26 via over-arity probe:
+  `Create Fake Email` **0 args**, `Create Email And Fill` **1** (the selector),
+  `Delete Email` **1**, `Cleanup Emails` **0**.
 
 **R5 — Uses `As <StateName>` for auth, not re-login.**
 - N/A if feature doesn't require auth.
@@ -95,10 +109,17 @@ For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Do
 - PASS when `As <StateName>` is the first meaningful line after `Go To`.
 
 **R6 — No blocked patterns.**
-- FAIL if test uses `Evaluate  ...__import__(...)` — sandbox blocks it.
-- FAIL if test uses `Evaluate  lambda ...` — likely blocked.
-- FAIL if test uses `Sleep  X` without a one-line comment explaining *why* (animation, network delay). Unjustified sleep is a flaky-test generator.
-- PASS when no blocked patterns and no unjustified sleep.
+- FAIL if the test uses `Evaluate` **at all** — not just `__import__` or `lambda`. The
+  platform validator rejects the keyword outright ("executes arbitrary Python
+  expressions") and fails the whole run, not the one line. This rule used to list two
+  sub-cases and hedge the second as "likely blocked"; both were understatements. Use the
+  `Javascript` keyword, which takes an **expression** (`shared.md` §3d).
+- FAIL if the test body contains `*** Settings ***` or `*** Test Cases ***` — `test create
+  --content` takes bare keywords and wraps them itself; zero of the 143 live tests carry a
+  section header (`shared.md` §3f).
+- FAIL if the test uses `Sleep  X` without a one-line comment explaining *why* (animation,
+  network delay). Unjustified sleep is a flaky-test generator.
+- PASS when none of the above and no unjustified sleep.
 
 **R7 — Selectors prefer role/text/testid, not CSS fragility.**
 - PREFER: `text=<visible text>`, `role=<role>`, `[data-testid='...']`, `[aria-label='...']`.
@@ -111,16 +132,26 @@ For each test, check the rules below. Each rule is either PASS, FAIL, or N/A. Do
 - FAIL if any required tag is missing.
 - FAIL if the feature tag references a non-existent Feature artifact (it should match a real artifact id).
 
-**R9 — Name follows the pattern — no vague/abd names.**
+**R9 — Name follows the pattern — no vague/abstract names.**
+- **This one is style, not enforcement.** Measured 2026-09-26: `test create --name "test
+  login flow zz"` was **accepted**, as was `--id zz-probe-test` despite
+  `test create --help` saying ids take "no `test` suffix". Nothing server-side rejects
+  either, so R9 is a reviewer judgement — do not expect the platform to have caught it,
+  and do not report a create failure as evidence of an R9 violation.
 - Pattern: `<Feature> — <user-facing action>` or `User can <action>`.
 - FAIL if name includes `test` in it (*"test login flow"*).
 - FAIL if name is about implementation (*"clicks login-btn and checks div.dashboard"*).
-- FAIL if name is vague/abd — does not say what the test actually verifies. A name like "login flow" or "checkout" or "user settings" tells nothing. The name must answer: "What specific user-facing behavior does this test verify?"
+- FAIL if name is vague — it does not say what the test actually verifies. A name like "login flow" or "checkout" or "user settings" tells nothing. The name must answer: "What specific user-facing behavior does this test verify?"
 - Naming is the first line of defense against bad tests. A vague name means vague thinking = vague test.
 
-**R10 — Has required tags.**
+**R10 — Has required tags.** *(a strict subset of R8 — see note)*
 - FAIL if `priority:` or `feature:` tags missing.
 - Tags come from metadata (parsed from `--tags` flag), not content.
+- **R10 cannot fail unless R8 also fails**, since R8 already requires all five of
+  `project:`, `feature:`, `persona:`, `priority:`, `url:`. Scoring both as separate FAILs
+  double-counts one defect and drops the grade two tiers for it. Score R10 N/A whenever R8
+  was evaluated; it is retained only because existing rewrite queues cite it by number, the
+  same reason R3's gap was left alone.
 
 ---
 
@@ -138,6 +169,11 @@ Ask: "If a developer introduced a realistic bug — removed the save handler, br
 - Test reads from an input but doesn't verify the input was accepted
 - Test checks "no error" instead of checking the positive outcome
 - Test validates framework/library behavior, not our business logic
+- Test's only type/identity check is a keyword that accepts anything. Measured 2026-09-26:
+  `Open Document` converts an HTML page as happily as a PDF (`✓ exit 0` for both
+  `…/dummy.pdf` and `https://example.com/`), so "it opened, therefore it was a PDF" is not
+  an assertion. Ask what input this step would have *rejected*; if the answer is none, it
+  contributes nothing to R11.
 
 **Evidence:** "What specific bug would this miss if the code changed?"
 
@@ -162,6 +198,13 @@ Ask: "If a developer introduced a realistic bug — removed the save handler, br
 
 **Evidence:** "What line shows this tests OUR code vs the library?"
 
+**When this rule can fire.** The detection patterns above are source-code constructs, not
+Robot Framework keywords, so they appear only in a test that runs a unit suite through the
+`Bash` keyword (`modes/terminal.md`) or asserts on a code snippet. Measured 2026-09-26
+across the live suite: `bcrypt`, `prisma` and `axios` each match **0** tests. For an
+ordinary browser test, R12 is **N/A** — say so rather than recording a free PASS, because a
+PASS reads as "checked and clean" and inflates the grade.
+
 ---
 
 ## R13 — Minimal Mocking
@@ -174,6 +217,10 @@ Ask: "If a developer introduced a realistic bug — removed the save handler, br
 **PASS if:** Mocks only external I/O (APIs, databases, filesystem). Business logic uses real implementations.
 
 **Evidence:** "What is mocked? Is it external I/O or internal logic?"
+
+**When this rule can fire.** Same scope as R12: a HelpMeTest test drives a real cloud
+browser against a real app, so there is nothing to mock. Only a `terminal`-mode test
+running a unit suite can violate this. For a browser test, R13 is **N/A**.
 
 ---
 
@@ -188,7 +235,11 @@ Score PASSes out of applicable rules (exclude N/A).
 - **D (2-3):** probably better to rewrite than patch
 - **F (<2):** delete or start over
 
-**R11-R13 (3 rules — always applicable for functional tests):**
+**R11-R13 (3 rules):**
+- R11 applies to every functional test. **R12 and R13 apply only to tests that run code
+  directly** (`terminal` mode, `Bash` keyword) — for an ordinary browser test they are
+  N/A. This line used to read "always applicable for functional tests", which produced two
+  automatic PASSes on rules that could not fire.
 - Each FAIL on R11-R13 lowers the final grade by one tier (A→B, B→C, etc.)
 - **Exception:** tests validating framework behavior (R12 FAIL) that aren't testing our code at all → automatic F regardless of R1-R10 score
 

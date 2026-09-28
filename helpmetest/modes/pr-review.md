@@ -8,7 +8,7 @@ Gap analysis for a branch before merge. Reads the diff, maps changed files to te
 
 ```bash
 helpmetest status
-helpmetest artifact list
+helpmetest artifact list --tags "project:<slug>"   # scoped — a bare list spans every project
 ```
 
 ## Announce
@@ -32,6 +32,20 @@ Ready to start?
 ```
 
 Wait for confirmation, then proceed.
+
+**On a codebase without annotations, step 3 flags everything — which is correct, but say so
+up front.** Measured 2026-09-25 on this repo: exactly one `@helpmetest` annotation exists
+(`app/server/launch.js:1`), and it is stale — its `feature:launch-flow` artifact 404s and
+neither of the two test ids it names is among the 143 live tests.
+
+So a CoverageReport that lists every changed file as a gap is an honest reading of an
+unannotated codebase, not a bug in this mode. Lead with that fact rather than producing a
+wall of identical high-severity gaps: *"this repo has no annotations, so coverage cannot be
+inferred from the diff — here is what the tests actually cover instead"* is more use than
+twenty rows saying the same thing.
+
+And when an annotation does exist, check its targets resolve before trusting it. It is a
+hand-maintained comment with nothing keeping it honest.
 
 ---
 
@@ -75,48 +89,52 @@ helpmetest artifact schema CoverageReport
 
 Create a `CoverageReport` artifact:
 
+**Corrected 2026-09-26 against `artifact schema CoverageReport --json`.** The previous
+shape used `scope`, `scenarios_total`, `scenarios_covered`, `coverage_percent`,
+`next_actions` and `by_feature[].feature_name`/`scenarios_gap` — none of which exist — and
+omitted six required fields. See `modes/coverage.md` for the same template with every
+nested shape spelled out.
+
 ```json
 {
   "type": "CoverageReport",
   "id": "pr-review-<short-timestamp>",
   "content": {
-    "scope": "files changed on branch vs main",
-    "features_scanned": N,
-    "tests_total": N,
-    "scenarios_total": N,
-    "scenarios_covered": N,
-    "coverage_percent": 0-100,
+    "name": "PR review — <branch>",
+    "description": "Annotation coverage for files changed on <branch> vs main",
+    "verdict": "<one sentence: is this branch safe to review, and why>",
+    "verdict_status": "ready|at_risk|not_ready",
+    "scope_audited": ["files changed on branch vs main"],
+    "scope_not_audited": ["everything not touched by this branch"],
+    "features_scanned": 0,
+    "tests_total": 0,
+    "total": { "total": 0, "covered": 0, "skipped": 0, "pct": 0.0 },
     "by_feature": [
-      {
-        "feature_id": "<id>",
-        "feature_name": "<name>",
-        "scenarios_total": N,
-        "scenarios_covered": N,
-        "scenarios_gap": N
-      }
+      { "feature_id": "<id>", "priority": "high",
+        "scenarios": { "total": 0, "covered": 0, "skipped": 0, "pct": 0.0 } }
     ],
     "critical_gaps": [
-      {
-        "feature_id": "gap",
-        "scenario_name": "<filename> — no @helpmetest annotation",
-        "priority": "high|medium|low",
-        "suggested_mode": "tdd"
-      }
+      { "feature_id": "<id>", "scenario_name": "<scenario>", "priority": "high",
+        "risk": "core_journey",
+        "implication": "<what ships unguarded if this is wrong>" }
+    ],
+    "code_gaps": [
+      { "path": "<changed file with no annotation>", "surface_name": "<what it does>",
+        "risk": "core_journey", "implication": "<what is unprotected>" }
     ],
     "dead_links": [],
     "orphan_tests": [],
-    "next_actions": [
-      {
-        "priority": 1,
-        "action": "/helpmetest tdd — add coverage for <file>",
-        "mode": "tdd"
-      }
+    "recommendations": [
+      { "title": "Add coverage for <file>", "command": "/helpmetest tdd <file>" }
     ]
   }
 }
 ```
 
-Map unannotated files into `critical_gaps[]` — each gap file becomes one entry with `feature_id: "gap"` and a description containing the filename.
+Note `code_gaps` is the right home for "changed file with no `@helpmetest` annotation" —
+the old template forced those into `critical_gaps` with a fake `feature_id` of `"gap"`.
+
+Map unannotated changed files into `code_gaps[]` — one entry per file, with `path`, a short `surface_name`, its `risk`, and the `implication` if it ships unguarded. (This line used to say `critical_gaps[]` with `feature_id: "gap"`; `critical_gaps` entries are scenarios belonging to a real Feature, and `code_gaps` exists precisely for code with no Feature behind it.)
 
 ---
 

@@ -37,7 +37,21 @@ You can also use `\n` inside a single string:
 helpmetest interactive $'Fill Text  input[name=email]  user@example.com\nFill Text  input[name=password]  secret\nClick  button[type=submit]'
 ```
 
-When a command in a batch fails, subsequent commands are skipped (shown as `⊘` in output). Batch when you're confident the whole sequence works. Go step by step when exploring or debugging.
+When a command in a batch fails, the rest are skipped. Verified 2026-09-25 — the marker is
+`○` with the word `(skipped)`, not `⊘` as this line used to claim, and the whole call exits
+1:
+
+```
+0.139s  ✓ Go To  https://todo.playground.helpmetest.com
+10.016s ✗ Click  .does-not-exist-anywhere
+  TimeoutError: locator.click: Timeout 10000ms exceeded.
+0.000s  ○ Get Title (skipped)
+```
+
+Note the cost in that line: a selector that does not exist burns the **full 10s timeout**
+before the batch aborts. A long batch built on a guessed selector spends ten seconds finding
+out. Batch when you're confident the whole sequence works; go step by step when exploring or
+debugging.
 
 ### Options
 
@@ -81,6 +95,33 @@ Use `Exit` to explicitly close the browser and end the session:
 ```bash
 helpmetest interactive "Exit"
 ```
+
+**Expect silence afterwards, and do not read it as a failure.** Observed 2026-09-25, in
+this order, all exit 0:
+
+| call | output |
+|---|---|
+| `interactive "Exit"` | `○ Exit (skipped)` then `PASS` |
+| `interactive run "Exit"` | **empty** |
+| `interactive run "Get Url"` | **empty** |
+| `interactive run "Go To …" "Get Url"` | **empty** |
+| the same command a few minutes later | normal output, new session |
+
+So for a stretch after `Exit`, every call in that directory returns nothing at all and
+still exits 0 — the §3b silent-success shape at session level. It recovered on its own once
+a new session directory appeared under `.helpmetest/sessions/`; **nothing was deleted or
+repaired to make that happen, and the cause was not established** — the timing is
+consistent with the exited session still being the freshest one and being auto-resumed
+until it aged out, but that was not confirmed.
+
+Practical consequences:
+
+- **Empty output with exit 0 is not "the command passed with nothing to say."** Check the
+  byte count. A real command prints keyword lines, a divider and a page dump.
+- **You rarely need `Exit`.** Sessions expire on their own after 3 minutes of inactivity.
+  Calling it buys nothing and costs the next few invocations.
+- A clean directory is unaffected — the same commands in a fresh temp dir with a copied
+  `config.yaml` worked immediately.
 
 ---
 
@@ -165,12 +206,18 @@ Pass commands as positional arguments:
 ```bash
 helpmetest interactive \
   "Go To  https://forms.playground.helpmetest.com" \
-  "Fill Text  #email  user@example.com" \
+  "Fill Text  \#email  user@example.com" \
   "Click  button[type=submit]"
 ```
 
+**Note the `\#`.** This example used to say `#email` and did not run at all: `#` starts a
+Robot Framework comment, so the whole chain fails before the first keyword with
+`syntax error: # starts a comment and must be escaped`. Verified 2026-09-26 — broken as
+written, green with the backslash (`✓ Fill Text  \#email  user@example.com`). Use a
+backslash, never quotes; see `modes/shared.md` §3h for why quoting makes it worse.
+
 **Rules:**
-- Commands run sequentially; on first failure, later commands are skipped (`⊘`).
+- Commands run sequentially; on first failure, later commands are skipped — marked `○` with a `(skipped)` suffix, e.g. `0.000s  ○ Click  button[type=submit] (skipped)`. (Measured 2026-09-26; this line used to say `⊘`.)
 - Use `--screenshot` to capture a screenshot after the run.
 - Use `--json` to get structured event output (all keyword results + OpenReplay events).
 - Session continuity is automatic — the browser stays open between calls within the same session.
@@ -244,7 +291,7 @@ Get Url    contains    /dashboard'
 
 `--id` is required (URL-safe, no spaces, no "test" suffix — becomes the permanent identifier). `--content` is bare RF keywords, not a full `*** Test Cases ***` block — `test create` wraps it into a real test case itself. Every keyword group needs a leading `#` comment or creation is rejected (run `/helpmetest comment` to auto-fix). Tags must satisfy the full schema — a real `feature:`/`priority:`/`persona:`/`project:`/`url:` set, not placeholders; run `helpmetest test create --help` with no valid tags to see the exact existing values accepted for your project.
 
-Then run it: `helpmetest test run <id>`. If green, add the test id to the Feature artifact's `scenarios[].test_ids`.
+Then run it: `helpmetest test run <id>`. If green, add the test id to the matching scenario's `test_ids` in the Feature artifact. **There is no top-level `scenarios` array** — verified against `artifact schema Feature` 2026-09-25: scenarios live under `functional`, `edge_cases` and `non_functional`, each an array of `Scenario` (`name, given, when, then, auth, url, tags, test_ids`). So the path is `functional[N].test_ids`, not `scenarios[N].test_ids`.
 
 ---
 
@@ -335,7 +382,7 @@ Future sessions: `As  Admin` restores without re-authenticating.
 | Navigate | `Go To  https://example.com` |
 | Click | `Click  [data-testid=btn]` |
 | Fill input (clears first) | `Fill Text  input[name=email]  value` |
-| Type into input (appends) | `Type Text  input[name=q]  more text` |
+| Type into input, key by key — **also replaces, does not append** | `Type Text  input[name=q]  text` |
 | Read text | `Browser.Get Text  h1` |
 | Read input value | `Browser.Get Property  input  value` |
 | Read URL | `Get Url` |
@@ -350,6 +397,26 @@ Future sessions: `As  Admin` restores without re-authenticating.
 | Restore auth state | `As  Admin` |
 | Close session | `Exit` |
 | Upload a file from local content (no filesystem path needed on the VM — see below) | `Upload File By Selector  input[type=file]  ${buffer}` |
+
+**Measured 2026-09-25 — this table used to say `Type Text` appends. It does not.** Two runs
+against the same input, reading the value back with `Get Property`:
+
+| sequence | resulting value |
+|---|---|
+| `Fill Text  aaa` → `Type Text  bbb` | `bbb` (not `aaabbb`) |
+| `Type Text  xxx` → `Type Text  yyy` | `yyy` (not `xxxyyy`) |
+
+So neither keyword accumulates text. To append, read the current value first and type the
+concatenation:
+
+```robot
+${current}=    Get Property    input[name=q]    value
+Fill Text    input[name=q]    ${current} more
+```
+
+The real difference is *how* they enter it — `Fill Text` sets the value in one step,
+`Type Text` emits key events, which matters for inputs with per-keystroke handlers
+(autocomplete, live search, input masks).
 
 When unsure: `helpmetest search "<intent>"`.
 When getting ambiguity errors: prefix with library — `Browser.Get Text`, `Browser.Get Element States`.

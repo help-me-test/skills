@@ -74,7 +74,7 @@ Then stop. Don't launch a full audit unless the user asks for one.
 Check what auth states are available:
 
 ```bash
-helpmetest artifact list --type Persona
+helpmetest artifact list --type Persona --tags "project:<slug>"
 ```
 
 After orient, narrate your intent in a `[phase]` line and **immediately make your first tool call in the same response** — do not produce text-only output, the runner will exit. The announce and the first navigation happen together:
@@ -148,6 +148,37 @@ Set Viewport Size  1440  900
 Go To  <page-url>
 ```
 
+**Verified 2026-09-25:** `Set Viewport Size  375  667` really resizes — reading back
+`window.innerWidth`/`innerHeight` gives `375x667`. `Test On  iPhone 13  <url>` also works
+and emulates the device (`innerWidth` → `390`).
+
+**Getting the image back is the part that trips agents up.** `Take Screenshot` returns a
+path *inside the VM*:
+
+```
+✓ Take Screenshot
+      /app/browser/screenshot/robotframework-browser-screenshot-1.png
+```
+
+That path is inside the VM — there is nothing to open on your machine. Pass `--screenshot`
+to the interactive call instead. It runs `Take Screenshot` for you **and downloads the
+file**, printing the local path at the end of the output:
+
+```
+Screenshots:
+  <project>/.helpmetest/screenshots/screenshot-1790358330397-0.jpg
+```
+
+Verified 2026-09-25: that file is a real JPEG (29 KB, 390x664). So a returned
+`/app/browser/...` string is not a delivered screenshot — a UIReview whose evidence is that
+string has no evidence. Use `--screenshot` and cite the local path.
+
+**Watch the dimensions in that example: 390x664, not the 1440x900 you may think you set.**
+The viewport carried over from an earlier `Test On  iPhone 13` in a *previous* invocation,
+because interactive sessions persist per working directory (`modes/interactive.md`
+§Sessions). Set the viewport in the same call as the navigation, or check
+`window.innerWidth` before trusting a screenshot's size.
+
 What to observe per screenshot:
 - **Layout**: Is the page using space well? Blank areas? Dense areas?
 - **Hierarchy**: Does the most important thing dominate visually?
@@ -161,7 +192,9 @@ What to observe per screenshot:
 
 Scroll if the page is long:
 ```robot
-Scroll By  0  800
+# `Scroll By` takes NO numeric offsets — its first argument is a selector. One call
+# scrolls one viewport; repeat it to go further.
+Scroll By
 ```
 
 Interact to see more states:
@@ -299,6 +332,25 @@ helpmetest artifact upsert --id "uireview-<app>-<date>" --type UIReview --name "
 }
 ```
 
+**The mobile screenshot is enforced, not a convention.** Measured 2026-09-26 — a page whose
+`screenshots` array holds only a desktop entry is rejected:
+
+```
+✗ 422: pages.0.screenshots
+  Value error, screenshots must include a mobile viewport screenshot
+```
+
+With a `mobile` entry added, the same payload saved. So a walkthrough that skipped mobile
+cannot be written down at all — the artifact refuses to record a review that did not look
+at mobile. Required shapes, from `artifact schema UIReview --json`: content requires
+`name, description, app_name, reviewed_at, pages`; `UIReviewPage` requires
+`name, url, what_i_saw, screenshots`; `UIReviewScreenshot` requires
+`viewport, width, height, url`; `UIReviewAction` requires `rank, page, title, description`.
+
+Note this template is **flat** — the fields above are the artifact's `content`, so pass the
+whole object to `--file`/`--content`. That is correct and verified; it differs from
+`coverage.md`'s template, which shows an outer `{ "content": { … } }` wrapper.
+
 **Rules for `actions`:**
 - One flat list across all pages — do NOT write separate per-page issues, pitches, or a priority_stack
 - `rank` = global priority order (1 = most impactful across the entire app)
@@ -323,8 +375,12 @@ Click  <selector>
 # Fill in a search to see filtered states
 Fill Text  input[type="search"]  test
 
-# Scroll to bottom to check footer / infinite scroll
-Scroll By  0  9999
+# Scroll to the bottom to check footer / infinite scroll — repeat `Scroll By`, one
+# viewport per call. `Scroll By  0  9999` does NOT work: `0` is parsed as a CSS selector
+# and the call errors with `Error while parsing css selector "0"`.
+Scroll By
+Scroll By
+Scroll By
 
 # Check empty state by navigating to a page with no data
 Go To  <empty-page-url>

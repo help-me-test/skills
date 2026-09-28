@@ -60,7 +60,7 @@ Announce the plan, then immediately proceed — do not wait for confirmation.
 ### 1. Orient
 
 ```bash
-helpmetest artifact list --type Feature
+helpmetest artifact list --type Feature --tags "project:<slug>"
 helpmetest status
 ```
 
@@ -156,6 +156,12 @@ Cross-check the test list against all `scenario.test_ids` references. Any test i
 
 This is the deliverable. Create it with `helpmetest artifact upsert --type CoverageReport`. Required fields per the schema (fetch with `helpmetest artifact schema CoverageReport`):
 
+**This template was rewritten 2026-09-26 after being run verbatim and rejected with 9
+validation errors.** The previous version used `scope`, `scenarios_total`,
+`scenarios_covered`, `coverage_percent` and `next_actions` — none of which exist — and
+omitted four required fields. Every shape below comes from
+`helpmetest artifact schema CoverageReport --json`.
+
 ```json
 {
   "id": "coverage-<ISO-date>-<short-hash-of-scope>",
@@ -164,23 +170,22 @@ This is the deliverable. Create it with `helpmetest artifact upsert --type Cover
   "content": {
     "name": "<same>",
     "description": "<one paragraph: scope, what was scanned, overall verdict>",
-    "scope": "<'all features' | 'features tagged X' | 'feature <id>'>",
-    "features_scanned": <int>,
-    "tests_total": <int>,
-    "scenarios_total": <int>,
-    "scenarios_covered": <int>,
-    "coverage_percent": <float 0-100>,
+    "verdict": "<one plain-English sentence: is this audit-ready, and why>",
+    "verdict_status": "ready|at_risk|not_ready",
+    "scope_audited": ["<concretely what was scanned, e.g. 'all 12 Features tagged project:acme'>"],
+    "scope_not_audited": ["<what this run did NOT cover, so silence is never mistaken for coverage>"],
+    "features_scanned": 0,
+    "tests_total": 0,
+    "total": { "total": 0, "covered": 0, "skipped": 0, "pct": 0.0 },
     "by_feature": [
       { "feature_id": "...", "priority": "critical|high|medium|low|null",
-        "scenarios_total": <int>, "scenarios_covered": <int>,
-        "scenarios_gap": <int>, "scenarios_dead_link": <int>,
-        "notes": "optional one-line" }
+        "scenarios": { "total": 0, "covered": 0, "skipped": 0, "pct": 0.0 },
+        "stability_passed": 0, "stability_runs": 0, "notes": "optional one-line" }
     ],
     "critical_gaps": [
-      { "feature_id": "...", "scenario_name": "...", "priority": "critical|high|medium|low",
-        "user_impact": "<one sentence of what gets missed if this silently breaks>",
-        "usefulness_score": <int 1-25>,
-        "risk_category": "<money|security|data_export|data_integrity|core_journey|null>" }
+      { "feature_id": "...", "scenario_name": "...", "priority": "critical",
+        "risk": "<money|security|data_export|data_integrity|core_journey>",
+        "implication": "<one sentence of what gets missed if this silently breaks>" }
     ],
     "dead_links": [
       { "feature_id": "...", "scenario_name": "...", "missing_test_id": "..." }
@@ -188,16 +193,24 @@ This is the deliverable. Create it with `helpmetest artifact upsert --type Cover
     "orphan_tests": [
       { "test_id": "...", "name": "...", "tagged_feature": "feature-id-or-null",
         "status": "PASS|FAIL|UNKNOWN",
-        "usefulness_score": <int 1-25>|null,
         "suggestion": "link to <feature>.<scenario> | remove | rewrite" }
     ],
-    "next_actions": [
-      { "mode": "fix|tdd|discover|manual|other",
-        "description": "<what to do, scoped to which items>" }
+    "code_gaps": [
+      { "path": "app/src/pages/Billing.jsx", "surface_name": "Billing page",
+        "risk": "money", "implication": "<what is unprotected>" }
+    ],
+    "recommendations": [
+      { "title": "<what to do>", "command": "<copy-paste command, optional>",
+        "note": "<optional>" }
     ]
   }
 }
 ```
+
+Required: `name`, `description`, `verdict`, `verdict_status`, `scope_audited`,
+`features_scanned`, `tests_total`, `total`. `CoverageMetric` (used by `total` and
+`by_feature[].scenarios`) requires `total`, `covered`, `pct`. `usefulness_score` and
+`risk_category` do not exist — `critical_gaps` entries take `risk` and `implication`.
 
 Don't include scenarios that are fully covered in `critical_gaps` — only list gaps. Don't truncate the arrays; list every row. If the scope is huge (>50 features), shrink the scope with a filter rather than summarizing — partial data in a full-structured artifact is more useful than complete data in prose.
 

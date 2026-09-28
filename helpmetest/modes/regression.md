@@ -68,9 +68,9 @@ Collect every test name from every annotation.
 
 **(b) Feature artifact that mentions the file in `relevant_files`.** Search artifacts:
 ```bash
-helpmetest artifact list --type Feature
+helpmetest artifact list --type Feature --tags "project:<slug>"
 ```
-Fetch each feature, check its `relevant_files[].path` against the changed set. For matches, pull the `scenario.test_ids` — those tests are affected.
+Fetch each feature and compare its `relevant_files` entries against the changed set. **They are plain strings**, not objects — `["app/src/pages/Search.jsx", "app/server/search.js"]` — so match on the string, not `relevant_files[].path` as this line used to say. (Verified against `artifact schema Feature`, 2026-09-25. Note `Tasks.relevant_files` *is* an array of objects with `path` + `description`; the two artifact types differ, which is how the confusion arose.) For matches, pull the `test_ids` from that Feature's scenarios under `functional[]` / `edge_cases[]` / `non_functional[]` — those tests are affected.
 
 **(c) Convention-based fallback.** If a changed file's path matches a feature area (e.g. `app/auth/*` → `feature:*auth*`), include tests tagged with that feature. Document this as a fallback — it's noisier than (a) or (b).
 
@@ -126,6 +126,32 @@ Every test that ran → its run URL must appear in the notes. Don't summarize "a
 - **Do not re-run everything.** If you run the full suite, you missed the point of this mode. Limit the set based on annotations + feature links.
 - **Do not fix red tests.** If one fails, **do not route to `fix`** unless the user said so. Regression's job is to report, not repair.
 - **Do not create new tests for uncovered code.** That's `tdd` or `coverage`.
+
+## The `RegressionRun` artifact — verified shapes
+
+This mode's output artifact was never documented here, so its values were free text by
+default. They are not. Measured 2026-09-26 against
+`helpmetest artifact schema RegressionRun --json`, after a probe with plausible English
+values was rejected (`selection_method: "changed files"` → `Input should be 'annotations',
+'feature_links', 'convention' or 'mixed'`).
+
+Content requires `name`, `description`, `selection_method`, `verdict`. Full props:
+`type, name, description, links, trigger_files, selection_method, affected_tests,
+skipped_tests, results, verdict`.
+
+| field | allowed values |
+|---|---|
+| `selection_method` | `annotations` · `feature_links` · `convention` · `mixed` |
+| `verdict` | `safe_to_ship` · `regressions_found` · `pre_existing_only` · `inconclusive` |
+| `results[].classification` | `green` · `regressed` · `pre_existing_fail` · `flaky` |
+
+`results[]` entries (`RegressionEntry`) require `test_id`, `classification`, `run_url`;
+optional `test_name`, `failure_message`, `annotation_source`.
+
+**Note the spelling.** Step 4 above says classify as "pre-existing"; the stored value is
+`pre_existing_fail`. Use the enum value in the artifact and whatever reads naturally in
+your prose. Verified end to end: a payload using these values saved, one using English
+equivalents did not.
 
 ## Handoff
 

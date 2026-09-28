@@ -55,6 +55,26 @@ SSL Algorithm    helpmetest.com    ==    sha256WithRSAEncryption
 SSL Version    helpmetest.com    ==    2       # TLS 1.2 → 2, TLS 1.3 → 3
 ```
 
+**Verified live 2026-09-25** against `helpmetest.com` — every keyword above exists and
+returns real data. Actual values, useful as a sanity reference when a test starts failing
+and you need to know whether the cert changed or the test is wrong:
+
+| keyword | returned |
+|---|---|
+| `SSL Subject` | `*.slava.helpmetest.com` — note the cert serving `helpmetest.com` is a **wildcard for a different host**, so an `==` assertion on the bare domain fails while `*=` passes |
+| `SSL Version` | `2` (TLS 1.2, not 1.3) |
+| `SSL Algorithm` | `sha256WithRSAEncryption` |
+| `SSL Issuer Organization` | `Let's Encrypt` |
+| `SSL Days Remaining` | `72` |
+| `SSL SANs` | `["DNS:*.helpmetest.com","DNS:*.playground.helpmetest.com","DNS:*.slava.helpmetest.com","DNS:helpmetest.com", …]` |
+
+**`contains` is a substring match across the list, not an exact element match.** The SAN
+entries all carry a `DNS:` prefix, yet both
+`SSL SANs  helpmetest.com  contains  helpmetest.com` and
+`SSL SANs  helpmetest.com  contains  DNS:helpmetest.com` pass. Prefer the prefixed form
+when you mean a specific SAN — the bare form also matches `mta-sts.helpmetest.online` and
+every wildcard, so it will keep passing after the SAN you cared about is removed.
+
 ### Assertion operators
 
 | Operator | Meaning |
@@ -70,12 +90,22 @@ SSL Version    helpmetest.com    ==    2       # TLS 1.2 → 2, TLS 1.3 → 3
 
 ## Workflow: `/helpmetest ssl <domain>`
 
-1. **Check for existing test** — search for a test covering the domain:
+1. **Check for existing test** — look for a test covering the domain:
    ```bash
-   helpmetest test show ssl-<domain-slug>
+   helpmetest test view ssl-<domain-slug>
    ```
    - Found → show current pass rate, offer to run or update
    - Not found → proceed to generate
+
+   > `test view` takes the test **id**, not its display name, and on a miss it exits 1 with
+   > **no output at all** — an empty result means "no test with that id", never "a test with
+   > no runs". If you need to search by name, read `helpmetest status --json` and match on
+   > `tests[].name`; every row also carries `id` and the full `content`.
+   >
+   > This step previously said `helpmetest test show`, which does not exist. The first
+   > argument to `test` is something to **run**, so the typo became a run request:
+   > `✗ No test matches "show" — aborting before running any of: show, ssl-example-com`
+   > (measured 2026-09-25). It aborted only because no test happens to be named `show`.
 
 2. **Generate and push the test** — use this exact `test create` command. Comments are required and must be evenly distributed (one comment per 1-2 keywords). Required tags: `feature:ssl`, `url:<domain>`, `priority:high`, `persona:public`, `project:<project-id>`.
 

@@ -43,7 +43,7 @@ Output: Feature artifacts with Given/When/Then scenarios (full mode), or a categ
 
 ```bash
 helpmetest status
-helpmetest artifact list
+helpmetest artifact list --tags "project:<slug>"   # scoped — a bare list returns every project in the workspace
 ```
 
 **Also check for a spec-driven-dev framework before asking the user for a source.** These
@@ -213,14 +213,17 @@ After every `helpmetest interactive` call, scan the `network` section of the out
 
 Document as a Bug if the failing resource is user-facing or affects page functionality.
 
-For deeper resource timing (slow JS bundles, large images, blocking fonts), use `Analyze Resources` after the page has loaded:
+For deeper resource timing (slow JS bundles, large images, blocking fonts), read the
+browser's own resource timing. **There is no `Analyze Resources` keyword** — probed live
+2026-09-25, it returns `No keyword with name 'Analyze Resources' found.`
 
 ```robot
-${resources}=    Analyze Resources
+${resources}=    Javascript    JSON.stringify(performance.getEntriesByType('resource').map(r=>({name:r.name,type:r.initiatorType,ms:Math.round(r.duration),bytes:r.transferSize})).sort((a,b)=>b.ms-a.ms).slice(0,15))
 Log    ${resources}
 ```
 
-Returns a breakdown of all loaded assets with transfer size and duration. Useful for finding the heaviest resource causing slow FCP — cross-reference with check 6 when vitals are poor.
+That gives the 15 slowest assets with transfer size and duration — enough to find the
+heaviest resource behind a slow first paint.
 
 #### 5. Mobile layout
 
@@ -241,15 +244,37 @@ After the probe, close the mobile context and switch back to desktop before cont
 
 #### 6. Performance thresholds
 
+**`Analyze Web Vitals` does not exist** — probed live 2026-09-25, bare and with the
+documented precondition, both `No keyword with name 'Analyze Web Vitals' found.` Read the
+numbers from the browser instead. Note also that `Scroll By` takes **no** numeric offsets:
+`Scroll By  0  300` fails with `Error while parsing css selector "0"`, because its first
+argument is a selector. A bare `Scroll By` scrolls one viewport (measured: `scrollY` 0 →
+1080); repeat it to go further.
+
 ```robot
-# Primary: Core Web Vitals via OpenReplay (recording starts automatically on Go To)
-Scroll By    0    300    # trigger INP/CLS measurements
+Go To    ${URL}
+Wait For Load State    networkidle
+Scroll By
 Sleep    2s
-${vitals}=    Analyze Web Vitals
-Log    ${vitals}
+
+# Navigation timing — DNS, TCP, TLS, TTFB, domInteractive, load
+${nav}=    Javascript    JSON.stringify(performance.getEntriesByType('navigation')[0])
+Log    ${nav}
+
+# Paint timings, when the browser recorded them
+${paint}=    Javascript    JSON.stringify(performance.getEntriesByType('paint').map(p=>({name:p.name,ms:Math.round(p.startTime)})))
+Log    ${paint}
+
+# Layout shift total
+${cls}=    Javascript    String(performance.getEntriesByType('layout-shift').reduce((s,e)=>e.hadRecentInput?s:s+e.value,0))
+Log    ${cls}
 ```
 
-If `${vitals}` is not `None`, apply Lighthouse thresholds from the result:
+The interactive session also prints `DNS / TCP / TLS / TTFB / resp / domInteractive / load`
+under **Browser State** on every navigation, with no keyword at all — for a quick read that
+is usually enough.
+
+Apply Lighthouse thresholds to whatever you collected:
 
 | Metric | Good | Needs improvement | Bug |
 |---|---|---|---|
@@ -258,16 +283,13 @@ If `${vitals}` is not `None`, apply Lighthouse thresholds from the result:
 | CLS | < 0.1 | < 0.25 | ≥ 0.25 |
 | INP | < 200ms | < 500ms | ≥ 500ms |
 
-Ratings are in `${vitals}[ratings]` — values are `good`, `needs-improvement`, or `poor`. Assert:
+An empty result is a real answer, not a broken probe: a small page records no
+`largest-contentful-paint` entry at all. Assert on a metric only where you know the page
+produces it.
 
-```robot
-Run Keyword If    '${vitals}' != 'None'    Run Keywords
-...    Should Not Be Equal    ${vitals}[ratings][lcp]    poor    msg=LCP poor: ${vitals}[vitals][lcp]ms
-...    AND    Should Not Be Equal    ${vitals}[ratings][fcp]    poor    msg=FCP poor: ${vitals}[vitals][fcp]ms
-...    AND    Should Not Be Equal    ${vitals}[ratings][cls]    poor    msg=CLS poor: ${vitals}[vitals][cls]
-```
-
-If `${vitals}` is `None` (no recording data), fall back to the Performance API recipe in `references/rf-recipes.md` (Performance Metrics section).
+Measured on the todo playground 2026-09-25, this exact sequence returned
+`[{"name":"first-paint","ms":408},{"name":"first-contentful-paint","ms":408}]` and a layout
+shift total of `0` — so the recipe produces real numbers, not empty strings.
 
 **Pass:** all ratings `good` or `needs-improvement`.  
 **Fail (Bug):** any rating `poor` → document as a Bug with the raw value. LCP ≥ 4s loses conversions; CLS ≥ 0.25 means content jumps while users are clicking.  
@@ -292,15 +314,23 @@ Stop after 8 tabs. If the page has a form, prioritize tabbing through all its in
 
 #### 8. Broken links
 
-Use `Broken Links` to crawl the site and find 4xx/5xx responses:
+**There is no `Broken Links` keyword** — probed live 2026-09-25:
+`No keyword with name 'Broken Links' found.` Collect the links yourself, then visit the ones
+you care about. `Go To` returns the HTTP status, so a dead link is visible directly:
 
 ```robot
-${broken}=    Broken Links    <base-url>    maxPages=50
-Log    ${broken}
-Should Be Empty    ${broken}    msg=Broken links: ${broken}
+# Every link on the page, with its target and whether it leaves the origin
+${links}=    Javascript    JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>({href:a.href,text:a.textContent?.trim().slice(0,40),external:!a.href.startsWith(location.origin)})))
+Log    ${links}
+
+# Then check the ones that matter — nav items and CTAs first
+${status}=    Go To    <a-url-from-the-list>
+Should Be Equal As Integers    ${status}    200
 ```
 
-`Broken Links` crawls same-origin pages up to `maxPages`, visits external links to check status but doesn't recurse into them. Returns a dict of `{ url: { status, referrer } }` for every broken link found.
+Verified 2026-09-25: `Go To https://todo.playground.helpmetest.com/definitely-missing-page`
+returns `404`, and the session prints its own warning
+(`Navigation response returned HTTP 404 for …`), so a dead link cannot pass unnoticed.
 
 **Pass:** no links returning 404/500.  
 **Fail:** dead links found → document as a Bug listing affected URLs. 404s on navigation items or CTAs are P1 — they break user journeys silently.
@@ -359,15 +389,23 @@ Also try `Go Forward` after going back — SPA routers frequently handle one dir
 
 Extract the page as Markdown — cleaner text than `innerText` for scanning copy artifacts:
 
+`Markdown` is not a keyword either (`No keyword with name 'Markdown' found.`, probed
+2026-09-25) — but the interactive session already prints the page's readable text for you
+under the divider, so you rarely need to fetch it. To assert on it inside a test, read the
+text and scan it in JS. `Evaluate` is BANNED by the platform validator, so the Python
+`lambda` this recipe used to carry could never have run:
+
 ```robot
-${md}=    Markdown
-Log    ${md}
-# Then scan the Markdown string for dev artifacts:
-${hits}=    Evaluate    (lambda t: [p for p in ['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'] if p.lower() in t.lower()])("${md}")
-Should Be Empty    ${hits}    msg=Copy artifacts found: ${hits}
+${hits}=    Javascript    JSON.stringify(['undefined','null','[object Object]','TODO','lorem ipsum','NaN','{{','}}'].filter(p=>document.body.innerText.toLowerCase().includes(p.toLowerCase())))
+Should Be Equal    ${hits}    []    msg=Copy artifacts found: ${hits}
 ```
 
-`Markdown` strips nav/chrome and gives you the readable content. Scanning it catches leaked template variables, raw `[object Object]` renders, unfilled placeholder copy, and unhandled nulls in the actual content — not in boilerplate.
+Scanning the rendered text catches leaked template variables, raw `[object Object]` renders,
+unfilled placeholder copy, and unhandled nulls in the actual content.
+
+**Watch the false positives**: `null` and `NaN` are substrings of ordinary words
+("annulled", "financial"), and `innerText` includes nav and footer chrome. Treat a hit as a
+lead to look at, not an automatic bug.
 
 **Pass:** `${hits}` is empty.  
 **Fail:** any match → document as Data quality with the matched term. These appear in prod more often than anyone expects: unrendered template variables (`{{name}}`), unformatted JS objects (`[object Object]`), unfilled placeholder copy (`lorem ipsum`), unhandled null values shown raw (`null`, `undefined`).
@@ -519,18 +557,28 @@ Wait for answers, then proceed to Step 3.
 **HARD LIMIT: ≤10 interactive calls total for exploration.** After 10 calls, you MUST stop exploring and proceed to Step 3 (create artifacts). More exploration is always available later — right now, artifact creation is the deliverable.
 
 **Browser tool:** all live exploration uses `helpmetest interactive`. Load `modes/interactive.md` before starting — it covers session continuity, batching, output sections, selector discovery, and keyword reference. The Interactive section of every response gives you ready-to-paste commands for everything on the current page; use it instead of guessing selectors.
-
-### Interactive Command Recovery
-
 If an interactive command returns an error, **immediately try an alternative — never give up.**
 
 Common keyword mistakes (these will error — use the right-hand side):
 - `Type  selector  text` → **`Fill Text  selector  text`** (`Type` does not exist)
 - `Check  selector` → **`Click  selector`** (use Click on checkboxes too; `Check` does not exist)
-- `Scroll By  0  300` → **`helpmetest interactive "Scroll By  0  300"`** (RF keyword, must be inside the interactive string, not a bare shell command)
-- `Analyze Web Vitals` → **`helpmetest interactive "Analyze Web Vitals"`** (same — inside interactive)
-- `Broken Links  <url>  maxPages=10` → **`helpmetest interactive "Broken Links  <url>  maxPages=10"`** (same)
+- `Scroll By  0  300` → **`Scroll By`** with no arguments. Its first argument is a *selector*,
+  so `0` errors with `Error while parsing css selector "0"`. One bare call scrolls one
+  viewport (measured 2026-09-25: `scrollY` 0 → 1080); repeat it to go further. Named args
+  do not work either — `Scroll By  dy=500` errors with `Unknown engine "dy"`.
+- `Analyze Web Vitals`, `Analyze Resources`, `Broken Links`, `Generate Sitemap`, `Markdown`,
+  `Probe Navigation Elements` → **none of these keywords exist.** All six return
+  `No keyword with name '<name>' found.` (probed live 2026-09-25, `Analyze Web Vitals` also
+  retried with its documented OpenReplay precondition). Use the `Javascript` keyword to read
+  the same data from the page — recipes are in the performance, link-audit and navigation
+  sections of this file.
 - `Keyboard Key  Enter` → error "expected 2 arguments"? Use `Press Keys  input.selector  Enter` instead.
+- **The dangerous version of that mistake does NOT error.** `Keyboard Key  press  Enter` after a
+  `Fill Text` is accepted, reports `✓`, and commits nothing — `Fill Text` leaves the element
+  unfocused and `Keyboard Key` is page-level, so the key lands nowhere. Measured 2026-09-25 on
+  `todo.playground.helpmetest.com`: that pair added **0** items with both keywords green, while
+  `Press Keys  input.new-todo  Enter` added **1**. Committing a field is always
+  `Press Keys  <selector>  Enter`; always read the state back afterwards.
 - Element not found? Try `Javascript  document.querySelector('...').outerHTML` to inspect actual DOM.
 - Click fails? Try `Hover` first, then click.
 - Keep exploring until you have the selectors you need.
@@ -554,19 +602,37 @@ As  <StateName>
 Go To  <base-url>
 ```
 
-Immediately map the app structure — two fast calls before any manual exploration:
+Immediately map the app structure. **`Probe Navigation Elements` and `Generate Sitemap` do
+not exist** — both return `No keyword with name '<name>' found.` (probed live 2026-09-25).
+Read the structure out of the page instead:
 
 ```robot
-# Discover all navigation elements (tabs, sidebar links, menus, CTAs)
-${nav}=    Probe Navigation Elements
-Log    ${nav}
+# Every link on the page, grouped by host. Do NOT pre-filter to nav/header/aside or to
+# location.origin — see the measured note below; both filters can silently return [].
+${links}=    Javascript    JSON.stringify(Array.from(document.querySelectorAll('a[href]')).map(a=>({text:a.textContent?.trim().slice(0,40),href:a.href,host:new URL(a.href).host})))
+Log    ${links}
 
-# Crawl and collect all reachable URLs — gives you the full page inventory
-${pages}=    Generate Sitemap    <base-url>    maxPages=30
-Log    ${pages}
+# Distinct hosts, so a multi-subdomain product shows its real shape
+${hosts}=    Javascript    JSON.stringify([...new Set(Array.from(document.querySelectorAll('a[href]')).map(a=>new URL(a.href).host))])
+Log    ${hosts}
+
+# Clickable things that are NOT links — these will not appear above
+${clickable}=    Javascript    String(document.querySelectorAll('[onclick], [data-href], button').length)
+Log    ${clickable}
 ```
 
-`Probe Navigation Elements` returns the nav structure with labels and URLs — use this as your exploration checklist. `Generate Sitemap` finds pages that aren't in the nav (admin routes, deep-link pages, settings sub-pages).
+Use the link list as your exploration checklist, and note two ways a narrower version of
+this returns nothing. Measured on `playground.helpmetest.com`, 2026-09-25: the page has
+**29** `a[href]`, yet `nav a, header a, [role=navigation] a, aside a` matched **0** (the
+links live in a card grid), and filtering with `startsWith(location.origin)` also matched
+**0**, because every link points at a *subdomain* (`diagnostics.playground…`,
+`webhook.playground…`). An empty result from a filtered selector usually means the filter is
+wrong, not that the page has no links — count `a[href]` first.
+
+This is one page's worth of links, not a crawl. Pages nothing links to (admin routes, deep
+links, settings sub-pages) never appear; find those from the codebase, the router, or by
+asking. The `clickable` count is a hint that navigation happens via JS handlers, which no
+link query will reveal.
 
 Then: **complete the primary user goal end-to-end as a new user** — don't just screenshot pages, actually try to do the thing the app exists for (buy, sign up, create, book). When you get blocked, that's a missing feature.
 
@@ -593,10 +659,11 @@ For each expected capability: find it → create Feature artifact. If missing �
 {
   "type": "Persona",
   "id": "persona-<name>",
-  "name": "Persona: <Name>",
+  "name": "<Name> — shop staff, admin, etc.",
   "content": {
-    "persona_type": "primary|secondary|admin",
+    "name": "<Name> — shop staff, admin, etc.",
     "description": "Who they are",
+    "persona_type": "primary|secondary|admin",
     "goals": ["What they want"],
     "username": "<from Create Fake Email>",
     "password": "SecureTest123!",
@@ -605,6 +672,15 @@ For each expected capability: find it → create Feature artifact. If missing �
   }
 }
 ```
+
+**`content.name` is required and this template used to omit it.** Verified against
+`artifact schema Persona` 2026-09-25: content requires `name`, `description` and
+`persona_type`. The top-level `name` on the upsert is a different field — it does not
+satisfy the content requirement, and the write is rejected. The same trap applies to every
+type: `Tasks`, `Feature` and `ProjectOverview` all require `name` *inside* content too.
+
+Full content fields available: `type, name, description, links, persona_type, goals,
+pain_points, username, password, auth_state, permissions, environment`.
 
 ### Create ProjectOverview
 
@@ -626,21 +702,34 @@ cat > /tmp/project-overview.json << 'EOF'
   ]
 }
 EOF
-helpmetest artifact upsert --id "project-<domain>" --type ProjectOverview \
+helpmetest artifact upsert --id "<domain>" --type ProjectOverview \
   --name "<Site Name> — Project Overview" \
   --tags "project:<domain>" \
   --file /tmp/project-overview.json
 ```
 
-Note the `--tags "project:<domain>"` — this is required and creates the project namespace that Feature artifacts must reference.
+**The `--id` must be exactly `<domain>` — the project namespace is derived from the
+ProjectOverview's id, not from its tags.** This line used to say `--id "project-<domain>"`,
+which creates a namespace called `project-<domain>` while every Feature is tagged
+`project:<domain>` — so the first Feature upsert is rejected with `no ProjectOverview
+artifact found`. Measured 2026-09-26: a ProjectOverview created with **no tags at all**
+still accepted Features tagged with its id, and one tagged `project:A` with id `B` accepted
+Features tagged `project:B`, not `project:A`. The id is the namespace.
+
+This has already happened on the live instance: `project-overview-scratchpad-notes` exists
+as a ProjectOverview and shows up in the "Existing projects" list, while the real project
+is `scratchpad-notes` — a phantom namespace with nothing in it.
 
 ---
 
 ## Step 3 — Create Feature Artifacts
 
-**Do NOT call `helpmetest artifact schema Feature`** — the template below has all required fields. Schema probing wastes turns.
+**Run `helpmetest artifact schema Feature` if you change anything below.** This template is
+verified against the live schema (2026-09-25), but it was wrong for a long time precisely
+because an earlier version of this line said *"do NOT call artifact schema"* — it shipped
+`"source"` and `"gaps"`, neither of which exists, and nothing could catch it.
 
-For each capability. Required top-level fields: `name`, `description`, `goal`. Use `--file` and tag with `project:<domain>`:
+For each capability. Required content fields: `name`, `description`, `goal`. Use `--file` and tag with `project:<domain>`:
 
 ```bash
 cat > /tmp/feature-<id>.json << 'EOF'
@@ -648,7 +737,7 @@ cat > /tmp/feature-<id>.json << 'EOF'
   "name": "<Feature Name>",
   "description": "One sentence: what this feature lets users do",
   "goal": "<what business outcome this serves — one sentence>",
-  "source": "live-app",
+  "status": "untested",
   "functional": [
     {
       "name": "User can <accomplish goal>",
@@ -667,7 +756,7 @@ cat > /tmp/feature-<id>.json << 'EOF'
       "test_ids": []
     }
   ],
-  "gaps": [],
+  "notes": [],
   "bugs": []
 }
 EOF
@@ -678,7 +767,7 @@ helpmetest artifact upsert --id "feature-<id>" --type Feature \
 ```
 
 The `--tags "project:<domain>"` is **required** — omitting it causes tag validation failure. Use the same `<domain>` as the ProjectOverview ID.
-**`source` valid values**: `live-app` (for URL exploration) or `spec` (for doc/PRD extraction). Do NOT use any other value — it will cause a 422.
+**Fields that do not exist**: `source` and `gaps` are both rejected with `422: Extra inputs are not permitted`. Anything not in the schema is fatal, not ignored — put stray observations in `notes` (array of strings) or `gotchas`.
 **If you populate `bugs[]`**, each entry requires: `name` (string), `severity` (`critical|major|minor`), `given`, `when`, `then`, `actual`. Missing `name` causes a 422. Leave `bugs: []` empty during initial discovery — document bugs only if you observe broken behavior.
 
 **Minimum per feature: 5 functional scenarios + 5 edge cases.**

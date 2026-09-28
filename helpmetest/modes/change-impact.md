@@ -8,7 +8,7 @@ Maps a git diff to the tests that cover the changed code. Runs only those tests.
 
 ```bash
 helpmetest status
-helpmetest artifact list --type Tasks
+helpmetest artifact list --type Tasks --tags "project:<slug>"
 ```
 
 If a Tasks artifact is in progress for this run, resume it.
@@ -40,6 +40,22 @@ Estimated: [N annotation tests + critical tests if any]. Ready to start?
 ```
 
 Wait for confirmation, then proceed.
+
+**Expect step 2 to find nothing, and do not treat that as an error.** Measured on this
+repo 2026-09-25: a grep for `@helpmetest feature:` across `app/src`, `app/server` and
+`cli/src` returned **exactly one annotation**, and it is stale —
+`app/server/launch.js:1` names `feature:launch-flow` plus two tests, and none of the three
+exist (`artifact get launch-flow` → 404; neither test id appears among the 143 live tests).
+
+So on a codebase where annotations were never adopted, this mode degrades to "every changed
+file is a coverage gap", which is the honest answer — say it plainly rather than reporting
+zero affected tests as if the change were safe. **Zero annotations found means unknown
+impact, not no impact.**
+
+When an annotation *is* found, verify its targets before running them: an annotation is a
+hand-maintained comment, and the one in this repo points at a Feature and two tests that no
+longer exist. `helpmetest test view <id>` returning empty (exit 1, zero bytes) is how a dead
+reference looks.
 
 ---
 
@@ -94,6 +110,8 @@ Create a `RegressionRun` artifact:
   "type": "RegressionRun",
   "id": "regression-<short-timestamp>",
   "content": {
+    "name": "Change impact — <branch or commit>",
+    "description": "<what changed, how many tests it touched, and the verdict in one line>",
     "trigger_files": ["<list of changed files>"],
     "selection_method": "annotations",
     "affected_tests": ["<test ids that ran>"],
@@ -101,7 +119,7 @@ Create a `RegressionRun` artifact:
     "results": [
       {
         "test_id": "<id>",
-        "classification": "green|regressed|pre_existing_fail",
+        "classification": "green|regressed|pre_existing_fail|flaky",
         "run_url": "<url from run result>",
         "failure_message": "<one-line summary if failed>",
         "annotation_source": "<file path where annotation was found>"

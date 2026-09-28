@@ -103,8 +103,8 @@ Before doing anything, check what already exists:
 
 ```bash
 helpmetest status
-helpmetest artifact list
-helpmetest artifact list --type Tasks
+helpmetest artifact list --tags "project:<slug>"                # scoped — a bare list spans every project
+helpmetest artifact list --type Tasks --tags "project:<slug>"
 ```
 
 ---
@@ -211,6 +211,8 @@ New feature, bug fix, or refactor. Tests come first — they define what "done" 
   "id": "tasks-[feature-name]",
   "type": "Tasks",
   "content": {
+    "name": "[what you're building] — test-first build",
+    "description": "[one paragraph: what this delivers and why it matters]",
     "overview": "What this implements and why",
     "tasks": [
       { "id": "1.0", "title": "Write all tests first", "status": "pending", "priority": "critical" },
@@ -227,6 +229,8 @@ New feature, bug fix, or refactor. Tests come first — they define what "done" 
   "id": "feature-[name]",
   "type": "Feature",
   "content": {
+    "name": "[what this is called, e.g. Checkout, Search]",
+    "description": "[one paragraph: what it does and who uses it]",
     "goal": "What this feature does",
     "functional": [
       { "name": "User can do X", "given": "...", "when": "...", "then": "...", "tags": ["priority:critical"], "test_ids": [] }
@@ -292,6 +296,17 @@ Required tags: all five of `feature:`, `project:`, `priority:`, `persona:`,
 `url:` — `feature:` and `project:` must name artifacts that already exist, and
 `url:` is a bare host with no scheme.
 
+**Verified live 2026-09-25.** Creating a test with only `priority:low` is rejected with
+`✗ Tag validation failed:` and one bullet per missing tag (`persona:`, `project:`,
+`feature:`, `url:`) — and nothing is created. The rejection is also the cheapest way to see
+what already exists: each bullet **enumerates the valid values** (`Existing projects: …`,
+`Existing features: …`, `Known urls: …`) and the `project:` bullet prints the exact
+`artifact upsert` command to create a new one. A deliberately-untagged `--no-run` create is
+a safe, side-effect-free way to get that list when you are unsure of an id.
+
+`--id` is required by the CLI itself (`error: required option '--id <id>' not specified`)
+and is checked before tags, so a create missing both reports only the `--id` error.
+
 Comments are required, and the distribution rule is relative: **no comment
 section may hold more steps than every other section combined**, which is what
 `❌ Uneven comment distribution` means. The opposite wall is real too — mostly
@@ -300,10 +315,63 @@ only 1 keyword`. Target 2-3 steps per comment, and split setup (`Go To` +
 `Local Storage Clear` + `Reload` + seeding) across two or three comments rather
 than one.
 
+**Verified live 2026-09-25.** A create with one comment over five keywords is rejected —
+nothing is written — and the message does the arithmetic for you:
+
+```
+✗ Test structure validation failed:
+  • ❌ Uneven comment distribution.
+
+Section 1 runs 5 steps in a row with no comment — that's more than every other step in
+the test combined (0 steps across the rest of it).
+
+Add a comment inside that section to explain what it's doing, ideally splitting it into
+smaller, individually-explained chunks.
+```
+
+Note the rule is **relative, not a fixed cap**: five steps under one comment fails only
+because the rest of the test has zero. The same five-step section is legal in a longer
+test. So read the numbers in the message rather than assuming a limit.
+
+The opposite wall, verified the same way — five comments over five keywords is also
+rejected, under a **different** validator (`comment style`, not `structure`):
+
+```
+✗ Test comment style validation failed:
+  • ❌ Test comments don't meet the quality standard.
+
+Violations:
+  • Per-line comments: 5 of 5 sections have only 1 keyword — group related steps under one comment
+
+Run `/helpmetest comment` to rewrite them automatically.
+```
+
+A third variant of the same validator, measured 2026-09-26 — content that opens with a
+keyword instead of a comment:
+
+```
+✗ Test comment style validation failed:
+  • Keywords appear before the first comment — every group must start with a # comment
+```
+
+So the body must **begin** with a `#` line. This fires before any keyword-level check: a
+`--content` containing a banned keyword and no leading comment reports the comment problem
+first, and you learn about the banned keyword only on the next attempt.
+
+Two validators, two separate messages, and a create must satisfy both. Neither writes
+anything when it rejects — a failed create leaves no test behind (confirmed: `test view`
+on both probe ids returns empty).
+
 - 5+ meaningful steps
 - Verify business outcomes (data saved, state changed) — not just that an element is visible
 - Use `Create Fake Email` for any registration/email fields — never hardcode
-- Test name: `User can <action>` or `<Feature> — <behavior>`. No "test" in name.
+- Test name: `User can <action>` or `<Feature> — <behavior>`. No "test" in name. **Not enforced** — measured 2026-09-26, `--name "test login flow zz"` was accepted, so this is a review standard, not a rejection you can rely on.
+
+These four are the ones worth remembering while writing. **They are not the rulebook** —
+`modes/validate.md` holds R1–R13, and `validate.md` calls them "the /tdd rulebook", so the
+two files describe one standard and this list is the short form. If they ever disagree,
+`validate.md` wins: it is what scores the test afterwards. (There is no R3 there; see the
+note at the top of its rule list.)
 
 **5. Run each test immediately after creating it — one at a time, NOT batch:**
 ```bash
@@ -448,7 +516,7 @@ Click  css=.banner-next
 
 # After stepping forward, the highlighted keyword in the banner must change to match the new position
 # If this fails, users see the wrong keyword highlighted while debugging — they investigate the wrong step
-${label}=  Get Text  css=.keyword-line.current .keyword-text
+${label}=  Browser.Get Text  css=.keyword-line.current .keyword-text
 Should Contain  ${label}  ${expected_keyword}
 ```
 
@@ -483,7 +551,7 @@ Use `Save As <StateName>` once to capture auth state. Reuse with `As <StateName>
 
 ### Emails
 
-Use `Create Fake Email` — never hardcode `test@example.com`. Hardcoded emails break on second run.
+Use `Create Fake Email` — never hardcode `test@example.com`. A fixed shared address collides across runs and across whoever else uses it. (Whether the *app* then fails depends on the app: it may reject a duplicate account, overwrite it, or not have accounts at all. Report what you observe, not a generic cause.)
 ```
 ${email}=  Create Fake Email
 Fill Text  input[name=email]  ${email}
