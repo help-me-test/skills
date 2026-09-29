@@ -17,6 +17,31 @@
 
 If the user's task names a feature or priority, filter to that. Otherwise scan everything.
 
+## The scenarios in the artifacts are not the behaviours in the app
+
+Scanning Feature artifacts tells you which *recorded* scenarios lack tests. It cannot
+tell you about a behaviour nobody ever wrote down — and that is the gap that bites,
+because an undocumented behaviour has no scenario to show up missing.
+
+Measured 2026-09-29: a full agency pass on a bill splitter produced four Features and
+seven tests, and a coverage scan over those artifacts reports the gaps honestly. It still
+could not surface that the payer `<select>` has a third option nobody ever selected —
+there was no scenario for Carol, so there was no gap for Carol.
+
+So when the app is reachable, enumerate it as well as the artifacts. `modes/agency.md`
+Phase 6a has the exact commands; the rule it encodes is short:
+
+- Every option of every `select`, every radio in a group, every tab — **one row each**.
+  A control with options listed as a single row hides its own gaps.
+- Every distinct error string and every visible state branch is a row.
+- A behaviour present in the app and absent from the artifacts is a **missing scenario**,
+  reported next to the missing tests. It is the more urgent of the two: a gap you can see
+  is already halfway fixed.
+
+If the app is not reachable (no URL, no proxy, artifacts-only request), say so in the
+report — "artifact-only scan; behaviours not present in any Feature were not enumerated"
+— rather than presenting artifact coverage as app coverage.
+
 ## Announce
 
 After orient, present the plan before scanning:

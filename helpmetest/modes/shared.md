@@ -570,6 +570,29 @@ trusted.
    defect.** Before writing that section, re-read each test you are about to vouch for and
    check its assertions still match its name. This is the last place the mistake is cheap.
 
+## 3k. Robot Framework variable names ignore case and underscores — you can shadow a built-in without knowing
+
+`${empty}`, `${Empty}`, `${EMPTY}` and `${e_m_p_t_y}` are the **same variable**. RF matches
+names case-insensitively and ignores underscores, so a scratch variable named after
+anything in the built-in namespace silently replaces it for the rest of the test.
+
+Measured 2026-09-29: a test stored a CSS display value in `${empty}` — a reasonable name
+for "the empty-state block" — which overwrote the built-in `${EMPTY}`. A later assertion
+comparing against `${EMPTY}` then compared against `"block"`. The failure read:
+
+```
+none != block
+```
+
+Nothing in that message says a built-in was shadowed, and the test looks correct on the
+page. Expect to lose a debugging cycle to it once.
+
+So: **never name a variable `empty`, `true`, `false`, `null`, `none`, `space`, or `newline`
+in any casing or with any underscores.** Prefix scratch variables with what they hold —
+`${empty_state_display}`, not `${empty}`. If an assertion fails against a value you never
+set, grep your own test for a variable whose name collides with the built-in before
+suspecting the app.
+
 ## 4. Auth state before anything
 
 Establish auth state with `Save As <StateName>` **once**. All subsequent tests reuse it with `As <StateName>` — never re-authenticate inside tests. See `tdd` mode for full auth pattern.

@@ -513,6 +513,127 @@ you ran to check it, what came back. Not one wall of results at the end.
 
 ---
 
+## Phase 6 — Close the coverage
+
+**A gap you wrote down is still a gap.** The previous phases can end with "9 of 13
+covered, the rest recorded as untested" and every rule above is satisfied. That is the
+hole this phase closes: the engagement is not finished when the tasks are done, it is
+finished when every behaviour the app actually has is either tested or explicitly
+declined by the user.
+
+### 6a — Enumerate from the app, never from the conversation
+
+Measured 2026-09-29, on a three-person bill splitter: a full agency pass wrote seven
+tests and missed that the payer dropdown has a third option. **Carol was never selected
+by any test or any probe.** Nothing went wrong procedurally — the agent built its feature
+list from the user's sentence ("three people, add expenses, see who owes what") and from
+the surfaces it happened to touch. The user's sentence is a summary. The DOM is the
+product.
+
+So the inventory is produced by asking the page, not by remembering. Both of these were
+run against a live app on 2026-09-29 and their real output is below each one:
+
+```bash
+helpmetest interactive \
+  "Go To  <url>" \
+  "Javascript  [...document.querySelectorAll('button,a[href],input,select,textarea,[role=button],[onclick]')].map(e => e.tagName.toLowerCase() + (e.id ? '\#'+e.id : '') + ' :: ' + (e.getAttribute('aria-label') || e.placeholder || e.textContent || '').trim().slice(0,40)).join(' ;; ')"
+```
+
+```
+input#desc :: Dinner at Luigi's ;; input#amount :: 0.00 ;; select#payer ::
+AliceBobCarol ;; button#add :: Add expense ;; button#clear :: Clear all
+```
+
+That output is why the second call exists: `select#payer` arrives as one row, and the
+three payers are mashed into one unreadable word. Ask the selects directly:
+
+```bash
+helpmetest interactive \
+  "Go To  <url>" \
+  "Javascript  [...document.querySelectorAll('select')].map(s => (s.id||'select') + ' options: ' + [...s.options].map(o => o.value||o.text).join(' | ')).join(' ;; ')"
+```
+
+```
+payer options: Alice | Bob | Carol
+```
+
+**Join with a literal separator like ` ;; `, never `\n`.** Measured the same day: a `\n`
+inside the JavaScript argument is consumed before the browser sees it, the argument is
+split at that point, and the run fails with `SyntaxError: Invalid or unexpected token`
+plus a stray `')` as a skipped keyword. The first draft of this very section shipped the
+`\n` form; it did not survive its own first test.
+
+**Every option of every `select`, every radio in every group, and every branch of a
+visible state machine is a row in the inventory** — not "the dropdown", which is one row
+that hides three.
+
+**Run the element sweep again after the app has state in it.** The sweep above runs
+straight after `Go To`, so it can only ever see the empty app. Measured 2026-09-29: the
+identical sweep run after two expenses exist also returns `button :: Remove Dinner ;;
+button :: Remove Dinner` — two destructive controls, invisible to the load-time
+enumeration. Sweep once empty, once populated, and once in any other state the app has
+(logged out/in, filtered, error). The inventory is the union.
+
+Then add what `querySelectorAll` structurally cannot see:
+
+- **Event handlers with no element of their own.** In the same run, Enter-to-commit lives
+  in `addEventListener('keydown', …)` on the amount field. It is not an error string and
+  not an `if` — grep the source for `addEventListener`, `onkey`, `onpaste`, `ondrop`,
+  `beforeunload` and give each one a row.
+- **Each distinct error string and each branch that changes what the user sees.**
+  `Math.abs(net) < 0.005` rendered "is settled up" — a third settle-up state next to
+  owes/gets-back, reachable and untested, invisible from outside.
+- **The value domain of each input, not just the input.** One row per input is not enough:
+  `1e3` is accepted by `input type="number"` and became a $1000.00 expense, and `0.005`
+  produced a row the total ignores. Boundary, zero, negative, huge, scientific notation,
+  and whitespace are rows.
+- **Invariants that belong to no single row.** "The total equals the sum of the rows",
+  "money owed equals money received". Both money defects in that app were invariant
+  violations — no per-element inventory would ever have listed them. Write one row per
+  invariant the product implies.
+
+### 6b — One row per behaviour, one test id or one waiver
+
+Build the table and run it against reality. **`helpmetest search "#project:<slug>"` does
+not do this** — measured 2026-09-29, it returns keyword documentation and zero tests, so
+an agent trusting it concludes the project has none. Scope by tag through status instead:
+
+```bash
+helpmetest status --json
+# then filter to tests whose tags contain project:<slug> — 13 of them, by id, in one call
+```
+
+| Behaviour (from 6a) | Test id | Proven by |
+|---|---|---|
+| Payer = Carol | `splitlite-carol-pays-and-is-owed` | run URL |
+| Amount rejects zero | `splitlite-rejects-bad-expense-input` | run URL |
+| Amount is not a number | *(unreachable)* | `type="number"` keeps `value` empty — probe output |
+| Nightly email digest | *(waived)* | user: "don't bother, we're killing that" |
+| Settle-up "is settled up" state | *(none)* | **gap** |
+
+Every row ends one of three ways, and there is no fourth:
+
+1. **A test id**, whose run you have seen pass or fail this session.
+2. **A waiver the user said out loud** — you asked about this specific row and they said
+   skip it. Record their words in the Feature's `scenarios[].note`, not your paraphrase.
+3. **A written reason it cannot be reached** — and "cannot" means you tried and can quote
+   what stopped you. A `type="number"` input really does make "amount must be a number"
+   unreachable through the UI; that is a fact you demonstrate, not a conclusion you assert.
+
+A row with none of the three is unfinished work, not a documented gap. Go write the test.
+
+### 6c — The checkpoint
+
+Present the table with the gaps at the top, not the wins. The user is deciding one thing:
+which of these do I not care about. Every row they wave off becomes a waiver; every row
+they don't becomes a task, and you loop back to Phase 5 with it.
+
+**Non-interactive runs do not get to skip this.** Silence is approval for *doing the
+work*, never for *not doing it*. With nobody to answer, an untested row stays a task and
+you write the test.
+
+---
+
 ## What stops you, and what does not
 
 **Non-destructive → announce, do, present.** Creating an artifact, writing a test,
@@ -559,4 +680,15 @@ You have failed this mode if:
   consecutive failures, a run history (`test view <id> --errors`), or failures separated in
   time — `shared.md` §3i. A passing control seconds later does not count; it shares the
   window.
+- You built your coverage inventory from the user's description, the task list, or your
+  own memory of the app instead of from the page itself. One live enumeration is the
+  difference between "the payer dropdown" and three named payers — and the third one is
+  the one nobody tests.
+- You listed a control that has options — a `select`, a radio group, a set of tabs — as a
+  single row. Each option is a row.
+- You ended the engagement with a row that has no test id, no waiver in the user's own
+  words, and no demonstrated reason it cannot be reached. Recording it as an untested
+  scenario is not a fourth option; it is the gap, written down.
+- You treated a non-interactive run as permission to leave rows untested. Nobody to ask
+  means you write the test, not that you skip it.
 - The user ends the engagement unable to run any part of it themselves.
