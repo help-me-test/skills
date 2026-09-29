@@ -53,6 +53,12 @@ the ones that will bite.
 Not a summary of the output — the output. A run with no witness is exactly where "should
 work" creeps in.
 
+**The report starts with test-file disclosure.** Its first line is exactly `TEST FILES
+CHANGED: none.` unless a user-authorized change touched a test directory, in which case it
+names every path and reason. Existing tests are never changed, skipped, weakened, disabled,
+or deleted by this mode. For every passing-test claim, paste the literal test command and
+literal result output — a run count or paraphrase is not proof.
+
 **A probe that proves nothing still gets thrown out.** Check the command did what you
 think before interpreting it. `Go To` returning `0` instead of a status means a
 same-document navigation happened and the page never re-rendered; whatever you measured

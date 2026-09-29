@@ -87,6 +87,36 @@ Use what you find:
 
 Never assume the project is empty. Never create what already exists.
 
+## 1a. Test integrity — tests are evidence, never a way to get green
+
+**This rule overrides every mode, example, and instruction below. There are no exceptions.**
+
+1. **NEVER modify, skip, disable, quarantine, weaken, remove assertions from, or delete an
+   existing test to make a result pass.** Do not change its selectors, expected values,
+   setup, teardown, tags, timeouts, retries, comments, name, or source as part of a fix.
+   Tests are evidence of the product contract, not a lever for changing the verdict.
+2. **If a test looks wrong, stop.** Report the exact test id, the literal failing command
+   output, what the test expects, what the product demonstrably does instead, and what
+   code would need to do for the existing test to pass. Do not edit the test. The test
+   stays unchanged and red until code or its real environment meets that contract.
+3. **Fix code, configuration, fixtures, or the test environment — never the test.** If
+   the feature was intentionally removed or its contract intentionally changed, leave the
+   existing test failing and say so. A green run obtained by retiring its witness is not
+   evidence.
+4. **Creating a new test is allowed only for previously uncovered behaviour.** Run it as
+   written. Once it exists, it is covered by this same no-mutation rule.
+5. **Test-directory disclosure is mandatory.** If any file under a test directory is
+   changed for a user-authorized reason outside this skill, the first line of the final
+   report must be: `TEST FILES CHANGED: <paths> — <reason>`. If none changed: `TEST FILES
+   CHANGED: none.` The report must say this before any claim or summary.
+6. **A passing-test claim must paste the literal command and literal result output.** A
+   count, paraphrase, dashboard status, or “all green” sentence is not proof. If the
+   output is unavailable, say `not verified` and do not claim the test passes.
+
+Before any test run, state the failure condition you expect. When it finishes, preserve
+its raw output in the user-facing report. A red test remains red until code or its real
+environment satisfies its existing contract.
+
 **A `FAIL` in `status` is a record of the last run, not the state of the test now.** It
 carries whatever error was current when it last executed, which may be a platform bug that
 has since been fixed — and the row will keep showing that error until something re-runs it.
@@ -642,26 +672,27 @@ Use the `helpmetest` CLI for all HelpMeTest operations. Key commands:
 - `helpmetest artifact schema <type>` — get artifact schema
 - `helpmetest artifact upsert --id <id> --type <type> --name <name> --content '<json>'` — create/update artifact
 - `helpmetest test create --name <name> --tags <tags> --content '<robot>'` — create test
-- `helpmetest test update <id> ...` — update test
+- `helpmetest test update <id> ...` — **not permitted by this skill for an existing test**;
+  preserve the test and repair code, configuration, fixtures, or environment instead
 - `helpmetest proxy start` — start proxy tunnel (see `proxy` skill for syntax and domain setup)
 - `helpmetest files upload <file>` — upload file
 - `helpmetest open test <id>` — open test in browser
 
-**Every create/update prints its dashboard URL — relay it, don't re-derive it.**
-`artifact upsert` prints `Open in dashboard (<base>/artifacts/<id>)` and `test
-create`/`update` prints `Open in dashboard (<base>/test/<id>)`, on success only. That line
-is where your `[link]` line comes from (`agent.md`), and it is the only creation signal
-that exists for every integration — MCP tools, CLI, or a person in a terminal.
+**Every allowed create/update prints its dashboard URL — relay it, don't re-derive it.**
+`artifact upsert` prints `Open in dashboard (<base>/artifacts/<id>)` and `test create`
+prints `Open in dashboard (<base>/test/<id>)`, on success only. That line is where your
+`[link]` line comes from (`agent.md`), and it is the only creation signal that exists for
+every integration — MCP tools, CLI, or a person in a terminal.
 
-Both commands also take **`--open`** (open that page in a browser now) and **`--no-open`**
-(never, overriding config). Neither opens anything by default. The default comes from the
-`autoOpenCreated` key in `.helpmetest/config.yaml`
+Allowed creation commands also take **`--open`** (open that page in a browser now) and
+**`--no-open`** (never, overriding config). Neither opens anything by default. The default
+comes from the `autoOpenCreated` key in `.helpmetest/config.yaml`
 (`helpmetest config set autoOpenCreated true` — it sits beside the existing
-`autoOpenSession`, which is about interactive sessions, not creations), and it
-ships **false** because this same binary runs inside `helpmetest agent`, CI and scheduled
-runs — a measured run created 4 tests and updated them 9 times, which is 13 browser tabs.
-**Do not pass `--open` in an agent run unless the user asked for it**; print the URL
-instead, which is what they can act on either way.
+`autoOpenSession`, which is about interactive sessions, not creations), and it ships
+**false** because this same binary runs inside `helpmetest agent`, CI and scheduled runs —
+a measured run created 4 tests, which is 4 browser tabs. **Do not pass `--open` in an
+agent run unless the user asked for it**; print the URL instead, which is what they can act
+on either way.
 
 ## 9. Every mode has an output artifact
 
@@ -669,7 +700,7 @@ Modes are not just prose workflows — they produce structured, typed artifacts 
 
 | Mode | Output artifact type(s) |
 |---|---|
-| `tdd` | Tests (via `helpmetest test create` / `helpmetest test update`) + updates to the matching scenario's `test_ids` under `Feature.functional[]` / `edge_cases[]` / `non_functional[]` (there is no `Feature.scenarios[]`) |
+| `tdd` | New Tests (via `helpmetest test create`) + updates to the matching scenario's `test_ids` under `Feature.functional[]` / `edge_cases[]` / `non_functional[]` (there is no `Feature.scenarios[]`) |
 | `dev` | `Tasks` (orchestration receipt) + all artifacts produced by sub-modes it runs |
 | `fix` | `SelfHealing` + updates to `Feature.bugs[]` if a bug is found |
 | `discover` | `Feature[]` + `Persona[]` + `ProjectOverview` + (optional) `Memory` |

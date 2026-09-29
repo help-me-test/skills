@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "id": "helpmetest-skills",
   "name": "helpmetest-skills",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "displayName": "HelpMeTest Skills",
   "description": "Single HelpMeTest skill with modes for TDD, discovery, onboarding, test fixing, visual review, API testing, interactive browser console, localhost proxy, and more.",
   "author": {

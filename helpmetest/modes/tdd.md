@@ -250,7 +250,10 @@ New feature, bug fix, or refactor. Tests come first — they define what "done" 
 | Boundary conditions | if data/logic | Where does behavior change based on a threshold? |
 | Edge cases | selectively | What would a QA engineer test that a dev wouldn't? |
 
-Mark each scenario: **write immediately** (critical/high) / **write before launch** (medium) / **skip** (cosmetic, already covered, unreliable). Don't test everything — test what would hurt if it broke.
+Mark each scenario: **write immediately** (critical/high) / **write before launch** (medium) /
+**out of scope by explicit user decision** (cosmetic or unreliable). An out-of-scope
+scenario is not a skipped test: it was never created. Once a test exists, `shared.md` §1a
+forbids skipping, weakening, modifying, or deleting it.
 
 **4. Write ALL tests** — happy paths, edge cases, errors — before implementing anything. Failing tests are your spec. After each test, run the red-team loop (`shared.md §3a`) before writing the next one.
 

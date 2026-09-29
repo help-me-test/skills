@@ -50,7 +50,7 @@ Announce the situation and plan in one paragraph, then **immediately continue** 
 > "Adding [feature] to existing project. Writing all tests RED against the spec first, then implementing. Starting now."
 
 **Change/refactor:**
-> "Mapping blast radius before touching anything. Will classify every affected test, get approval on the impact plan, then update tests first and code second."
+> "Mapping blast radius before touching anything. I will classify every affected test, preserve every existing test unchanged, and fix code to satisfy the evidence those tests provide."
 
 **Fix first:**
 > "There are [N] failing tests. Not adding code on top of a broken suite — fixing first, then continuing. Starting now."
@@ -145,22 +145,24 @@ helpmetest status
 git diff --stat HEAD
 ```
 
-Classify every affected test: **still valid / needs update / delete / new test needed**. Present the impact plan. Wait for explicit approval.
+Classify every affected test: **still valid / failing because code changed / coverage gap**.
+Present the impact plan. **Do not update or delete tests.** Existing tests are the contract:
+when one conflicts with the change, stop and show the failing evidence and the code change
+required to satisfy it.
 
-### 2. Update tests first
-Tests will fail immediately after you update them. That is correct — failing tests are now the spec for the implementation change.
+### 2. Change the code
+Implement against the existing tests. The failing tests tell you exactly what code must do;
+they are never permission to rewrite the test.
 
-### 3. Change the code
-The failing tests tell you exactly what to implement. No more, no less.
+### 3. Prove GREEN
+Run all affected tests. Paste the literal command and result output; “should work” and a
+summary count are not evidence.
 
-### 4. Prove GREEN
-Run all affected tests. Show the output. "Should work" is not done.
-
-### 5. Eyes on the result (via `interactive` + `proxy`)
+### 4. Eyes on the result (via `interactive` + `proxy`)
 Same as Greenfield §4.
 
-### 6. Quality gate (via `validate` + `improve`)
-Same as Greenfield §6.
+### 5. Quality gate (via `validate`)
+Same as Greenfield §6. `improve` audits and reports only; it never mutates existing tests.
 
 ---
 

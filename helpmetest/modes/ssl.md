@@ -143,13 +143,13 @@ every wildcard, so it will keep passing after the SAN you cared about is removed
    ```bash
    helpmetest test run ssl-<domain-slug>
    ```
-   Report PASS or the specific failing assertion. If `SSL Issuer Organization` fails, correct the value from the error output and update:
-   ```bash
-   helpmetest test update ssl-<domain-slug> --content '<corrected content>'
-   helpmetest test run ssl-<domain-slug>
-   ```
+   Paste the literal command output. If `SSL Issuer Organization` or `SSL Algorithm` fails,
+   leave the test unchanged and report the actual versus expected value and the certificate
+   or server configuration change required for the existing test to pass. Do not update the
+   test with a newly observed value.
 
-4. **Report result** — PASS or failure with the specific assertion that failed and the actual vs expected value.
+4. **Report result** — PASS only alongside the literal run output; otherwise report the
+   specific failing assertion and required server-side change.
 
 ---
 

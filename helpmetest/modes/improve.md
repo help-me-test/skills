@@ -1,8 +1,10 @@
-<!-- llms-description: Audit all tests against the quality rules, then rewrite and re-run each failing test in place. -->
+<!-- llms-description: Audit tests against quality rules and report defects without changing existing tests. -->
 
-# Mode: improve — audit and rewrite all tests to quality standard
+# Mode: improve — audit test quality, preserve test evidence
 
-**What this mode does:** list every test in scope, run `validate` on each one to score it against R1–R13, then immediately fix every failing rule in-place. Unlike `validate` which only critiques, `improve` does the work. It also applies two additional style passes (comment structure and inline comments) that validate does not cover.
+**What this mode does:** list every test in scope and run `validate` on each one to score
+it against R1–R13. It reports every defect with literal evidence and the code/product change
+needed to make the existing test trustworthy. It **never rewrites an existing test**.
 
 **When to use:** user says "improve tests", "clean up all tests", "add comments to tests", "make tests better", "annotate tests", "bring tests up to standard".
 
@@ -26,11 +28,12 @@ After orient, present the plan before touching anything:
 Scope: [N] tests — [filter or "all"]
 
 Phase 1: Audit — validate each test (R1–R13) to get grade + failed rules.
-Phase 2: Rewrite — fix every FAIL, one test at a time.
-Phase 3: Style — apply comment structure (I2) and inline comment (I3) passes.
-Phase 4: Verify — re-run each rewritten test to confirm it still passes.
+Phase 2: Reproduce — run each flagged test unchanged and capture its literal output.
+Phase 3: Report — state the product/code/environment change needed for the existing test
+to pass or become meaningful.
+Phase 4: Verify — re-run only after that non-test change.
 
-Each failing rule gets a concrete fix applied immediately.
+No test will be rewritten, weakened, skipped, or deleted.
 
 ```
 
@@ -83,12 +86,16 @@ Audit complete. [N] tests reviewed.
     - [n] R12 tests framework behavior → auto-F
     - [n] R13 excessive mocking
 
-Starting rewrites now — [Y] tests to fix.
+Tests that need attention: [Y]. Their source stays unchanged. Starting reproduction and
+evidence capture now.
 ```
 
-### 4. Fix each failing test
+### 4. Record each failing test
 
-For each test with at least one FAIL, apply the fixes below. All fixes in one pass — don't make separate passes per rule.
+For every failed R-rule or red run, record: test id; literal command and output; the exact
+expectation; observed product behaviour; and the code, configuration, fixture, or
+environment change required for that unchanged test to pass. **Do not apply any of the
+rewrite patterns below; they are historical examples superseded by `shared.md` §1a.**
 
 **R1 — Add an outcome assertion**
 
@@ -158,121 +165,29 @@ If the test calls ORM/crypto/HTTP client directly, rewrite it as a browser test 
 
 Keep only mocks for external I/O (APIs, filesystem, third-party services). Remove mocks for business logic, pure functions, and internal services. Rewrite the test to use real implementations where mocks were covering internal code.
 
-### 5. Apply style passes (I2 and I3)
+### 5. Tasks artifact
 
-After R-rule fixes, apply two additional passes that validate does not cover:
+Track progress per `modes/agent.md`. One subtask per test reviewed:
+- `title`: `"Audit: <test-id>"`
+- `status`: `done` only after its unchanged run output and required product change are
+  recorded; otherwise `blocked`
+- `notes`: literal run output, failed R-rules, and the code/environment work needed
 
-**I2 — Section comments**
+### 6. Final report
 
-The test body must be divided into intent-based section comments. Rules:
-- One comment covers exactly 2 keywords (for ~13-keyword tests) — this satisfies the validator's even-distribution check
-- No numbering, no decorations, no "verify/check/assert" as first word
-- Written in product context: names the phase from the user's perspective
-- Comments must NOT describe what the keyword does — they name the intent
+Start with the required `TEST FILES CHANGED: none.` line. For every test, paste:
 
-**Working example — 13 keywords → 7 sections of 2 each:**
-```robot
-# Open todo app
-  Go To  https://todo.playground.helpmetest.com
-
-# Clear previous state and reload
-  Javascript  window.localStorage.clear()
-  Reload
-
-# Verify list is empty
-  ${items_before}=  Browser.Get Text  css=.todo-count
-  Should Contain  ${items_before}  0
-
-# Add todo with valid text
-  Fill Text  input.new-todo  Buy milk
-  Press Keys  input.new-todo  Enter
-
-# Todo appears in list
-  ${todo_text}=  Browser.Get Text  css=.todo-list li label
-  Should Contain  ${todo_text}  Buy milk
-
-# Counter shows correct item count
-  ${counter}=  Browser.Get Text  css=.todo-count
-  Should Contain  ${counter}  1 item left
-
-# Input clears and is ready for next todo
-  ${cleared}=  Javascript  document.querySelector("input.new-todo").value === ""
-  Should Be True  ${cleared}
+```text
+<literal helpmetest test run command>
+<literal result output>
 ```
 
-**Section size formula:** count keywords → target `ceil(total / 2)` sections so each has ~2 keywords. For 13 keywords → 7 sections. If validator rejects due to "Uneven comment distribution", adjust by 1 section at a time. See `modes/comment.md` for full spec.
-
-**I3 — Inline comments**
-
-Add a one-line why-comment only for:
-- A `Javascript` call whose purpose is not obvious from its shape
-- `Wait Until Keyword Succeeds` explaining the specific race condition
-
-One line max, written for a product manager. Explains WHY, not WHAT.
-
-### 6. Apply the fix
-
-```bash
-helpmetest test update <id> --file /tmp/<id>-improved.robot --no-run
-```
-
-### 7. Verify it still passes
-
-```bash
-helpmetest test run <id>
-```
-
-Wait for result. If it fails:
-- Check if the content change broke a selector or timing assumption
-- Fix and re-run — do not move on until the test is green
-
-### 8. Tasks artifact
-
-Track progress per `modes/agent.md`. One subtask per test that needed fixes:
-- `title`: `"Improve: <test-id>"`
-- `status`: `done` when test is green after rewrite
-- `notes`: which R-rules were fixed + run URL as evidence
-
-### 9. Final report
-
-```
-## Improve complete
-
-[N] tests reviewed. [X] already grade A/B. [Y] rewritten.
-
-Rules fixed:
-  R1  [n] tests   R4  [n] tests
-  R5  [n] tests   R6  [n] tests   R7  [n] tests
-  R8  [n] tests   R9  [n] tests   R11 [n] tests
-  R12 [n] tests   R13 [n] tests
-  I2  [n] tests   I3  [n] tests
-
-All [Y] rewritten tests are green. ✅
-```
-
----
+Then state whether the test is satisfied by the current product. If not, leave it red and
+state exactly what code/environment change would satisfy its existing contract. Never write
+“all green” unless the pasted literal output proves each named test passed.
 
 ## What NOT to do
 
-- **Do not rewrite test logic** — only improve clarity, structure, and documentation (except R11/R12/R13 which require logic changes)
-- **Do not add steps** beyond what fixes the failing rule
-- **Do not skip the re-run** — "should work" is not evidence
-- **Do not batch rewrites** without verifying each one passes
-- **Do not invent selectors** — always discover via `helpmetest interactive`
-- **Do not drop an assertion because another step "already covers it"** — verify that it
-  does, against the real system, before removing anything. A rewrite that asserts less than
-  the original is a coverage regression, and it is invisible afterwards because the test
-  stays green.
-
-  Measured 2026-09-26, the near-miss that produced this rule: a test asserted a downloaded
-  attachment's PDF magic bytes, then called `Open Document` on it. Dropping the magic-byte
-  check looked safe — surely converting the file proves it is a PDF. It does not:
-
-  ```
-  Open Document  …/dummy.pdf           ✓  exit 0
-  Open Document  https://example.com/  ✓  exit 0
-  ```
-
-  An HTML page converts exactly as happily. The "redundant" assertion was the only thing
-  checking the type. **Before deleting an assertion, run the step you believe subsumes it
-  against an input that should fail it.** If it passes, it never covered anything.
+- **Do not rewrite test logic, comments, selectors, setup, tags, names, or assertions.**
+- **Do not add steps to, skip, disable, weaken, or delete a test.**
+- **Do not batch test rewrites; no test rewrite is permitted.**

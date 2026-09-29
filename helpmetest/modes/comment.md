@@ -1,10 +1,13 @@
-<!-- llms-description: Rewrite test comments only: group per-line narration into intent-based section headings. -->
+<!-- llms-description: Audit test comments and report clarity defects without changing existing tests. -->
 
-# Mode: comment — rewrite test comments to quality standard
+# Mode: comment — audit test comments, preserve evidence
 
-**What this mode does:** audit every comment in a test (or set of tests) and rewrite them so the test reads as a coherent narrative — grouped by intent, written for a reader who understands the product but not the implementation.
+**What this mode does:** audits every comment in a test (or set of tests) and reports
+clarity defects with the test id and exact source evidence. Existing tests, including
+comments, are immutable under `shared.md` §1a.
 
-**When to use:** user says "fix comments", "clean up comments", "comments are noisy", "too many comments", "comment every line", "rewrite comments", or after `/improve` when comment quality is the remaining issue.
+**When to use:** user says "review test comments", "comments are noisy", or "are test
+comments clear".
 
 ---
 
@@ -269,44 +272,16 @@ For each comment in the test body, classify:
 - **C12** — comment restates the test name without adding specificity
 - **C13** — error path comment names the action, not the expected failure
 
-### 3. Rewrite
+### 3. Report
 
-The output MUST have section comments. Every group of related steps starts with a `#` comment — the comment comes first, then the keywords it covers. Never produce keywords before their group's leading comment. Never produce a flat block with no comments — that is always wrong. The job is to rewrite bad comments into good ones, not to delete all comments.
+For each comment defect, state the test id, the source excerpt, why it harms readability,
+and the desired comment change. Do not apply it. If a comment is coupled to a failing
+test, also paste the literal run command and output.
 
-Structure:
-```
-# comment
-  keyword
-  keyword
-# comment
-  keyword
-  keyword
-```
+### 4. Final report
 
-Each comment describes what the keywords immediately below it do — not what came before, not a summary of the whole test. Group steps by intent. Write one section comment per group. Apply C1–C13. Do not change any keyword, selector, assertion value, or failure message — only comments change.
-
-**Section size constraint (validator rule):** The server enforces even distribution — sections must be roughly the same size (std dev < 1.5× mean). If you group 2 steps under one comment and 8 under another, the validator rejects it. To satisfy both C1 (group by intent) and the validator:
-
-1. Count total keyword lines in the test (excluding blank lines and comments).
-2. Target N_sections = ceil(total_keywords / 3) — gives ~2-4 keywords per section.
-3. Split intent-groups that are too large into sub-phases with more specific comments.
-4. If validator still rejects, increase section count by 1 and re-split until it passes.
-
-Example: 13 keywords → aim for 4-5 sections of 2-3 keywords each. If a 3-keyword section and a 5-keyword section sit next to each other, split the 5-keyword section in two.
-
-### 4. Apply
-
-```bash
-helpmetest test update <id> --file /tmp/<id>-commented.robot --no-run
-```
-
-### 5. Verify it still passes
-
-```bash
-helpmetest test run <id>
-```
-
-Comment changes should never break a test. If it fails, a keyword was accidentally changed — diff and fix.
+Start with `TEST FILES CHANGED: none.` Then list the unchanged tests reviewed and their
+comment findings. No command may update a test in this mode.
 
 ---
 

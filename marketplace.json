@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI-powered test automation skills for Claude Code and other AI agents. Covers the full workflow: project onboarding, discovery, TDD, full QA, test fixing, visual review, API testing, interactive browser console, and localhost proxy.",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "repository": "https://github.com/help-me-test/skills"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "HelpMeTest Skills",
       "source": "./",
       "description": "Single HelpMeTest skill with modes for TDD, discovery, onboarding, test fixing, visual review, API testing, interactive browser console, localhost proxy, and more.",
-      "version": "2.0.0",
+      "version": "3.0.0",
       "category": "testing",
       "keywords": [
         "testing",

@@ -1,4 +1,4 @@
-<!-- llms-description: Diagnose a failing test — selector, timing, auth or backend — and repair it. -->
+<!-- llms-description: Diagnose a failing test, reproduce it, and fix the product or environment without changing the test. -->
 
 > **Who you are:** If `.helpmetest/SOUL.md` exists, read it — it defines your character.
 
@@ -26,13 +26,15 @@
 
 Silence means the user has no idea what you did or why.
 
-# Fix Tests
+# Diagnose failing tests
 
-One skill for everything wrong with your test suite. Reads the situation, picks the right submode.
+Existing tests are immutable evidence under `shared.md` §1a. This mode diagnoses whether
+the product, configuration, fixture, or environment violates that evidence; it never
+repairs, skips, or deletes a test.
 
 ## Workflow
 
-1. **Create or resume the Tasks artifact** (per `modes/agent.md` Preflight — this is not optional). One artifact, id `tasks-fix-$(date +%Y%m%d)-<test-id-or-session>`, 3 subtasks from the start: `Understand the failure`, `Reproduce interactively`, `Fix test or document bug`. Created exactly once here — the submodes below (Debug/Heal/Sync) update this same artifact's subtasks, they never create a second one.
+1. **Create or resume the Tasks artifact** (per `modes/agent.md` Preflight — this is not optional). One artifact, id `tasks-fix-$(date +%Y%m%d)-<test-id-or-session>`, 3 subtasks from the start: `Understand the failure`, `Reproduce interactively`, `Fix code/environment or document blocker`. Created exactly once here — the submodes below (Debug/Heal/Sync) update this same artifact's subtasks, they never create a second one.
    ```bash
    helpmetest artifact upsert \
      --id "tasks-fix-$(date +%Y%m%d)-<test-id>" \
@@ -43,7 +45,7 @@ One skill for everything wrong with your test suite. Reads the situation, picks 
        "tasks": [
          {"id": "1", "title": "Understand the failure", "status": "in_progress", "priority": "critical"},
          {"id": "2", "title": "Reproduce interactively", "status": "pending", "priority": "critical"},
-         {"id": "3", "title": "Fix test or document bug", "status": "pending", "priority": "critical"}
+         {"id": "3", "title": "Fix code, environment, or document blocker", "status": "pending", "priority": "critical"}
        ]
      }'
    ```
@@ -140,39 +142,28 @@ Run the failing steps one at a time using `interactive` mode (see `modes/interac
 
 Map to the category chosen in Phase 1 (`references/failure-categories.md`):
 
-- `element_not_found` → fix selector
-- `timing` → add wait
+- `element_not_found` → restore or correctly expose the product element
+- `timing` → fix the product or test environment timing cause
 - `auth_or_state` → verify auth state restoration
-- `api_or_backend` → document bug
-- `test_isolation` (alternating PASS/FAIL, shared state) → make idempotent
+- `api_or_backend` → repair or document the product failure
+- `test_isolation` (alternating PASS/FAIL, shared state) → make the product fixture or
+  environment idempotent
 
-### Phase 4A: Fix Test
+### Phase 4A: Fix code, configuration, fixtures, or environment
 
-**HARD RULES — no skipping:**
-1. Validate fix interactively first — run the complete corrected flow via `helpmetest interactive`
-2. Update: `helpmetest test update <id> --file /tmp/<id>-fixed.robot --no-run`
-3. **MUST run**: `helpmetest test run <id>` — wait for green. "Should work" is not evidence.
-4. **MUST update the Tasks artifact created in `## Workflow` step 1**: mark the subtask done, set `notes` to the run URL as evidence (per `modes/agent.md` §Evidence). Don't create a second artifact here.
+**HARD RULES — no test mutation:**
+1. Validate the required product behaviour interactively first — run the complete existing
+   test flow via `helpmetest interactive`.
+2. Change only code, configuration, fixtures, or the test environment until it satisfies
+   the existing test contract.
+3. Run `helpmetest test run <id>`. Preserve the literal command and result output in the
+   report. If it remains red, leave it red and state what code still needs to do.
+4. **MUST update the Tasks artifact created in `## Workflow` step 1**: mark the subtask
+   done only with the run URL as evidence; otherwise mark it blocked with the raw failure.
 
-**Expect the update to be rejected for the test's *existing* comment structure, not for
-your fix.** The structure and comment-style validators run on every `update`, and tests
-written before those rules exist cannot be re-saved unchanged. Measured 2026-09-26, fixing
-one word in `playground-forms`:
-
-```
-✗ Test structure validation failed:
-  • Uneven comment distribution.
-  Section 2 runs 10 steps in a row with no comment — that's more than every other
-  step in the test combined (6 steps across the rest of it).
-```
-
-Nothing to do with the change. The fix is to add a comment splitting the long run, in the
-same edit — which is an improvement, but budget for it: a one-word fix took three attempts.
-The rule is **relative to the test's own shape**, so there is no step count to stay under;
-read the numbers in the message. Both validators are described in `modes/tdd.md`.
-
-Do not work around it by reverting to `--no-run` and hoping, and do not strip the test down
-to satisfy the validator. Split the section, keep every keyword.
+If the test appears stale or wrong, do not use `test update`. Stop and report its exact
+expectation, the observed product behaviour, and the code change required for the test to
+pass.
 
 ### Phase 4B: Document Bug
 
@@ -288,11 +279,12 @@ Feature per Phase 4B. Verified: the shape above saved; the old one did not.
 
 ### Discrepancy Types
 
-**Failure-based:**
 1. **Code Broke It** — test was passing, code change caused regression → fix code
-2. **Test Is Stale** — code intentionally changed, test hasn't caught up → fix test
+2. **Test conflicts with intended behaviour** — stop, preserve the red result, and ask for
+   a new explicit decision; never fix, skip, or delete the test
 3. **Not Deployed** — fix in local code, not shipped yet → tag pending-deploy
-4. **Removed Feature** — test exercises what no longer exists → delete test
+4. **Removed Feature** — leave the test failing; report the removed contract and the code
+   or product decision needed to resolve it
 
 **Passing but suspicious:**
 5. **False Positive** — passes but assertions too weak to verify anything
@@ -329,23 +321,23 @@ Feature per Phase 4B. Verified: the shape above saved; the old one did not.
 
 Present the Sync Report, then immediately begin resolving — present one discrepancy at a time using the Resolution Options format below.
 
-### Resolution Options (per discrepancy)
+### Resolution record (per discrepancy)
 
 ```
-#3 of 12 · TEST IS STALE
+#3 of 12 · TEST / PRODUCT CONFLICT
 📋 <test name>
    expects   <what test asserts>
-   code now  <what code does> · <file> · <commit>
+   product now  <what code does> · <file> · <commit>
 
-   1 · Fix the test    [code leads]
-   2 · Fix the code    [test leads]
-   3 · Skip
-   4 · Delete test
-   5 · Document bug
-   6 · Not deployed
+   Result: test left unchanged and red.
+   Needed: <code or product change required for the existing test to pass>
 ```
 
-If user says "fix all selector drifts" — apply across the category without asking per item.
+Do not offer to fix, skip, disable, or delete the test. The only allowed resolution in this
+skill is to make code or its real environment satisfy the existing contract.
+
+Never apply a category-wide test rewrite. Repair the shared code/environment cause, then
+re-run the untouched tests.
 
 ---
 

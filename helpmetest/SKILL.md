@@ -1,6 +1,6 @@
 ---
 name: helpmetest
-description: "Router for HelpMeTest QA work. Bare /helpmetest is the orchestrator: it reads the project, probes it live, explains what it finds, and works through the fix with you, presenting at each step. auto/autonomous: the same work hands-off, no checkpoints, one report at the end — only when the user asks for it. tdd: write/fix tests. mobile: Android/iOS/APK/IPA. desktop: Mac/Linux/Electron. fakemail: verification code/inbox. ssl: cert/TLS/DNS/WHOIS/SPF/DKIM. doc2html: PDF/DOCX/EPUB→HTML. auth: Save As/2FA/TOTP. api: REST/GraphQL/endpoint. proxy: localhost/tunnel/port. terminal: Jest/pytest/bun test. ci: GitHub/GitLab CI. ui: screenshot/visual/viewport. interactive: explore/debug selector. discover: map app/PRD. report: health check. coverage: gap analysis. change-impact: did I break anything. pre-push/pr-review: can I push/PR review. improve/comment: rewrite tests. Also: nightly, validate, exploratory. Full list in body."
+description: "Router for HelpMeTest QA work. Bare /helpmetest is the orchestrator: it reads the project, probes it live, explains what it finds, and works through the code or environment fix with you. Existing tests are immutable evidence: never modify, skip, weaken, disable, or delete one to get green; paste literal test output before claiming pass. auto/autonomous: the same work hands-off, no checkpoints, one report at the end — only when the user asks for it. tdd: write new tests. fix: diagnose red tests and repair product/environment. mobile: Android/iOS/APK/IPA. desktop: Mac/Linux/Electron. fakemail: verification code/inbox. ssl: cert/TLS/DNS/WHOIS/SPF/DKIM. doc2html: PDF/DOCX/EPUB→HTML. auth: Save As/2FA/TOTP. api: REST/GraphQL/endpoint. proxy: localhost/tunnel/port. terminal: Jest/pytest/bun test. ci: GitHub/GitLab CI. ui: screenshot/visual/viewport. interactive: explore/debug selector. discover: map app/PRD. report: health check. coverage: gap analysis."
 argument-hint: "[<nothing — runs the orchestrator> | auto | tdd | mobile | desktop | auth | fakemail | ssl | doc2html | api | proxy | terminal | ci | ui | interactive | discover | fix | coverage | regression | validate | improve | comment | report | change-impact | pre-push | pr-review | nightly | <task description>]"
 ---
 
@@ -38,15 +38,15 @@ the work ("my app needs testing", "write some tests") is not a mode name, so it 
 | First token | Mode |
 |------------|------|
 | `agent` | **agent-only** — you were invoked with no downstream workflow; maintain the Tasks artifact lifecycle around whatever the user describes next, pick the closest workflow mode based on the task text. |
-| `tdd` | **tdd** — write/fix tests (sub-step; for full code work use `dev`) |
-| `dev` | **dev** — orchestrator for all code work: greenfield, new feature, change, refactor. Reads the situation and runs the right sequence: map the project → tests RED → build GREEN → interactive → discover → validate → improve → coverage |
+| `tdd` | **tdd** — write new tests for uncovered behaviour; existing tests are immutable |
+| `dev` | **dev** — orchestrator for all code work: greenfield, new feature, change, refactor. Reads the situation and runs the right sequence: map the project → tests RED → build GREEN → interactive → discover → validate → coverage |
 | `discover` | **discover** — map into Feature artifacts |
-| `fix-tests` or `fix` | **fix-tests** — diagnose and repair broken tests |
+| `fix-tests` or `fix` | **fix-tests** — diagnose red tests and repair product, configuration, fixtures, or environment without changing the test |
 | `coverage` | **coverage** — gap analysis: what scenarios have no tests |
 | `regression` | **regression** — run tests affected by a named set of changed files |
-| `validate` | **validate** — score existing tests against R1-R13 quality rules: grade distribution (A/B/C/D/F), R11-R13 failures, and action queue (ship/rewrite/delete). Emits a `Tasks` artifact today (see `modes/validate.md` §5); a `TestValidation` artifact type also exists server-side. **`ValidationReport` is not a type** — its schema fetch 500s. |
-| `improve` | **improve** — audit every test against I2-I6 criteria (section comments, inline comments, assertions, selectors, tags), then rewrite and re-run each failing test in place. The only mode that both critiques and fixes.
-| `comment` | **comment** — audit and rewrite test comments only (C1–C7 rules): group per-line comments into intent-based sections, remove numbering and decorations, replace implementation narration with product-context headings, name invariants instead of describing assertions. No keywords, selectors, or assertions are changed.
+| `validate` | **validate** — score existing tests against R1-R13 quality rules and report a code/product action queue; never rewrite or delete a test |
+| `improve` | **improve** — audit tests and report quality defects with evidence; never change an existing test |
+| `comment` | **comment** — audit test comments and report clarity defects; never change an existing test |
 | `proxy` | **proxy** — tunnel localhost |
 | `terminal` | **terminal** — run shell commands (Jest, pytest, bun test, Go test…) using the `Bash` keyword. Cross-references `ci` for running unit tests as a GHA step. |
 | `ssl` or `domain` | **ssl** — write, run, and debug DomainChecker SSL certificate tests. No browser needed — keywords make direct TLS connections from inside the VM. Pass a domain to generate a test instantly. |
@@ -125,10 +125,10 @@ Read  modes/<mode>.md
 
 HelpMeTest only enforces TDD discipline for as long as this skill is actively loaded. The next session — possibly a different agent, possibly you without this context — won't know HelpMeTest exists unless it's written into the files every agent reads at session start.
 
-Check `CLAUDE.md` and `AGENTS.md` (repo root) for the marker `<!-- helpmetest:start vN -->`. If either file is missing the marker, or has a version older than the block below (currently v6), write/replace it (idempotent — strip the old `start`...`end` range first, don't duplicate). **A repo still carrying v4 or older is telling its agent to read a `HELPMETEST.md` that no longer exists; v5 tells it to check `confidence`/`last_verified` fields the `Memory` schema does not have, and to find that artifact with a full-text search that returns unrelated ones. Replacing the block is the fix, and it only happens when the user re-runs `helpmetest install skills`.**
+Check `CLAUDE.md` and `AGENTS.md` (repo root) for the marker `<!-- helpmetest:start vN -->`. If either file is missing the marker, or has a version older than the block below (currently v7), write/replace it (idempotent — strip the old `start`...`end` range first, don't duplicate).
 
 ```markdown
-<!-- helpmetest:start v6 -->
+<!-- helpmetest:start v7 -->
 ## HelpMeTest — testing & TDD contract
 
 This project has HelpMeTest installed. There is no project contract file — artifacts are the only state. Orient with `helpmetest status` and `helpmetest artifact list --tags "project:<slug>"`, then run `/helpmetest`.
@@ -148,6 +148,17 @@ Use `helpmetest interactive` / `helpmetest test` for:
 2. Tests are written and shown failing before implementation starts.
 3. Code is written only to make a specific failing test pass.
 4. Done = all tests green + user sign-off. Not "looks right."
+
+### Test integrity is not optional
+Existing tests are immutable evidence. Never modify, skip, disable, quarantine, weaken,
+remove assertions from, or delete a test to make a result pass. If a test appears wrong,
+leave it unchanged and report: its id, literal failing command output, expected behaviour,
+observed behaviour, and the code/environment change required for it to pass. Fix code,
+configuration, fixtures, or the environment — not the test.
+
+The first line of every final report says either `TEST FILES CHANGED: none.` or
+`TEST FILES CHANGED: <paths> — <reason>`. Do not claim a test passes unless the report
+pastes the literal command and literal result output.
 
 ### Findings persist to the Memory artifact, not this file
 Selectors, auth flows, timing quirks discovered mid-session go in the project's `Memory` artifact — not into this block. Find it by type, scoped to the project: `helpmetest artifact list --type Memory --tags "project:<slug>"`, then `helpmetest artifact get <id>`. (Not `helpmetest search Memory` — that is a full-text search and returns anything whose prose contains the word.) Each entry has a `category` and a `lesson`; there is no confidence or last-verified field, so the artifact records no freshness signal — re-confirm a selector or timing claim against the live app before relying on it. This block is static and only self-installs the workflow contract above.
@@ -209,32 +220,27 @@ Every mode follows the same pattern: orient → announce → act. The announce s
 ```
 agent         Tasks-artifact lifecycle only — baseline discipline, any workflow.
 dev           Orchestrator for ALL code work — greenfield, new feature, change, refactor.
-              Reads the situation (no project / new feature / existing / broken) and runs the right sequence:
-              map the project → tdd RED → implement GREEN → interactive → discover → validate → improve → coverage.
-              Triggers: 'build X', 'add feature X', 'I want to develop X', 'change X', 'refactor X', 'implement X'.
-              Never build code before tests — the sequence is enforced, not suggested.
-tdd           Write or fix tests. Sub-step called by dev, or use directly for targeted test work.
+              map the project → tdd RED → implement GREEN → interactive → discover → validate → coverage.
+              Existing tests remain unchanged; code, fixtures, configuration, or environment
+              must satisfy them.
+tdd           Write new tests for uncovered behaviour. Existing tests are immutable.
               Bare: presents TDD landscape (failing tests + uncovered scenarios), recommends one, asks "that or something specific?"
 discover      Map a live app, PRD, or spec into Feature artifacts. Also handles fast triage sweeps
               ("find bugs", "poke around", "good test around") — outputs a three-section findings table
               (Bugs / Data quality / UX illogicalities) and documents bugs in Feature artifacts.
               Bare/no source: asks what the source is. Bare/existing artifacts: asks "extend or focus on a specific area?"
-fix           Diagnose a failing test (selector, timing, auth, backend) and repair it.
+fix           Diagnose a failing test (selector, timing, auth, backend), then repair code,
+              configuration, fixtures, or environment — never the test.
               Bare: triage mode — collects status + git state, announces findings, recommends highest-priority failing test.
 coverage      Read-only gap analysis — which scenarios lack tests, which tests are orphans.
               Bare: announces what user will know after, asks "full scope or critical/high first?"
 regression    Given a list of changed files, run only tests affected by those files.
               Bare/no files: asks "what changed?" in one sentence framed as "after this you'll know if it's safe to push."
-validate      Score existing tests against /tdd quality rules; produce a rewrite queue.
+validate      Score existing tests against /tdd quality rules; report a code/product action queue.
               Bare: announces what user will find, asks "full suite or critical first?"
-improve       Audit all tests (I2 section comments, I3 inline comments,
-              I4 assertions, I5 selectors, I6 tags), then rewrite and re-run each failing
-              test in place. validate + fix in one pass.
+improve       Audit test quality and report defects with literal evidence. Never changes a test.
               Bare: announces N tests, asks "all or specific filter?"
-comment       Rewrite comments only — groups per-line comments into intent-based section
-              headings (C1–C7: no numbering, no decorations, product context not
-              implementation narration, invariants not assertion descriptions).
-              No keywords, selectors, or assertions changed.
+comment       Audit comment clarity and report defects. Never changes a test.
               Bare: asks which test(s) to target.
 proxy         Set up localhost tunneling before testing dev servers.
               Bare/no port: asks "what port?" — then sets up + verifies before any tests are written.
