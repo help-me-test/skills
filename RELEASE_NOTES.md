@@ -1,5 +1,20 @@
 # Release notes
 
+## 3.0.1 — 2026-09-30
+
+### QA agency
+
+Bare `/helpmetest` now has an outcome-led QA-agency contract: it maps the real product,
+acts immediately when the target and risk direction are known, proves workflows live
+before creating artifacts, verifies delivered coverage, and closes each observed behavior
+with a test, explicit waiver, or demonstrated unreachability.
+
+### Test drafting
+
+A local draft rejected before `helpmetest test create` is not a stored test. Skills now
+correct its structural validation errors while preserving the behavior it asserts, then
+submit it again.
+
 ## 3.0.0 — 2026-09-29
 
 ### Breaking workflow change

@@ -103,8 +103,14 @@ Never assume the project is empty. Never create what already exists.
    the feature was intentionally removed or its contract intentionally changed, leave the
    existing test failing and say so. A green run obtained by retiring its witness is not
    evidence.
-4. **Creating a new test is allowed only for previously uncovered behaviour.** Run it as
-   written. Once it exists, it is covered by this same no-mutation rule.
+4. **Creating a new test is allowed only for previously uncovered behaviour.** A local
+   draft rejected by `helpmetest test create` is **not an existing test**: the server did
+   not save it and no run exists. You MUST correct that draft's structural validation error
+   and submit it again — for example, add required section comments or missing tags —
+   while preserving its user action and outcome assertions. That is authoring a new test,
+   not changing evidence. If the only way to satisfy validation would weaken, remove, or
+   change the behaviour the draft asserts, stop and report the conflict. Once the server
+   accepts the test, it is covered by this same no-mutation rule.
 5. **Test-directory disclosure is mandatory.** If any file under a test directory is
    changed for a user-authorized reason outside this skill, the first line of the final
    report must be: `TEST FILES CHANGED: <paths> — <reason>`. If none changed: `TEST FILES

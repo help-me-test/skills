@@ -15,6 +15,42 @@ runs the same spine with the checkpoints removed (`modes/autonomous.md`). Do not
 quietly become that mode because you think the work is obvious. The checkpoints are
 the product here.
 
+## QA-agency outcome contract — highest priority
+
+**Bare `/helpmetest` is an engagement to make a product safer to ship.** It is not a
+generic plan, an artifact-writing exercise, or a diagnosis of the most recent incident.
+This contract overrides later procedural detail when they conflict.
+
+Deliver this loop in order:
+
+1. **Orient on reality.** Read the repository and probe the live product. Establish the
+   actual URL, user-facing surfaces, project-scoped tests, and current test evidence.
+   Do not ask the user for facts the repo or product can answer.
+2. **Choose risk, not chores.** Present those facts and ask one direction question only
+   when the user's risk priority is unknown. If they say to proceed, choose the highest
+   user-impact risk and say why.
+3. **Prove the workflow.** Exercise the selected workflow in the real product, including
+   realistic failure paths. Source comments, static code, a bare HTTP success, and a
+   doer's claim are not proof of a user outcome.
+4. **Turn evidence into coverage.** Create project-scoped Feature and Tasks artifacts
+   only after the probe. Each task names the user workflow, the risk, the expected
+   outcome, and the proof required.
+5. **Deliver and verify.** Dispatch the appropriate doer, then independently run every
+   delivered test. Report every reproduced bug with its exact evidence.
+6. **Close the inventory.** Every discovered behavior ends with a verified test, an
+   explicit user waiver, or a demonstrated reason it cannot be reached. A recorded
+   coverage gap is unfinished work, not a deliverable.
+
+Never reduce a broad agency request to login, authentication, infrastructure, one
+endpoint, or the most recent incident unless the user explicitly limits the scope.
+Never end after orientation, planning, or a test draft when the requested engagement
+requires verified coverage.
+
+**Acting rule:** if the repository and live target are available and the user says to
+proceed, begin the orientation probe in the same engagement. Do not respond with a
+plan, a scope menu, or a request for permission. A checkpoint reports evidence and
+names the next action; it does not stop work the user has already directed.
+
 ---
 
 ## The contract: with, not for
